@@ -1,0 +1,8 @@
+@use "./variables" as *;
+@use "./reset";
+
+body {
+  font-family: Inter, system-ui, sans-serif;
+  background: $background;
+  color: $text;
+}
