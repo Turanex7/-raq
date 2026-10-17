@@ -19,7 +19,7 @@ const seededUsers = Array.from({ length: 40 }, (_, i) => ({
 }));
 seededUsers[0] = { ...seededUsers[0], id: "user_demo", name: "Aysel Məmmədova", university: UNIVERSITIES[2].name, xp: 350, weeklyXp: 0, correctAnswers: 2, reachedAt: 1700 };
 const init = {
-  now: new Date("2026-10-17T11:00:00"), weekLabel: "12–18 oktyabr", weekTheme: "Muzey həftəsi", pins: WEEKLY_PINS, completed: [], cards: [
+  now: new Date("2026-10-17T11:00:00"), weekLabel: "12–18 oktyabr", weekTheme: "Muzey həftəsi", pins: WEEKLY_PINS, completed: [], missedCards: [], cards: [
     { id: "old-1", week: "28 sentyabr–4 oktyabr", name: "Şirvanşahlar sarayı", art: "", rarity: "Nadir" },
     { id: "old-2", week: "5–11 oktyabr", name: "Qız qalası", art: "", rarity: "Adi" },
   ], users: seededUsers, currentUserId: "user_demo", multiplierRank: 1, gpsId: null, teleportFlag: false, qrScanned: false, modalPinId: null, demoOpen: false, streakOverride: null, lastLocation: null, lastWeekPrizes: null,
@@ -76,8 +76,9 @@ export function jumpWeekEnd() {
   const universityPrize = state.weekTheme === "Şəhər həftəsi" ? "Şəhər təcrübəsi üçün hədiyyə" : "Muzey dostu üçün hədiyyə kartı";
   const winners = assignPrizes(users, overallPrize, universityPrize);
   const lastWeekPrizes = { ...winners, weekLabel: state.weekLabel, weekTheme: state.weekTheme, multiplierRank: rank > 0 ? rank : 99 };
+  const missedCards = state.pins.filter((pin) => !state.completed.some((item) => item.pinId === pin.id)).map((pin) => ({ id: `missed-${state.weekLabel}-${pin.id}`, week: state.weekLabel, name: pin.name, art: pin.art, rarity: pin.type === "rare" ? "Epik" : pin.type === "museum" ? "Nadir" : "Adi", status: "missed" }));
   const nextUsers = state.users.map((user) => ({ ...user, weeklyXp: 0, correctAnswers: 0 }));
-  state = { ...state, users: nextUsers, pins: NEXT_WEEK_PINS, weekLabel: "19–25 oktyabr", weekTheme: "Şəhər həftəsi", completed: [], multiplierRank: rank > 0 ? rank : 99, now: new Date("2026-10-19T09:00:00"), lastWeekPrizes };
+  state = { ...state, users: nextUsers, pins: NEXT_WEEK_PINS, weekLabel: "19–25 oktyabr", weekTheme: "Şəhər həftəsi", completed: [], missedCards: [...state.missedCards, ...missedCards], multiplierRank: rank > 0 ? rank : 99, now: new Date("2026-10-19T09:00:00"), lastWeekPrizes };
   emit();
 }
 export function triggerCoop(pin) {

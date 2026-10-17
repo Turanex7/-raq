@@ -731,15 +731,18 @@ public static class ApiRoutes
     {
         var user = await CurrentUser(http, db, tokens);
         if (user is null) return Fail(401, "unauthorized", "Kolleksiyaya baxmaq üçün daxil ol.");
-        var seasonIds = await db.Seasons.OrderByDescending(x => x.StartsAtUtc).Select(x => new { x.Id, x.Finalized }).ToListAsync();
+        var now = DateTimeOffset.UtcNow;
+        var activeSeason = await ActiveSeason(db, now);
+        var seasons = await db.Seasons.OrderByDescending(x => x.StartsAtUtc).ToListAsync();
         var items = new List<object>();
-        foreach (var season in seasonIds)
+        foreach (var season in seasons)
         {
             var souvenirs = await db.Souvenirs.Where(x => x.SeasonId == season.Id).Join(db.Places, x => x.PlaceId, p => p.Id, (x, p) => new { Souvenir = x, Place = p }).ToListAsync();
             foreach (var item in souvenirs)
             {
                 var earned = await db.UserSouvenirs.AnyAsync(x => x.UserId == user.Id && x.SouvenirId == item.Souvenir.Id);
-                items.Add(new { id = item.Souvenir.Id, name = item.Souvenir.Name, place = item.Place.Name, rarity = item.Souvenir.Rarity, earned, season_id = season.Id, limited = true, status = earned ? "earned" : season.Finalized ? "missed" : "available" });
+                var status = earned ? "earned" : activeSeason?.Id == season.Id ? "available" : season.Finalized ? "missed" : "upcoming";
+                items.Add(new { id = item.Souvenir.Id, name = item.Souvenir.Name, place = item.Place.Name, rarity = item.Souvenir.Rarity, earned, season_id = season.Id, season_theme = season.Theme, season_starts_at_utc = season.StartsAtUtc, limited = true, status });
             }
         }
         return Results.Ok(new { rows = items, avatars = await AvatarCollection(db, user) });
@@ -787,7 +790,7 @@ public static class ApiRoutes
             id = row.UserId, rank = row.Rank, name = PublicName(row.Name), weeklyXp = row.WeeklyXp,
             prizeEligible = row.PrizeEligible, universityId = row.UniversityId,
             winner = row.Rank == 1 || row.UserId == secondWinnerId,
-            label = row.Rank == 1 ? "Həftənin qalibi" : row.UserId == secondWinnerId ? "Universitet mükafatının qalibi" : "Reytinq iştirakçısı",
+            label = row.Rank == 1 ? "Qalib" : row.UserId == secondWinnerId ? "Universitet mükafatının qalibi" : "Reytinq iştirakçısı",
         }).ToList();
     }
     private static async Task<IResult> ClaimReward(RewardClaimRequest request, HttpContext http, AppDbContext db, Tokens tokens)
