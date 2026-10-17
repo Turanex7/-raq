@@ -599,6 +599,10 @@ namespace Chiraq.Api.Data.Migrations
 
                     b.HasIndex("UserId", "SeasonId");
 
+                    b.HasIndex("UserId", "SeasonId", "PlaceId")
+                        .IsUnique()
+                        .HasFilter("\"Kind\" = 'group_bonus'");
+
                     b.ToTable("XpEvents");
                 });
 #pragma warning restore 612, 618

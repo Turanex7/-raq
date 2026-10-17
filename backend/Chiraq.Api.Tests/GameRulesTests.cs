@@ -72,6 +72,22 @@ public sealed class GameRulesTests
     }
 
     [Fact]
+    public async Task GroupBonusLedgerAllowsAtMostOneEntryPerMemberPlaceAndSeason()
+    {
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+        await using var db = new AppDbContext(options);
+        await db.Database.MigrateAsync();
+
+        db.XpEvents.Add(new XpEvent { UserId = "user-1", SeasonId = "week-1", PlaceId = "place-1", Kind = "group_bonus", Amount = 20 });
+        await db.SaveChangesAsync();
+        db.XpEvents.Add(new XpEvent { UserId = "user-1", SeasonId = "week-1", PlaceId = "place-1", Kind = "group_bonus", Amount = 20 });
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+    }
+
+    [Fact]
     public void CoopRequiresTheConfiguredNumberOfDistinctParticipants()
     {
         Assert.False(GameRules.CoopReady(2, 3));

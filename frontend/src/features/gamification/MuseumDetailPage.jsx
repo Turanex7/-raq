@@ -5,6 +5,7 @@ import useApiResource from "../../services/useApiResource";
 import { useMocks } from "../../services/api";
 import { MUSEUM_DETAILS } from "./contentData";
 import TerritorySummary from "./components/TerritorySummary";
+import GroupBonusInfo from "./components/GroupBonusInfo";
 import styles from "./ContentPages.module.scss";
 
 export default function MuseumDetailPage() {
@@ -32,6 +33,7 @@ function ApiMuseumDetail({ slug }) {
     <article className={styles.hero}><span aria-hidden="true">{place.type === "museum" ? "⌂" : "⌖"}</span><p className={styles.kicker}><Sparkles size={14}/>{place.status === "open" ? "Bu həftə açıqdır" : "Bu həftə bağlıdır"} · {place.district}</p><h1>{place.name}</h1><p className={styles.location}><MapPin size={15}/>{place.district} · {place.radiusMeters} m radius</p><p>{place.description}</p>
       {owner ? <TerritorySummary owner={owner} universityId={me?.universityId}/> : <div className={styles.reward}>Bu həftə ərazi xalı hələ qazanılmayıb.</div>}
     </article>
+    <GroupBonusInfo status={place.group_bonus}/>
     <div className={styles.contentCard}>
       <div className={styles.taskHeading}><div><h2>Tapşırıqlar</h2><p>Tapşırıq XP-si serverdə hesablanır.</p></div><button type="button" className={styles.action} onClick={() => setRoute((value) => !value)}>{route ? "Bütün tapşırıqlar" : "20 dəqiqəlik marşrut"}</button></div>
       {place.status === "open" && firstAvailableTask && <Link className={styles.action} to={`/quests/${firstAvailableTask.id}?place=${encodeURIComponent(place.slug)}`}>Fəth et · tapşırığa başla<ArrowRight size={15}/></Link>}

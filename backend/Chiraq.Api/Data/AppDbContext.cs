@@ -39,6 +39,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         model.Entity<TaskCompletion>().HasIndex(x => new { x.UserId, x.TaskId, x.SeasonId }).IsUnique();
         model.Entity<XpEvent>().HasKey(x => x.Id);
         model.Entity<XpEvent>().HasIndex(x => new { x.UserId, x.SeasonId });
+        model.Entity<XpEvent>().HasIndex(x => new { x.UserId, x.SeasonId, x.PlaceId })
+            .IsUnique().HasFilter("\"Kind\" = 'group_bonus'");
         model.Entity<Checkin>().HasKey(x => x.Id);
         model.Entity<Checkin>().HasIndex(x => new { x.UserId, x.PlaceId, x.SeasonId }).IsUnique();
         model.Entity<GameGroup>().HasKey(x => x.Id);

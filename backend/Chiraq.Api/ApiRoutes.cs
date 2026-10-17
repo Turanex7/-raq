@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Chiraq.Api.Data;
 using Chiraq.Api.Security;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace Chiraq.Api;
@@ -228,7 +229,38 @@ public static class ApiRoutes
             }
             statuses.Add(new { task.Id, task.Code, task.Title, task.Description, task.Type, task.Difficulty, task.Xp, task.CoopSize, task.NeedsReview, completed, payload });
         }
-        return Results.Ok(new { place.Id, place.Slug, place.Type, place.Name, place.District, place.Description, place.Latitude, place.Longitude, place.RadiusMeters, status = place.IsOpen ? "open" : "locked", territory = season is null ? null : await TerritoryOwner(db, season.Id, place.Id), tasks = statuses });
+        return Results.Ok(new { place.Id, place.Slug, place.Type, place.Name, place.District, place.Description, place.Latitude, place.Longitude, place.RadiusMeters, status = place.IsOpen ? "open" : "locked", territory = season is null ? null : await TerritoryOwner(db, season.Id, place.Id), group_bonus = await GroupBonusStatus(db, user, season?.Id, place.Id), tasks = statuses });
+    }
+
+    private static async Task<object> GroupBonusStatus(AppDbContext db, AppUser? user, string? seasonId, string placeId)
+    {
+        var currentMembers = 0;
+        if (user is not null && seasonId is not null)
+        {
+            var groupIds = await db.GroupMembers.Where(x => x.UserId == user.Id).Select(x => x.GroupId).ToListAsync();
+            foreach (var groupId in groupIds)
+            {
+                var memberIds = await db.GroupMembers.Where(x => x.GroupId == groupId).Select(x => x.UserId).ToListAsync();
+                var participating = await db.TaskCompletions.Where(x => memberIds.Contains(x.UserId) && x.SeasonId == seasonId && x.CompletedAtUtc >= DateTimeOffset.UtcNow.AddMinutes(-GameRules.GroupBonusWindowMinutes))
+                    .Join(db.Tasks.Where(x => x.PlaceId == placeId), completion => completion.TaskId, task => task.Id, (completion, _) => completion.UserId)
+                    .Distinct().CountAsync();
+                currentMembers = Math.Max(currentMembers, Math.Min(5, participating));
+            }
+        }
+        var tierMembers = Math.Clamp(Math.Max(currentMembers, GameRules.GroupBonusMinimumMembers), 2, 5);
+        var multiplier = GameRules.GroupMultipliers[tierMembers - 2];
+        var alreadyAwarded = user is not null && seasonId is not null && await db.XpEvents.AnyAsync(x => x.UserId == user.Id && x.SeasonId == seasonId && x.PlaceId == placeId && x.Kind == "group_bonus");
+        var earnedXp = user is not null && seasonId is not null ? await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == seasonId && x.PlaceId == placeId && x.Kind == "group_bonus").SumAsync(x => (int?)x.Amount) ?? 0 : 0;
+        return new
+        {
+            minimum_members = GameRules.GroupBonusMinimumMembers,
+            current_members = currentMembers,
+            members_needed = Math.Max(0, GameRules.GroupBonusMinimumMembers - currentMembers),
+            multiplier,
+            window_minutes = GameRules.GroupBonusWindowMinutes,
+            already_awarded = alreadyAwarded,
+            earned_xp = earnedXp,
+        };
     }
 
     private static async Task<object?> TerritoryOwner(AppDbContext db, string seasonId, string placeId)
@@ -464,7 +496,18 @@ public static class ApiRoutes
                 db.XpEvents.Add(new XpEvent { UserId = participant, SeasonId = seasonId, PlaceId = placeId, Kind = "group_bonus", Amount = bonus, CreatedAtUtc = now });
                 if (participant == userId) bonusForCurrentUser = bonus;
             }
-            await db.SaveChangesAsync();
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException error) when (error.InnerException is SqliteException { SqliteErrorCode: 19 })
+            {
+                foreach (var entry in db.ChangeTracker.Entries<XpEvent>().Where(x => x.State == EntityState.Added && x.Entity.Kind == "group_bonus"))
+                    entry.State = EntityState.Detached;
+                var existing = await db.XpEvents.FirstOrDefaultAsync(x => x.UserId == userId && x.SeasonId == seasonId && x.PlaceId == placeId && x.Kind == "group_bonus");
+                if (existing is null) throw;
+                return existing.Amount;
+            }
             if (bonusForCurrentUser > 0) return bonusForCurrentUser;
         }
         return 0;

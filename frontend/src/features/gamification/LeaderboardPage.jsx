@@ -7,7 +7,7 @@ import styles from "./LeaderboardPage.module.scss";
 import { useMocks, apiPost, apiRequest } from "../../services/api";
 import { useEffect } from "react";
 import useApiResource from "../../services/useApiResource";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 const tabs = [["overall", "Ümumi"], ["mine", "Universitetim"], ["universities", "Universitet Liqası"], ["open", "Açıq liqa"]];
 export default function LeaderboardPage() {
@@ -16,7 +16,8 @@ export default function LeaderboardPage() {
 }
 
 function MockLeaderboard() {
-  const [type, setType] = useState("overall"); const [info, setInfo] = useState(false); const game = useGame();
+  const [search] = useSearchParams();
+  const [type, setType] = useState(search.get("tab") === "open" ? "open" : "overall"); const [info, setInfo] = useState(false); const game = useGame();
   const me = game.users.find((user) => user.id === game.currentUserId);
   const people = useMemo(() => applyTieBreak(game.users.filter((user) => type === "mine" ? user.university === me.university : type === "open" ? user.university === "Açıq liqa" : true)), [game.users, me.university, type]);
   const universities = useMemo(() => rankUniversities(game.users), [game.users]);
@@ -35,7 +36,8 @@ function MockLeaderboard() {
 }
 
 function ApiLeaderboard() {
-  const [type, setType] = useState("overall");
+  const [search] = useSearchParams();
+  const [type, setType] = useState(search.get("tab") === "open" ? "open" : "overall");
   const scope = type === "overall" ? "global" : type === "mine" ? "university" : type === "universities" ? "league" : "open";
   const { data, loading, error, retry } = useApiResource(`/leaderboard?scope=${scope}`);
   const { data: config } = useApiResource("/config");
@@ -50,15 +52,25 @@ function ApiLeaderboard() {
     apiRequest("/groups/me").then(setGroups).catch((requestError) => setGroupError(requestError.message));
   }, [type]);
 
+  async function refreshGroups() {
+    const result = await apiRequest("/groups/me");
+    setGroups(result);
+    return result;
+  }
+
   async function createGroup(event) {
     event.preventDefault(); setGroupError(""); setNotice("");
-    try { const group = await apiPost("/groups", { name: groupName }); setGroupName(""); setNotice(`Dəvət kodun: ${group.inviteCode}`); setGroups((rows) => [...rows, group]); }
+    try { const group = await apiPost("/groups", { name: groupName }); setGroupName(""); await refreshGroups(); setNotice(`Dəvət kodun: ${group.inviteCode}`); }
     catch (requestError) { setGroupError(requestError.message); }
   }
   async function joinGroup(event) {
     event.preventDefault(); setGroupError(""); setNotice("");
-    try { const group = await apiPost("/groups/join", { inviteCode }); setInviteCode(""); setNotice(`${group.name} qrupuna qoşuldun.`); setGroups((rows) => rows.some((item) => item.id === group.id) ? rows : [...rows, group]); }
+    try { const group = await apiPost("/groups/join", { inviteCode }); setInviteCode(""); await refreshGroups(); setNotice(`${group.name} qrupuna qoşuldun.`); }
     catch (requestError) { setGroupError(requestError.message); }
+  }
+  async function copyInviteCode(code) {
+    try { await navigator.clipboard.writeText(code); setNotice("Dəvət kodu köçürüldü."); }
+    catch { setNotice(`Dəvət kodu: ${code}`); }
   }
 
   const rows = data?.rows || [];
@@ -83,7 +95,7 @@ function ApiLeaderboard() {
       const subtitle = isUniversity ? row.eligible ? `${participants} iştirakçı · ${territories} ərazi · ${change}` : `${participants} iştirakçı · Reytinq üçün kifayət qədər iştirakçı yoxdur` : type === "open" ? `${row.memberCount ?? row.member_count} üzv · ${activeMembers} aktiv iştirakçı` : row.university;
       return <li key={row.id || row.university || row.groupId || index} className={`${styles.row} ${row.current ? styles.me : ""} ${isUniversity && !row.eligible ? styles.inactive : ""}`}><span className={`${styles.rank} ${styles[`rank${row.rank || index + 1}`] || ""}`}>{row.rank ?? (row.eligible === false ? "—" : index + 1)}</span><div className={styles.info}><strong>{title}{row.current ? " (sən)" : ""}</strong><span>{subtitle}</span></div><div className={styles.xp}><b>{Number(score).toLocaleString("az-AZ")}</b><span>{isUniversity || type === "open" ? "orta XP" : "həftəlik XP"}</span></div></li>;
     })}</ol>}
-    {type === "open" && <section className={styles.groups}><div><h2>Açıq liqa qrupları</h2><p>Qrup yarat, dəvət kodunu dostlarınla paylaş və ümumi nəticəni izlə.</p></div><div id="group-forms" className={styles.groupForms}><form onSubmit={createGroup}><label>Yeni qrup<input value={groupName} onChange={(event) => setGroupName(event.target.value)} required maxLength={40} placeholder="Məsələn, Muzey dostları"/></label><button type="submit">Qrup yarat</button></form><form onSubmit={joinGroup}><label>Dəvət kodu<input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} required maxLength={16} placeholder="8 simvollu kod"/></label><button type="submit">Qrupa qoşul</button></form></div>{groupError && <p role="alert">{groupError}</p>}{notice && <p role="status">{notice}</p>}{groups.length === 0 && <p className={styles.groupEmpty}>Hələ heç bir qrupa qoşulmamısan. Dəvət kodu ilə qoşul və ya yeni qrup yarat.</p>}{groups.map((group) => <article className={styles.groupCard} key={group.id}><b>{group.name}</b><span>{group.member_count ?? group.members?.length ?? 0}/5 üzv · kod: {group.inviteCode}</span><div>{group.members?.map((member) => <span key={member.id}>{member.name}</span>)}</div></article>)}</section>}
+    {type === "open" && <section className={styles.groups}><div><h2>Açıq liqa qrupları</h2><p>Qrup yarat, dəvət kodunu dostlarınla paylaş və ümumi nəticəni izlə.</p></div><div id="group-forms" className={styles.groupForms}><form onSubmit={createGroup}><label>Yeni qrup<input value={groupName} onChange={(event) => setGroupName(event.target.value)} required maxLength={40} placeholder="Məsələn, Muzey dostları"/></label><button type="submit">Qrup yarat</button></form><form onSubmit={joinGroup}><label>Dəvət kodu<input value={inviteCode} onChange={(event) => setInviteCode(event.target.value.toUpperCase())} required maxLength={16} placeholder="8 simvollu kod"/></label><button type="submit">Qrupa qoşul</button></form></div>{groupError && <p role="alert">{groupError}</p>}{notice && <p role="status">{notice}</p>}{groups.length === 0 && <p className={styles.groupEmpty}>Hələ heç bir qrupa qoşulmamısan. Dəvət kodu ilə qoşul və ya yeni qrup yarat.</p>}{groups.map((group) => <article className={styles.groupCard} key={group.id}><div className={styles.groupTop}><b>{group.name}</b><span>{group.member_count ?? group.members?.length ?? 0}/5 üzv</span></div><div className={styles.invite}><span>Dəvət kodu: <code>{group.inviteCode}</code></span><button type="button" onClick={() => copyInviteCode(group.inviteCode)}>Kodu köçür</button></div><ul className={styles.memberList} aria-label={`${group.name} qrupunun üzvləri`}>{group.members?.map((member) => <li key={member.id}>{member.name}{member.current ? " · sən" : ""}</li>)}</ul></article>)}</section>}
   </section>;
 }
 
