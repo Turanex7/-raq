@@ -1,0 +1,128 @@
+@use "../../styles/variables" as *;
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 20px;
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+  }
+
+  p {
+    margin: 0;
+    color: $muted;
+  }
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 6px;
+  background: $surface;
+  border-radius: $radius-button;
+
+  button {
+    border: 0;
+    background: transparent;
+    color: $muted;
+    min-height: 40px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+}
+
+.active {
+  background: $navy !important;
+  color: $primary !important;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  background: $surface;
+  border-radius: $radius-card;
+  padding: 14px 16px;
+}
+
+.me {
+  outline: 1px solid $primary;
+}
+
+.rank {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 800;
+}
+
+.rank1 {
+  background: $gold;
+  color: $navy;
+}
+
+.rank2 {
+  background: #c9d0dc;
+  color: $navy;
+}
+
+.rank3 {
+  background: #c47b4a;
+  color: $navy;
+}
+
+.info {
+  min-width: 0;
+
+  strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: $muted;
+    font-size: 13px;
+  }
+}
+
+.xp {
+  text-align: right;
+
+  b {
+    display: block;
+    color: $primary;
+  }
+
+  span {
+    color: $muted;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: $mobile) {
+  .header h1 {
+    font-size: 22px;
+  }
+}
