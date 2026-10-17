@@ -245,7 +245,7 @@ public static class ApiRoutes
         var universites = await db.Universities.ToDictionaryAsync(x => x.Id, x => x.ShortName);
         var top = scores[0];
         var gap = scores.Count > 1 ? Math.Max(0, top.Score - scores[1].Score) : top.Score;
-        return new { university_id = top.UniversityId, university = universites.GetValueOrDefault(top.UniversityId, ""), score = top.Score, runner_up = scores.Count > 1 ? universites.GetValueOrDefault(scores[1].UniversityId, "") : null, runner_up_score = scores.Count > 1 ? scores[1].Score : 0, gap, participant_count = top.Visitors, final = false };
+        return new { university_id = top.UniversityId, university = universites.GetValueOrDefault(top.UniversityId, ""), score = top.Score, runner_up_id = scores.Count > 1 ? scores[1].UniversityId : null, runner_up = scores.Count > 1 ? universites.GetValueOrDefault(scores[1].UniversityId, "") : null, runner_up_score = scores.Count > 1 ? scores[1].Score : 0, gap, participant_count = top.Visitors, final = false };
     }
 
     private static double DistanceMeters(double lat1, double lon1, double lat2, double lon2)
@@ -417,7 +417,7 @@ public static class ApiRoutes
             level_up = level > oldLevel,
             avatar_unlocked = unlocked,
             souvenir_drop = souvenirDrop ? new { souvenir!.Id, souvenir.Name, souvenir.Rarity } : null,
-            territory_change = territoryChanged ? new { message = $"{place.Name} üçün ərazi üstünlüyü universitetinə keçdi.", owner = afterOwner } : null,
+            territory_change = territoryChanged ? new { message = TerritoryTakeoverMessage(place, beforeOwner), owner = afterOwner } : null,
             correct, correct_answer = correct ? null : correctAnswer, fact = correct ? null : fact,
             prize_eligible = user.PrizeEligible,
         };
@@ -425,6 +425,20 @@ public static class ApiRoutes
     }
 
     private static string NormalizeAnswer(string value) => value.Trim().Normalize(NormalizationForm.FormKC).ToLowerInvariant().Replace('ə', 'e').Replace('ı', 'i');
+
+    private static string TerritoryTakeoverMessage(Place place, object? previousOwner)
+    {
+        var previousUniversity = (string?)previousOwner?.GetType().GetProperty("university")?.GetValue(previousOwner);
+        var placeName = place.Slug switch
+        {
+            "carpet-museum" => "Xalça Muzeyini",
+            "national-history" => "Milli Tarix Muzeyini",
+            _ => $"{place.Name} məkanını",
+        };
+        return previousUniversity is null
+            ? $"{placeName} ilk dəfə fəth etdin!"
+            : $"{placeName} {previousUniversity}-dan fəth etdin!";
+    }
 
     private static async Task<int> GrantGroupBonus(AppDbContext db, string userId, string placeId, string seasonId, DateTimeOffset now)
     {

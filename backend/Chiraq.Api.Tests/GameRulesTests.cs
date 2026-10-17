@@ -150,5 +150,19 @@ public sealed class GameRulesTests
             var xp = await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == season.Id).SumAsync(x => x.Amount);
             Assert.InRange(xp, 0, achievableCeiling);
         }
+
+        var territoryScores = await db.XpEvents.Where(x => x.SeasonId == season.Id && (x.PlaceId == "place-carpet-museum" || x.PlaceId == "place-national-history"))
+            .Join(db.Users, xp => xp.UserId, user => user.Id, (xp, user) => new { user.UniversityId, xp.PlaceId, xp.UserId, xp.Amount })
+            .ToListAsync();
+        var carpetScores = territoryScores.Where(x => x.PlaceId == "place-carpet-museum")
+            .GroupBy(x => x.UniversityId).Select(group => new { University = group.Key, Score = (int)Math.Round(group.Sum(x => x.Amount) / (double)group.Select(x => x.UserId).Distinct().Count()) })
+            .OrderByDescending(x => x.Score).ToList();
+        var historyScores = territoryScores.Where(x => x.PlaceId == "place-national-history")
+            .GroupBy(x => x.UniversityId).Select(group => new { University = group.Key, Score = (int)Math.Round(group.Sum(x => x.Amount) / (double)group.Select(x => x.UserId).Distinct().Count()) })
+            .OrderByDescending(x => x.Score).ToList();
+        Assert.Equal("adnsu", carpetScores[0].University);
+        Assert.Equal(5, carpetScores[0].Score - carpetScores[1].Score);
+        Assert.Equal("ada", historyScores[0].University);
+        Assert.Equal(10, historyScores[0].Score - historyScores[1].Score);
     }
 }

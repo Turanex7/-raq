@@ -89,7 +89,13 @@ public static class DbSeeder
             db.Universities.AddRange(missingUniversities);
             await db.SaveChangesAsync();
         }
-        if (await db.Seasons.AnyAsync()) return;
+        if (await db.Seasons.AnyAsync())
+        {
+            var currentTime = DateTimeOffset.UtcNow;
+            var activeSeason = await db.Seasons.Where(x => x.StartsAtUtc <= currentTime && x.EndsAtUtc >= currentTime).OrderByDescending(x => x.StartsAtUtc).FirstOrDefaultAsync();
+            if (activeSeason is not null) await EnsureDemoTerritorySeedsAsync(db, activeSeason.Id);
+            return;
+        }
 
         var now = DateTimeOffset.UtcNow;
         var seasonRange = GameRules.CurrentSeason(now);
@@ -165,11 +171,13 @@ public static class DbSeeder
 
         // Each seeded score comes from distinct task completions, never from an arbitrary XP total.
         var placeById = places.ToDictionary(x => x.Id);
+        var territoryDemoPlaces = new HashSet<string>(StringComparer.Ordinal) { "carpet-museum", "national-history" };
+        var leaderboardTasks = tasks.Where(x => x.Type != "coop" && !territoryDemoPlaces.Contains(placeById[x.PlaceId].Slug)).ToList();
         foreach (var user in users)
         {
             var index = int.Parse(user.Id[^2..]);
             var count = 1 + index % 5;
-            foreach (var task in tasks.Where(x => x.Type != "coop").Take(count))
+            foreach (var task in leaderboardTasks.Take(count))
             {
                 db.TaskCompletions.Add(new TaskCompletion { UserId = user.Id, TaskId = task.Id, SeasonId = season.Id, Correct = index % 2 == 0, CompletedAtUtc = now.AddDays(-(index % 6)).AddMinutes(index * 3) });
                 db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = now.AddDays(-(index % 6)).AddMinutes(index * 3) });
@@ -177,6 +185,54 @@ public static class DbSeeder
             }
         }
         await db.SaveChangesAsync();
+        await EnsureDemoTerritorySeedsAsync(db, season.Id);
         await tx.CommitAsync();
     }
+
+    private static async Task EnsureDemoTerritorySeedsAsync(AppDbContext db, string seasonId)
+    {
+        var seedUsers = await db.Users.Where(x => x.PasswordHash == "!seed-only!").ToDictionaryAsync(x => x.Id);
+        if (!seedUsers.ContainsKey("seed-06") || !seedUsers.ContainsKey("seed-21") || !seedUsers.ContainsKey("seed-22")) return;
+
+        var places = await db.Places.Where(x => x.Slug == "carpet-museum" || x.Slug == "national-history").ToListAsync();
+        if (places.Count != 2) return;
+        var placeIds = places.Select(x => x.Id).ToArray();
+        var tasks = await db.Tasks.Where(x => placeIds.Contains(x.PlaceId) && x.Type != "coop").ToListAsync();
+        var taskById = tasks.ToDictionary(x => x.Id);
+        var expected = new[]
+        {
+            new DemoTerritoryTask("seed-21", "carpet-museum-visit", false),
+            new DemoTerritoryTask("seed-22", "carpet-museum-quiz", true),
+            new DemoTerritoryTask("seed-06", "carpet-museum-visit", false),
+            new DemoTerritoryTask("seed-21", "national-history-visit", false),
+            new DemoTerritoryTask("seed-06", "national-history-quiz", true),
+        };
+        if (expected.Any(x => !taskById.ContainsKey(x.TaskId))) return;
+
+        var seedUserIds = seedUsers.Keys.ToArray();
+        var hasRealVisitor = await db.XpEvents.AnyAsync(x => x.SeasonId == seasonId && placeIds.Contains(x.PlaceId) && !seedUserIds.Contains(x.UserId));
+        if (hasRealVisitor) return;
+
+        var currentSeedEvents = await db.XpEvents.Where(x => x.SeasonId == seasonId && placeIds.Contains(x.PlaceId) && seedUserIds.Contains(x.UserId))
+            .Select(x => new { x.UserId, x.TaskId, x.Amount, x.Kind }).ToListAsync();
+        var alreadyBalanced = currentSeedEvents.Count == expected.Length && expected.All(item =>
+            currentSeedEvents.Any(row => row.UserId == item.UserId && row.TaskId == item.TaskId && row.Kind == "base" && row.Amount == taskById[item.TaskId].Xp));
+        if (alreadyBalanced) return;
+
+        var targetedTaskIds = tasks.Select(x => x.Id).ToArray();
+        db.TaskCompletions.RemoveRange(await db.TaskCompletions.Where(x => x.SeasonId == seasonId && seedUserIds.Contains(x.UserId) && targetedTaskIds.Contains(x.TaskId)).ToListAsync());
+        db.XpEvents.RemoveRange(await db.XpEvents.Where(x => x.SeasonId == seasonId && seedUserIds.Contains(x.UserId) && placeIds.Contains(x.PlaceId)).ToListAsync());
+        var now = DateTimeOffset.UtcNow.AddDays(-1);
+        foreach (var (item, index) in expected.Select((item, index) => (item, index)))
+        {
+            var task = taskById[item.TaskId];
+            var completedAt = now.AddMinutes(index * 7);
+            db.TaskCompletions.Add(new TaskCompletion { UserId = item.UserId, TaskId = task.Id, SeasonId = seasonId, Correct = item.Correct, CompletedAtUtc = completedAt });
+            db.XpEvents.Add(new XpEvent { UserId = item.UserId, SeasonId = seasonId, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = completedAt });
+            if (places.First(x => x.Id == task.PlaceId).Type == "museum") seedUsers[item.UserId].FirstMuseumVisitCompleted = true;
+        }
+        await db.SaveChangesAsync();
+    }
+
+    private sealed record DemoTerritoryTask(string UserId, string TaskId, bool Correct);
 }
