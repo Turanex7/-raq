@@ -17,6 +17,7 @@ const RewardsPage = lazy(() => import("../features/gamification/RewardsPage"));
 const PrizesPage = lazy(() => import("../features/gamification/PrizesPage"));
 const LoginPage = lazy(() => import("../features/gamification/LoginPage"));
 const QrSheetPage = lazy(() => import("../features/gamification/QrSheetPage"));
+const DevDemoPage = lazy(() => import("../features/gamification/DevDemoPage"));
 
 function page(Component) {
   return <Suspense fallback={<div role="status" style={{ maxWidth: 720, margin: "32px auto", color: "#a9a5c2" }}>Səhifə yüklənir…</div>}><Component /></Suspense>;
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       { path: "quests/:id", element: page(QuestDetailPage) },
       { path: "scanner", element: page(ScannerPage) },
       { path: "dev/qr-sheet", element: page(QrSheetPage) },
+      { path: "dev/demo", element: page(DevDemoPage) },
       { path: "*", element: <PlaceholderPage title="Səhifə tapılmadı" /> },
     ],
   },

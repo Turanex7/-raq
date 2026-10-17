@@ -133,7 +133,9 @@ public sealed class GameRulesTests
         var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
         await using var db = new AppDbContext(options);
         await db.Database.EnsureCreatedAsync();
-        var season = new Season { Id = "rollover-test", StartsAtUtc = DateTimeOffset.UtcNow.AddDays(-8), EndsAtUtc = DateTimeOffset.UtcNow.AddDays(-1), Theme = "Test" };
+        var now = DateTimeOffset.UtcNow;
+        var currentWeek = GameRules.CurrentSeason(now);
+        var season = new Season { Id = $"season-{currentWeek.StartUtc:yyyyMMdd}", StartsAtUtc = currentWeek.StartUtc, EndsAtUtc = now.AddDays(1), Theme = "Test" };
         db.Seasons.Add(season);
         await db.SaveChangesAsync();
 
@@ -142,6 +144,7 @@ public sealed class GameRulesTests
 
         Assert.True(season.Finalized);
         Assert.Equal(2, await db.Seasons.CountAsync());
+        Assert.NotEqual(season.Id, (await db.Seasons.SingleAsync(x => x.Id != season.Id)).Id);
         Assert.Empty(await db.SeasonResults.ToListAsync());
         Assert.Empty(await db.TerritorySnapshots.ToListAsync());
     }

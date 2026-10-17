@@ -33,7 +33,7 @@ public static class ApiRoutes
         active.Finalized = true;
         var now = DateTimeOffset.UtcNow;
         var schedule = GameRules.CurrentSeason(now);
-        var nextId = $"season-{schedule.StartUtc:yyyyMMdd}";
+        var nextId = demoOverride ? $"season-demo-{now:yyyyMMddHHmmss}" : $"season-{schedule.StartUtc:yyyyMMdd}";
         var next = await db.Seasons.FindAsync(nextId);
         if (next is null)
         {
@@ -875,6 +875,9 @@ public static class ApiRoutes
         if (season is null) return Fail(503, "season_unavailable", "Cari mövsüm tapılmadı.");
         var users = await db.Users.Where(x => x.PasswordHash == "!seed-only!").OrderBy(x => x.Id).ToListAsync();
         var tasks = await db.Tasks.Where(x => x.Type != "coop").OrderBy(x => x.Id).ToListAsync();
+        if (users.Count == 0 || tasks.Count == 0) return Fail(503, "demo_seed_unavailable", "Demo iştirakçıları və tapşırıqları tapılmadı.");
+        if (!string.IsNullOrWhiteSpace(request.PlaceSlug))
+            return await SimulatePlaceActivity(request.Count, request.PlaceSlug, season, users, db);
         var awarded = new List<object>();
         for (var i = 0; i < request.Count; i++)
         {
@@ -887,6 +890,64 @@ public static class ApiRoutes
         }
         await db.SaveChangesAsync();
         return Results.Ok(new { simulated = awarded.Count, rows = awarded });
+    }
+
+    private static async Task<IResult> SimulatePlaceActivity(int count, string placeSlug, Season season, List<AppUser> seedUsers, AppDbContext db)
+    {
+        var place = await db.Places.FirstOrDefaultAsync(x => x.Slug == placeSlug || x.Id == placeSlug);
+        if (place is null) return Fail(404, "place_not_found", "Məkan tapılmadı.");
+        var tasks = await db.Tasks.Where(x => x.PlaceId == place.Id && x.Type != "coop").OrderByDescending(x => x.Xp).ToListAsync();
+        if (tasks.Count == 0) return Fail(503, "demo_tasks_unavailable", "Bu məkanda demo tapşırığı tapılmadı.");
+
+        var beforeOwner = await TerritoryOwner(db, season.Id, place.Id);
+        var ownerId = (string?)beforeOwner?.GetType().GetProperty("university_id")?.GetValue(beforeOwner);
+        var targetUniversityId = (string?)beforeOwner?.GetType().GetProperty("runner_up_id")?.GetValue(beforeOwner)
+            ?? seedUsers.FirstOrDefault(x => x.UniversityId != ownerId)?.UniversityId;
+        var targetUsers = seedUsers.Where(x => x.UniversityId == targetUniversityId).ToList();
+        if (targetUsers.Count == 0) return Fail(503, "demo_rival_unavailable", "Rəqib universitet üçün demo iştirakçısı tapılmadı.");
+
+        var placeScores = await db.XpEvents.Where(x => x.SeasonId == season.Id && x.PlaceId == place.Id)
+            .Join(db.Users, xp => xp.UserId, user => user.Id, (xp, user) => new { xp.UserId, xp.Amount, user.PasswordHash, user.UniversityId })
+            .Where(x => x.PasswordHash == "!seed-only!" && x.UniversityId == targetUniversityId)
+            .Select(x => new { x.UserId, x.Amount }).ToListAsync();
+        var preferredUserIds = placeScores.GroupBy(x => x.UserId).OrderByDescending(group => group.Sum(row => row.Amount)).Select(group => group.Key);
+        var candidates = preferredUserIds.Concat(targetUsers.Select(x => x.Id)).Distinct().ToList();
+        var awarded = new List<object>();
+        object? afterOwner = beforeOwner;
+
+        for (var i = 0; i < count; i++)
+        {
+            AppUser? selectedUser = null;
+            GameTask? selectedTask = null;
+            foreach (var candidateId in candidates)
+            {
+                var candidate = targetUsers.FirstOrDefault(x => x.Id == candidateId);
+                if (candidate is null) continue;
+                foreach (var task in tasks)
+                {
+                    if (await db.TaskCompletions.AnyAsync(x => x.UserId == candidate.Id && x.TaskId == task.Id && x.SeasonId == season.Id)) continue;
+                    selectedUser = candidate;
+                    selectedTask = task;
+                    break;
+                }
+                if (selectedTask is not null) break;
+            }
+            if (selectedUser is null || selectedTask is null) break;
+
+            var now = DateTimeOffset.UtcNow;
+            var correct = selectedTask.Type == "quiz";
+            var xp = selectedTask.Type == "quiz" ? GameRules.QuizXp(selectedTask.Xp, correct) : selectedTask.Xp;
+            db.TaskCompletions.Add(new TaskCompletion { UserId = selectedUser.Id, TaskId = selectedTask.Id, SeasonId = season.Id, Correct = correct, CompletedAtUtc = now });
+            db.XpEvents.Add(new XpEvent { UserId = selectedUser.Id, SeasonId = season.Id, PlaceId = place.Id, TaskId = selectedTask.Id, Kind = "base", Amount = xp, CreatedAtUtc = now });
+            await db.SaveChangesAsync();
+            awarded.Add(new { user = PublicName(selectedUser.Name), university_id = targetUniversityId, task = selectedTask.Title, xp });
+            afterOwner = await TerritoryOwner(db, season.Id, place.Id);
+            var newOwnerId = (string?)afterOwner?.GetType().GetProperty("university_id")?.GetValue(afterOwner);
+            if (newOwnerId == targetUniversityId) break;
+        }
+
+        var captured = (string?)afterOwner?.GetType().GetProperty("university_id")?.GetValue(afterOwner) == targetUniversityId;
+        return Results.Ok(new { simulated = awarded.Count, place = place.Name, target_university_id = targetUniversityId, captured, before_owner = beforeOwner, after_owner = afterOwner, rows = awarded });
     }
 
     private static async Task<IResult> AdvanceWeek(AdvanceWeekRequest request, HttpContext http, AppDbContext db, IConfiguration config)
@@ -925,7 +986,7 @@ public static class ApiRoutes
     private sealed record GroupJoinRequest(string? InviteCode);
     private sealed record CoopJoinRequest(string? QrToken);
     private sealed record RewardClaimRequest(string? VerificationReference);
-    private sealed record SimulateActivityRequest(int Count = 1);
+    private sealed record SimulateActivityRequest(int Count = 1, string? PlaceSlug = null);
     private sealed record AdvanceWeekRequest(string? SeasonId);
 }
 

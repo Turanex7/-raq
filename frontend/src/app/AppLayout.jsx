@@ -80,5 +80,5 @@ function pageTitle(pathname) {
   if (pathname.startsWith("/museums/")) return "Məkan";
   if (pathname.startsWith("/quests/")) return "Tapşırıq";
   if (pathname === "/" || pathname === "") return "Ana səhifə";
-  return ({ "/map": "Xəritə", "/places": "Muzey xəritəsi", "/leaderboard": "Liderlər", "/museum": "Muzeyim", "/rewards": "Suvenirlər", "/prizes": "Mükafatlar", "/profile": "Profil", "/login": "Hesab", "/register": "Qeydiyyat", "/scanner": "QR skaner" })[pathname] || "Çıraq";
+  return ({ "/map": "Xəritə", "/places": "Muzey xəritəsi", "/leaderboard": "Liderlər", "/museum": "Muzeyim", "/rewards": "Suvenirlər", "/prizes": "Mükafatlar", "/profile": "Profil", "/login": "Hesab", "/register": "Qeydiyyat", "/scanner": "QR skaner", "/dev/demo": "Demo paneli" })[pathname] || "Çıraq";
 }
