@@ -1,6 +1,8 @@
-# 🏛️ Visit-to-Earn
+# 🔥 Çıraq
 
-> **Explore culture. Complete quests. Earn XP.**  
+**GitHub repository:** `Cultech` · **Rəsmi layihə adı:** Çıraq
+
+> **Tarixi kəşf et, Çırağını yandır!**  
 > Azərbaycan muzeylərini və mədəni irs məkanlarını interaktiv oyuna çevirən mobil-uyğun veb platforma.
 
 ## 📌 Layihə haqqında
@@ -29,6 +31,8 @@
 
 ## 👥 Komanda və iş bölgüsü
 
+**Qeyd:** DEV 2 rolunu layihənin frontend inteqrasiyasına cavabdeh komanda üzvü icra edir. Aşağıdakı yollar planlaşdırılan strukturdur; hələ yaradılmayan fayllar komanda tərəfindən əlavə ediləcək.
+
 | Üzv | Səviyyə | Məsuliyyət | Branch | Öz sahəsi |
 | --- | --- | --- | --- | --- |
 | DEV 1 | Güclü | .NET API, DB, XP və completion qaydaları | `feature/backend` | `backend/`, `database/` |
@@ -48,9 +52,9 @@
 ## 📁 Repository strukturu
 
 ```text
-visit-to-earn/
+Cultech/
 ├── backend/                              # DEV 1
-│   ├── VisitToEarn.Api/
+│   ├── Chiraq.Api/
 │   │   ├── Controllers/
 │   │   │   ├── MuseumsController.cs
 │   │   │   ├── QuestsController.cs
@@ -68,8 +72,8 @@ visit-to-earn/
 │   │   ├── Services/
 │   │   ├── Program.cs
 │   │   ├── appsettings.json
-│   │   └── VisitToEarn.Api.csproj
-│   └── VisitToEarn.sln
+│   │   └── Chiraq.Api.csproj
+│   └── Chiraq.sln
 ├── frontend/
 │   ├── public/images/
 │   ├── public/avatars/
@@ -225,11 +229,11 @@ Authorization: Bearer <access-token>
 ### 1. Repo-nu klonla
 
 ```bash
-git clone https://github.com/OWNER/visit-to-earn.git
-cd visit-to-earn
+git clone https://github.com/OWNER/Cultech.git
+cd Cultech
 ```
 
-`OWNER` hissəsini real GitHub owner adı ilə əvəz edin.
+`OWNER` hissəsini real GitHub owner adı ilə əvəz edin. Repository hazırda `Cultech` adlanır; GitHub-da adını dəyişmək lazım deyil.
 
 ### 2. Frontend
 
@@ -252,7 +256,7 @@ VITE_API_BASE_URL=http://localhost:5000/api
 ### 3. Backend
 
 ```bash
-cd backend/VisitToEarn.Api
+cd backend/Chiraq.Api
 dotnet restore
 dotnet run
 ```
@@ -330,4 +334,4 @@ GitHub-da **Pull Request → base: `main` → compare: öz branch-in**. Başqa b
 
 ---
 
-**Visit-to-Earn — Mədəniyyəti kəşf et, tapşırıqları tamamla, XP qazan!**
+**Çıraq — Mədəniyyəti kəşf et, tapşırıqları tamamla, XP qazan!**
