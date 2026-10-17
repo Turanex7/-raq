@@ -457,7 +457,7 @@ public static class ApiRoutes
     }
 
     private sealed record RankedUser(AppUser User, int Xp, int Lifetime, int Correct, DateTimeOffset? ReachedAt);
-    private sealed record UniversityBoardRow(int? Rank, string University, string ShortName, int FairScore, int ParticipantCount, int MinimumParticipants, bool Eligible, int TerritoryCount, int? ChangeVsLastWeek, bool Current);
+    private sealed record UniversityBoardRow(string UniversityId, int? Rank, string University, string ShortName, int FairScore, int ParticipantCount, int MinimumParticipants, bool Eligible, int TerritoryCount, int? ChangeVsLastWeek, bool Current);
     private static string PublicName(string name)
     {
         var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -490,9 +490,27 @@ public static class ApiRoutes
             var ranked = await RankedUsers(db, season.Id);
             var universities = await db.Universities.ToListAsync();
             var currentLast = await db.Seasons.Where(x => x.Finalized).OrderByDescending(x => x.EndsAtUtc).FirstOrDefaultAsync();
+            var previousRanks = new Dictionary<string, int>(StringComparer.Ordinal);
+            if (currentLast is not null)
+            {
+                var previousXp = await db.XpEvents.Where(x => x.SeasonId == currentLast.Id)
+                    .Join(db.Users, x => x.UserId, u => u.Id, (xp, member) => new { member.UniversityId, member.Id, xp.Amount })
+                    .GroupBy(x => new { x.UniversityId, x.Id })
+                    .Select(group => new { group.Key.UniversityId, WeeklyXp = group.Sum(x => x.Amount) })
+                    .ToListAsync();
+                var previousLeague = previousXp.GroupBy(x => x.UniversityId)
+                    .Select(group => new { UniversityId = group.Key, Fair = GameRules.UniversityFairScore(group.Select(x => x.WeeklyXp)) })
+                    .Where(row => row.Fair.Eligible)
+                    .OrderByDescending(row => row.Fair.Score)
+                    .ThenBy(row => row.UniversityId)
+                    .ToList();
+                previousRanks = previousLeague.Select((row, index) => (row.UniversityId, Rank: index + 1))
+                    .ToDictionary(row => row.UniversityId, row => row.Rank, StringComparer.Ordinal);
+            }
             var list = new List<UniversityBoardRow>();
             foreach (var university in universities)
             {
+                var activeCount = ranked.Count(x => x.User.UniversityId == university.Id && x.Xp > 0);
                 var active = ranked.Where(x => x.User.UniversityId == university.Id && x.Xp > 0).OrderByDescending(x => x.Xp).Take(GameRules.UniversityTopMembers).ToList();
                 var fair = GameRules.UniversityFairScore(active.Select(x => x.Xp));
                 var eligible = fair.Eligible;
@@ -503,16 +521,15 @@ public static class ApiRoutes
                     var owner = await TerritoryOwner(db, season.Id, place.Id);
                     if ((string?)owner?.GetType().GetProperty("university_id")?.GetValue(owner) == university.Id) owned++;
                 }
-                var previousRank = 0;
-                if (currentLast is not null)
-                {
-                    var past = await db.XpEvents.Where(x => x.SeasonId == currentLast.Id).Join(db.Users, x => x.UserId, u => u.Id, (x, u) => new { u.UniversityId, x.Amount }).GroupBy(x => x.UniversityId).Select(g => new { Id = g.Key, Xp = g.Sum(a => a.Amount) }).OrderByDescending(x => x.Xp).ToListAsync();
-                    previousRank = past.FindIndex(x => x.Id == university.Id) + 1;
-                }
-                list.Add(new UniversityBoardRow(null, university.Name, university.ShortName, score, active.Count, GameRules.UniversityMinimumActive, eligible, owned, previousRank == 0 ? null : previousRank, university.Id == user.UniversityId));
+                list.Add(new UniversityBoardRow(university.Id, null, university.Name, university.ShortName, score, activeCount, GameRules.UniversityMinimumActive, eligible, owned, null, university.Id == user.UniversityId));
             }
-            var sorted = list.OrderByDescending(x => x.Eligible).ThenByDescending(x => x.FairScore).ToList();
-            sorted = sorted.Select((row, index) => row with { Rank = row.Eligible ? index + 1 : null }).ToList();
+            var sorted = list.OrderByDescending(x => x.Eligible).ThenByDescending(x => x.FairScore).ThenBy(x => x.UniversityId).ToList();
+            sorted = sorted.Select((row, index) =>
+            {
+                var rank = row.Eligible ? index + 1 : (int?)null;
+                var change = rank.HasValue && previousRanks.TryGetValue(row.UniversityId, out var previousRank) ? previousRank - rank.Value : (int?)null;
+                return row with { Rank = rank, ChangeVsLastWeek = change };
+            }).ToList();
             var own = ranked.Where(x => x.User.UniversityId == user.UniversityId && x.Xp > 0).Select(x => x.Xp).ToList();
             return Results.Ok(new { scope, rows = sorted, my_rank = own.Count < GameRules.UniversityMinimumActive ? (int?)null : sorted.FindIndex(x => x.Current) + 1, my_message = own.Count < GameRules.UniversityMinimumActive ? "Reytinq üçün kifayət qədər iştirakçı yoxdur" : null, score_formula = $"Top {GameRules.UniversityTopMembers} aktiv üzvün orta həftəlik XP-si" });
         }

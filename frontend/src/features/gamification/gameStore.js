@@ -2,8 +2,18 @@ import { useSyncExternalStore } from "react";
 import { GAME_CONFIG, NEXT_WEEK_PINS, UNIVERSITIES, WEEKLY_PINS } from "./gameConfig";
 import { applyTieBreak, assignPrizes, getWeeklyXp, multiplierForLastWeek, rankUniversities } from "./gameLogic";
 
+const SEEDED_NAMES = [
+  "Aysel Məmmədova", "Nihad Quliyev", "Leyla Hüseynova", "Kamran Əliyev", "Fəridə İsmayılova",
+  "Orxan Həsənov", "Nərmin Rzayeva", "Murad Cəfərov", "Günel Abdullayeva", "Tural Məmmədli",
+  "Sevinc İbrahimova", "Elvin Qasımov", "Zəhra Vəliyeva", "Rəşad Əhmədov", "Ayan Süleymanlı",
+  "Fuad Babayev", "Lalə Kərimova", "Emin Mustafayev", "Səbinə Hacıyeva", "Anar Məlikov",
+  "Mələk Hümbətova", "Cavid İsmayılov", "Aytac Nəcəfova", "Sadiq Abbasov", "Dilarə Xəlilova",
+  "Ramin Cəbrayılov", "Fidan Məmmədli", "İlkin Rəhimov", "Nigar Əlizadə", "Vüsal Həsənli",
+  "Xədicə Əliyeva", "Eldar Qurbanov", "Gülər Sadıqova", "Samir Məmmədov", "Aminə Orucova",
+  "Təhminə Kərimova", "Kənan Şirinov", "Ülkər Nəsirova", "Elçin Rüstəmov", "Zaurə Quliyeva",
+];
 const seededUsers = Array.from({ length: 40 }, (_, i) => ({
-  id: `student-${i}`, name: ["Aysel Məmmədova", "Nihad Quliyev", "Leyla Hüseynova", "Kamran Əliyev", "Fəridə İsmayılova"][i % 5],
+  id: `student-${i}`, name: SEEDED_NAMES[i],
   university: UNIVERSITIES[i < 8 ? 0 : i < 14 ? 1 : i < 19 ? 2 : i < 23 ? 3 : i < 29 ? 4 : i < 34 ? 5 : 6].name,
   xp: 80 + ((i * 137) % 980), weeklyXp: 80 + ((i * 137) % 980), correctAnswers: (i * 3) % 8, reachedAt: 1000 + i * 130,
 }));
