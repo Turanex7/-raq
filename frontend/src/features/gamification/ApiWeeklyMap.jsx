@@ -1,0 +1,64 @@
+import { Fragment, useEffect, useState } from "react";
+import { Circle, CircleMarker, MapContainer, Popup, TileLayer, ZoomControl, useMap } from "react-leaflet";
+import { Link } from "react-router-dom";
+import { Compass, MapPin, RefreshCw, Sparkles, Trophy, Zap } from "lucide-react";
+import useApiResource from "../../services/useApiResource";
+import styles from "./ApiWeeklyMap.module.scss";
+
+const BAKU = [40.382, 49.858];
+
+function MapResize({ revision }) {
+  const map = useMap();
+  useEffect(() => { const timer = window.setTimeout(() => map.invalidateSize(), 80); return () => window.clearTimeout(timer); }, [map, revision]);
+  return null;
+}
+
+function MapContents({ places, onTileError }) {
+  return <MapContainer center={BAKU} zoom={12} minZoom={10} maxZoom={18} scrollWheelZoom zoomControl={false} className={styles.map}>
+    <MapResize revision={places.length}/><ZoomControl position="bottomright"/>
+    <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" eventHandlers={{ tileerror: onTileError }}/>
+    {places.map((place) => <Fragment key={place.id}>
+      <Circle center={[place.lat, place.lng]} radius={place.radius_m} pathOptions={{ color: place.status === "open" ? "#84d9b8" : "#7c7895", fillColor: place.status === "open" ? "#84d9b8" : "#7c7895", fillOpacity: 0.08, weight: 1 }}/>
+      <CircleMarker center={[place.lat, place.lng]} radius={place.type === "museum" ? 10 : 7} pathOptions={{ color: place.status === "open" ? "#a0e4c9" : "#87839b", fillColor: place.status === "open" ? "#39ac83" : "#45425a", fillOpacity: 1, weight: 2 }}>
+        <Popup><div className={styles.popup}><b>{place.name}</b><span>{place.status === "open" ? "Açıqdır" : "Bağlıdır"} · {place.radius_m} m</span>{place.territory_owner && <span>Hazırda: {place.territory_owner.university} · {place.territory_owner.score} xal</span>}<Link to={`/museums/${place.slug}`}>{place.status === "open" ? "Məkanı kəşf et →" : "Məkan detalları →"}</Link></div></Popup>
+      </CircleMarker>
+    </Fragment>)}
+  </MapContainer>;
+}
+
+function Retry({ message, onRetry }) {
+  return <div className={styles.state} role="alert"><p>{message}</p><button type="button" onClick={onRetry}><RefreshCw size={15}/>Yenidən yoxla</button></div>;
+}
+
+export default function ApiWeeklyMap() {
+  const placesResult = useApiResource("/places");
+  const seasonResult = useApiResource("/seasons/current");
+  const [tilesFailed, setTilesFailed] = useState(false);
+  const places = placesResult.data || [];
+  return <section className={styles.page}>
+    <header className={styles.heading}><div><p><Sparkles size={14}/>Həftəlik mövsüm · {seasonResult.data?.theme || "Çıraq kəşfi"}</p><h1>Bakı xəritəsi</h1><span>Muzeyə gedib tapşırıq tamamla, universitetin üçün xal və ərazi qazan.</span></div><div className={styles.timer}><small>Həftənin sonuna</small><b>{seasonResult.data ? formatRemaining(seasonResult.data.seconds_remaining) : "—"}</b></div></header>
+    {placesResult.loading && <div className={styles.state} role="status">Xəritə yüklənir…</div>}
+    {placesResult.error && <Retry message={placesResult.error} onRetry={placesResult.retry}/>}
+    {!!placesResult.data && <>
+      <div className={styles.stats}><span><MapPin size={16}/>{places.filter((p) => p.status === "open").length} açıq məkan</span><span><Trophy size={16}/>{places.filter((p) => p.territory_owner).length} fəth uğrunda</span><span><Zap size={16}/>Xal tapşırıqlar tamamlandıqca hesablanır</span></div>
+      <div className={styles.mapWrap}>
+        {tilesFailed && <div className={styles.tileNotice} role="status">Xəritə plitələri yüklənmədi. Məkanların siyahısından davam edə bilərsən.</div>}
+        <MapContents places={places} onTileError={() => setTilesFailed(true)}/>
+      </div>
+      <div className={styles.listHeading}><div><p>Bu həftənin məkanları</p><h2>Kəşf et və fəth et</h2></div><Compass size={20}/></div>
+      {places.length === 0 && <p className={styles.empty}>Bu həftə üçün məkan tapılmadı.</p>}
+      <div className={styles.places}>{places.map((place) => <article className={styles.place} key={place.id}>
+        <div className={`${styles.placeMark} ${place.status === "locked" ? styles.locked : ""}`}><MapPin size={18}/></div>
+        <div className={styles.placeBody}><div className={styles.placeTitle}><h3>{place.name}</h3><span className={place.status === "open" ? styles.open : styles.closed}>{place.status === "open" ? "Açıqdır" : "Bağlıdır"}</span></div><p>{place.district} · {place.task_count} tapşırıq · {place.radius_m} m radius</p>{place.territory_owner && <div className={styles.territory}><b>{place.territory_owner.university}</b> hazırda öndə · {place.territory_owner.score} xal{place.territory_owner.runner_up && <span> · {place.territory_owner.runner_up}-dan {place.territory_owner.gap} xal qabaqda</span>}</div>}</div>
+        <Link className={styles.action} to={`/museums/${place.slug}`}>{place.status === "open" ? "Fəth et" : "Bax"} →</Link>
+      </article>)}</div>
+    </>}
+  </section>;
+}
+
+function formatRemaining(seconds) {
+  const value = Math.max(0, Number(seconds) || 0);
+  const days = Math.floor(value / 86400);
+  const hours = Math.floor(value % 86400 / 3600);
+  return days ? `${days} gün ${hours} saat` : `${hours} saat ${Math.floor(value % 3600 / 60)} dəqiqə`;
+}

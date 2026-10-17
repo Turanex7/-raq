@@ -6,6 +6,7 @@
   gap: 20px;
   max-width: 640px;
   margin: 0 auto;
+  padding: 28px 0 42px;
 }
 
 .hero {
@@ -105,6 +106,7 @@
   font-weight: 700;
   text-align: center;
 }
+.progressHead{display:flex;justify-content:space-between;gap:8px;color:$text-secondary;font-size:12px}.card progress{width:100%;height:9px;margin-top:10px;accent-color:$mint}.card label{display:grid;gap:7px;color:$text-secondary;font-size:12px}.card input{min-height:42px;padding:9px 11px;border:1px solid rgba($mint,.22);border-radius:9px;color:$text;background:$navy}.avatarChoices{display:flex;flex-wrap:wrap;gap:8px}.avatarChoices button{min-height:40px;padding:8px 10px;border:1px solid rgba($mint,.2);border-radius:9px;color:$mint;background:rgba($mint,.07)}.avatarChoices button:disabled{color:$muted;opacity:.6}.avatarChoices button[aria-pressed="true"]{border-color:$gold;color:$gold}
 
 @media (max-width: $mobile) {
   .name {

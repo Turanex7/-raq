@@ -30,7 +30,7 @@ export default function MuseumMap({ museums }) {
       zoomControl={false}
       className={styles.map}
       scrollWheelZoom
-      aria-label="Interactive map of Baku museums"
+      aria-label="Bakı muzeylərinin xəritəsi"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -53,7 +53,7 @@ export default function MuseumMap({ museums }) {
         radius={4}
         pathOptions={{ color: "#a0e4c9", fillColor: "#a0e4c9", fillOpacity: 1 }}
       >
-        <Popup className={styles.cityPopup}>You are exploring Baku</Popup>
+        <Popup className={styles.cityPopup}>Bakı şəhərini kəşf edirsən</Popup>
       </CircleMarker>
     </MapContainer>
   );

@@ -1,6 +1,9 @@
 import { lazy, Suspense, useState } from "react";
 import { ArrowRight, Gem, MapPin, Sparkles, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import useApiResource from "../../services/useApiResource";
+import { useMocks } from "../../services/api";
+import { GAME_CONFIG } from "../gamification/gameConfig";
 import heroBackdrop from "../../assets/icherisheher-hero.png";
 import GameHUD from "./components/GameHUD";
 import LandmarkPanel from "./components/LandmarkPanel";
@@ -9,9 +12,9 @@ import styles from "./HomePage.module.scss";
 const AdventureWorld = lazy(() => import("./components/AdventureWorld"));
 
 const missions = [
-  { title: "Xalça Muzeyi", meta: "İçərişəhər · 3 tapşırıq", xp: "+180 XP", accent: "mint", status: "Açıqdır", glyph: "✦" },
-  { title: "Milli Tarix Muzeyi", meta: "Bakı · 5 tapşırıq", xp: "+250 XP", accent: "gold", status: "Açıqdır", glyph: "◈" },
-  { title: "Heydər Əliyev Mərkəzi", meta: "Nərimanov · 4 tapşırıq", xp: "+220 XP", accent: "purple", status: "Açıqdır", glyph: "◇" },
+  { id: "carpet-museum", title: "Xalça Muzeyi", meta: "Bulvar · 2 tapşırıq", xp: `+${GAME_CONFIG.xp.museum} XP`, accent: "mint", status: "Açıqdır", glyph: "✦" },
+  { id: "national-history", title: "Milli Tarix Muzeyi", meta: "Bakı · 2 tapşırıq", xp: `+${GAME_CONFIG.xp.museum} XP`, accent: "gold", status: "Açıqdır", glyph: "◈" },
+  { id: "heydar-aliyev", title: "Heydər Əliyev Mərkəzi", meta: "Nərimanov · 2 tapşırıq", xp: `+${GAME_CONFIG.xp.museum} XP`, accent: "purple", status: "Açıqdır", glyph: "◇" },
 ];
 
 function MascotTip() {
@@ -23,21 +26,32 @@ function MascotTip() {
   );
 }
 
-function MissionCards() {
+function MissionCards({ apiPlaces, loading, error }) {
+  const featured = useMocks ? missions : (apiPlaces || []).filter((place) => place.type === "museum").slice(0, 3).map((place) => ({
+    id: place.slug,
+    title: place.name,
+    meta: `${place.district} · ${place.task_count} tapşırıq`,
+    xp: `${place.xp_total} XP`,
+    accent: "mint",
+    status: place.status === "open" ? "Açıqdır" : "Bağlıdır",
+    glyph: "✦",
+  }));
   return (
     <section className={styles.missionSection} aria-labelledby="missions-title">
       <div className={styles.sectionHeading}>
         <div><p className={styles.sectionEyebrow}>Kəşf ediləsi yerlər</p><h2 id="missions-title">Növbəti missiyanı seç</h2></div>
-        <span className={styles.sectionCount}><Gem size={14} /> 12 məkan</span>
+        <span className={styles.sectionCount}><Gem size={14} />{useMocks ? "3 məkan" : `${apiPlaces?.length ?? "…"} məkan`}</span>
       </div>
       <div className={styles.missionCards}>
-        {missions.map((mission) => (
-          <article className={styles.missionCard} key={mission.title}>
+        {error && <p role="alert">Məkanlar yüklənmədi.</p>}
+        {loading && <p role="status">Məkanlar yüklənir…</p>}
+        {featured.map((mission) => (
+          <Link to={`/museums/${mission.id}`} className={styles.missionCard} key={mission.title}>
             <div className={styles.missionVisual + " " + styles[mission.accent]}><span>{mission.glyph}</span><MapPin size={15} /></div>
             <div className={styles.missionDetails}><span className={styles.missionStatus}><i />{mission.status}</span><h3>{mission.title}</h3><p>{mission.meta}</p></div>
             <div className={styles.missionReward}><Zap size={13} />{mission.xp}</div>
-            <button type="button" className={styles.missionArrow} aria-label={mission.title + " missiyasını aç"}><ArrowRight size={17} /></button>
-          </article>
+            <span className={styles.missionArrow} aria-hidden="true"><ArrowRight size={17} /></span>
+          </Link>
         ))}
       </div>
     </section>
@@ -46,6 +60,7 @@ function MissionCards() {
 
 export default function HomePage() {
   const [selected, setSelected] = useState("maiden-tower");
+  const { data: apiPlaces, loading: placesLoading, error: placesError } = useApiResource("/places", !useMocks);
   const [webglAvailable] = useState(() => {
     try {
       if (typeof document === "undefined") return true;
@@ -80,11 +95,11 @@ export default function HomePage() {
             <Link to="/game" className={styles.startAdventure}>Oyuna başla <ArrowRight size={17} /></Link>
           </div>
           <GameHUD />
-          <LandmarkPanel landmarkId={selected} onClose={() => setSelected(null)} />
+          <LandmarkPanel landmarkId={selected} places={apiPlaces} onClose={() => setSelected(null)} />
           <MascotTip />
         </div>
       </section>
-      <MissionCards />
+      <MissionCards apiPlaces={apiPlaces} loading={placesLoading} error={placesError} />
       <p className={styles.illustrationNote}>3D səhnə tarixi məkanlardan ilhamlanan stilizə edilmiş oyun dünyasıdır; tarixi rekonstruksiya deyil.</p>
     </div>
   );

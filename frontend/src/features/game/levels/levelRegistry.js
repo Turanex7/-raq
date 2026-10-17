@@ -1,3 +1,5 @@
+import { GAME_CONFIG } from "../../gamification/gameConfig";
+
 export const LEVEL_IDS = {
   ICHERISHEHER: "icherisheher",
   CARPET_MUSEUM: "carpet-museum",
@@ -12,7 +14,7 @@ export const levelRegistry = [
     subtitle: "Qız Qalasının izi",
     location: "Bakı",
     description: "Qədim şəhərin daş küçələrində ilk artefaktını tap.",
-    xp: 250,
+    xp: GAME_CONFIG.levelRewards.icherisheher,
     difficulty: "Başlanğıc",
     playable: true,
     accent: "gold",
@@ -23,7 +25,7 @@ export const levelRegistry = [
     subtitle: "Naxışların sirri",
     location: "Bakı bulvarı",
     description: "Rənglərdə gizlənən hekayəni aç.",
-    xp: 320,
+    xp: GAME_CONFIG.levelRewards.carpetMuseum,
     difficulty: "Orta",
     playable: false,
     requires: LEVEL_IDS.ICHERISHEHER,
@@ -35,7 +37,7 @@ export const levelRegistry = [
     subtitle: "Zamanın izləri",
     location: "Bakı",
     description: "Azərbaycan tarixinin böyük xəritəsini tamamla.",
-    xp: 400,
+    xp: GAME_CONFIG.levelRewards.nationalHistory,
     difficulty: "Orta",
     playable: false,
     requires: LEVEL_IDS.CARPET_MUSEUM,
@@ -47,7 +49,7 @@ export const levelRegistry = [
     subtitle: "Gələcəyə baxış",
     location: "Nərimanov",
     description: "Müasir memarlığın axıcı dünyasına daxil ol.",
-    xp: 450,
+    xp: GAME_CONFIG.levelRewards.heydarAliyev,
     difficulty: "Çətin",
     playable: false,
     requires: LEVEL_IDS.NATIONAL_HISTORY,

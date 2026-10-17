@@ -1,6 +1,8 @@
 /** Demo data matching the MVP API contract. Replace with services/ calls later. */
 
-export const XP_PER_LEVEL = 250;
+import { GAME_CONFIG } from "./gameConfig";
+
+export const XP_PER_LEVEL = GAME_CONFIG.levelXp;
 
 export function getLevelFromXp(xp) {
   return Math.floor(xp / XP_PER_LEVEL) + 1;

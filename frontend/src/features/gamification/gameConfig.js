@@ -1,0 +1,60 @@
+export const GAME_CONFIG = {
+  xp: { popular: 10, museum: 40, rare: 120 },
+  streak: { dailyPercent: 5, capDays: 5 },
+  universityMultipliers: [1.1, 1.05],
+  universityRanking: { topMembers: 10, minimumActive: 3 },
+  pinRadiusMeters: { min: 30, max: 80 },
+  rareDays: [6, 0], // Saturday and Sunday
+  rareOpening: { startHour: 9, endHour: 18 },
+  coOp: { friends: 3, minutes: 10 },
+  levelXp: 250,
+  rareVerificationCode: "Q7M4",
+  weeklyPinCount: 10,
+  daysPerWeek: 7,
+  levelRewards: { icherisheher: 250, carpetMuseum: 320, nationalHistory: 400, heydarAliyev: 450 },
+};
+
+export const HISTORICAL_AVATARS = [
+  { name: "Nizami Gəncəvi", art: "📚", xp: 0 },
+  { name: "Üzeyir Hacıbəyov", art: "🎼", xp: 500 },
+  { name: "İmadəddin Nəsimi", art: "🖋️", xp: 1000 },
+  { name: "Natəvan", art: "🌹", xp: 1500 },
+  { name: "Babək", art: "🛡️", xp: 2500 },
+];
+
+export const UNIVERSITIES = [
+  { id: "bdu", name: "Bakı Dövlət Universiteti", domains: ["bsu.edu.az", "bdu.edu.az"] },
+  { id: "unec", name: "UNEC", domains: ["unec.edu.az"] },
+  { id: "ada", name: "ADA Universiteti", domains: ["ada.edu.az"] },
+  { id: "atmu", name: "Azərbaycan Turizm və Menecment Universiteti", domains: ["atmu.edu.az"] },
+  { id: "aztu", name: "Azərbaycan Texniki Universiteti", domains: ["aztu.edu.az"] },
+  { id: "adnsu", name: "Azərbaycan Dövlət Neft və Sənaye Universiteti", domains: ["asoiu.edu.az"] },
+  { id: "khazar", name: "Xəzər Universiteti", domains: ["khazar.org"] },
+];
+
+export const WEEKLY_PINS = [
+  { id: "28may", name: "28 May meydanı", type: "popular", area: "Mərkəz", radiusMeters: 45, lat: 40.3792, lng: 49.8467, story: "28 May meydanı şəhərin ən canlı qovşaqlarından biridir. Metro çıxışının yanındakı açıq meydanda şəhər ritmini hiss et; yoxlama nöqtəsi metro daxilində deyil.", quiz: "28 May stansiyası hansı nəqliyyat növünə aiddir?", answer: "metro", art: "🚉" },
+  { id: "bulvar", name: "Dənizkənarı Bulvar", type: "popular", area: "Sahil", radiusMeters: 70, lat: 40.3659, lng: 49.8401, story: "Bulvar Xəzər sahilində uzanan şəhər gəzinti məkanıdır. Burada dəniz mənzərəsi ilə Bakı gündəlik həyatının necə qovuşduğunu müşahidə et.", quiz: "Bulvar hansı dənizin sahilindədir?", answer: "xəzər", art: "🌊" },
+  { id: "fountains", name: "Fəvvarələr Meydanı", type: "popular", area: "Mərkəz", radiusMeters: 35, lat: 40.3727, lng: 49.8372, story: "Fəvvarələr Meydanı şəhər mərkəzinin görüş nöqtəsidir. Ətraf küçələrdə memarlıq, kiçik kafelər və gündəlik Bakı həyatı bir araya gəlir.", quiz: "Meydan hansı şəhərdə yerləşir?", answer: "bakı", art: "⛲" },
+  { id: "icherisheher", name: "İçərişəhər giriş qapısı", type: "popular", area: "İçərişəhər", radiusMeters: 50, lat: 40.3661, lng: 49.8374, story: "İçərişəhərin qala divarları əsrlər boyunca şəhəri qoruyub. Dar küçələrdə Şirvanşahlar sarayı və Qız qalası kimi tarixi izlər saxlanılır.", quiz: "İçərişəhərin simvollarından biri hansıdır?", answer: "qız qalası", art: "🏰" },
+  { id: "nizami", name: "Nizami küçəsi", type: "popular", area: "Mərkəz", radiusMeters: 60, lat: 40.3780, lng: 49.8443, story: "Nizami küçəsi Bakının əsas piyada və ticarət küçələrindən biridir. Adını XII əsrin böyük şairi Nizami Gəncəvidən alıb.", quiz: "Xəmsə neçə poemadan ibarətdir?", answer: "beş", art: "📚" },
+  { id: "maiden", name: "Qız qalası meydanı", type: "popular", area: "İçərişəhər", radiusMeters: 40, lat: 40.3664, lng: 49.8378, story: "Qız qalası İçərişəhərin ən tanınan abidəsidir. Onun ilkin məqsədi barədə tarixçilər arasında müxtəlif fikirlər mövcuddur.", quiz: "Qız qalası hansı tarixi ərazidədir?", answer: "içərişəhər", art: "🗼" },
+  { id: "ferris", name: "Kiçik Venesiya", type: "popular", area: "Bulvar", radiusMeters: 75, lat: 40.3599, lng: 49.8358, story: "Kiçik Venesiya Bulvarın kanalları və körpüləri ilə seçilən istirahət guşəsidir. Buradan şəhərin sahil zolağını fərqli bucaqdan görmək olar.", quiz: "Kiçik Venesiya Bakının hansı hissəsindədir?", answer: "bulvar", art: "🛶" },
+  { id: "carpet", name: "Xalça Muzeyi", type: "museum", area: "Bulvar", radiusMeters: 55, lat: 40.3593, lng: 49.8355, story: "Azərbaycan Milli Xalça Muzeyi xalçaçılıq ənənələrini qoruyur. Binanın özü bükülmüş xalçanı xatırladan memarlıq forması ilə seçilir.", quiz: "Xalça Muzeyinin binası hansı formaya bənzəyir?", answer: "bükülmüş xalça", art: "🧶" },
+  { id: "nizami-museum", name: "Nizami Muzeyi", type: "museum", area: "Mərkəz", radiusMeters: 65, lat: 40.3692, lng: 49.8357, story: "Nizami Gəncəvi adına Milli Azərbaycan Ədəbiyyatı Muzeyi Azərbaycan ədəbiyyatının irsini təqdim edir. Binanın fasadındakı heykəllər klassik şairləri təsvir edir.", quiz: "Nizami Gəncəvi hansı şəhərlə bağlıdır?", answer: "gəncə", art: "📜" },
+  { id: "ateshgah", name: "Atəşgah məbədi", type: "rare", area: "Abşeron", radiusMeters: 80, lat: 40.4167, lng: 50.0050, story: "Suraxanı Atəşgahı Abşeronun alovla bağlı tarixini danışır. Məbədin həyətində müxtəlif dövrlərin səyyahlarından qalan yazılar var; səfər təxminən bir saat çəkə bilər.", quiz: "Atəşgah Bakı yaxınlığında hansı qəsəbədədir?", answer: "suraxanı", art: "🔥" },
+];
+
+export const NEXT_WEEK_AREA = "Yasamal və Dağüstü park";
+export const NEXT_WEEK_PINS = [
+  { id: "next-yasamal", name: "Yasamal parkı", type: "popular", area: "Yasamal", radiusMeters: 45, lat: 40.3890, lng: 49.8177, story: "Yasamal parkı şəhərin gündəlik həyatı ilə yaşıllığı birləşdirən məhəllə məkanıdır.", quiz: "Bu məkan şəhərin hansı rayonundadır?", answer: "yasamal", art: "🌳" },
+  { id: "next-tezepir", name: "Təzə Pir məscidi", type: "popular", area: "Yasamal", radiusMeters: 65, lat: 40.3796, lng: 49.8230, story: "Təzə Pir məscidi Bakının tanınmış dini və memarlıq abidələrindəndir. Kompleks XX əsrin əvvəlində inşa edilib.", quiz: "Təzə Pir hansı şəhərdədir?", answer: "bakı", art: "🕌" },
+  { id: "next-zorge", name: "Zorge parkı", type: "popular", area: "Yasamal", radiusMeters: 40, lat: 40.3854, lng: 49.8194, story: "Zorge parkı ağaclı xiyabanları və şəhər heykəlləri ilə seçilən sakit gəzinti məkanıdır.", quiz: "Park hansı şəhərdə yerləşir?", answer: "bakı", art: "🌿" },
+  { id: "next-upland", name: "Dağüstü park", type: "popular", area: "Dağüstü park", radiusMeters: 60, lat: 40.3595, lng: 49.8252, story: "Dağüstü park Bakı buxtasına və şəhər mənzərəsinə yuxarıdan baxmağa imkan verir.", quiz: "Parkdan hansı buxtaya baxmaq olur?", answer: "bakı", art: "🌄" },
+  { id: "next-flame", name: "Alov qüllələri meydanı", type: "popular", area: "Dağüstü park", radiusMeters: 55, lat: 40.3592, lng: 49.8268, story: "Alov qüllələri Bakının müasir siluetində seçilən memarlıq kompleksidir.", quiz: "Qüllələrin forması nəyi xatırladır?", answer: "alov", art: "🔥" },
+  { id: "next-funicular", name: "Funikulyor meydanı", type: "popular", area: "Dağüstü park", radiusMeters: 35, lat: 40.3580, lng: 49.8219, story: "Bakı funikulyoru şəhər mərkəzini Dağüstü parkla birləşdirən qısa şəhər nəqliyyatıdır.", quiz: "Funikulyor hara qalxır?", answer: "dağüstü park", art: "🚞" },
+  { id: "next-cinema", name: "Nizami kinoteatrı", type: "popular", area: "Mərkəz", radiusMeters: 50, lat: 40.3720, lng: 49.8394, story: "Nizami kinoteatrı şəhərin kino mədəniyyətinin tanınmış ünvanlarından biridir.", quiz: "Kinoteatr hansı şəhərdədir?", answer: "bakı", art: "🎬" },
+  { id: "next-literature", name: "Ədəbiyyat Muzeyi", type: "museum", area: "Mərkəz", radiusMeters: 65, lat: 40.3692, lng: 49.8357, story: "Muzey Azərbaycan ədəbiyyatının müxtəlif dövrlərini və müəlliflərini təqdim edir.", quiz: "Muzey hansı şairin adını daşıyır?", answer: "nizami", art: "📜" },
+  { id: "next-music", name: "Musiqi Mədəniyyəti Muzeyi", type: "museum", area: "Mərkəz", radiusMeters: 50, lat: 40.3690, lng: 49.8402, story: "Muzey Azərbaycan musiqisinin alətlərini, bəstəkarlarını və ifa ənənələrini qoruyur.", quiz: "Muzey hansı sənət sahəsinə həsr olunub?", answer: "musiqi", art: "🎻" },
+  { id: "next-bibi", name: "Bibiheybət ziyarətgahı", type: "rare", area: "Bibiheybət", radiusMeters: 80, lat: 40.3081, lng: 49.8195, story: "Bibiheybət ziyarətgahı Xəzər sahilində yerləşən tarixi dini kompleksdir; şəhər mərkəzindən uzaq səfər tələb edir.", quiz: "Ziyarətgah hansı şəhərin yaxınlığındadır?", answer: "bakı", art: "✨" },
+];

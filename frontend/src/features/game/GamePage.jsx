@@ -8,6 +8,8 @@ import CarpetMuseumLevel from "./levels/CarpetMuseumLevel";
 import LevelSelect from "./levels/LevelSelect";
 import { getLevel, LEVEL_IDS } from "./levels/levelRegistry";
 import { completeLevel, getGameProgress } from "./state/gameStore";
+import { GAME_CONFIG } from "../gamification/gameConfig";
+import { addLifetimeXp, useGame } from "../gamification/gameStore";
 import styles from "./GamePage.module.scss";
 
 const GameWorld = lazy(() => import("./components/GameWorld"));
@@ -76,6 +78,8 @@ export default function GamePage() {
 }
 
 function PlayableIcherisheher() {
+  const game = useGame();
+  const player = game.users.find((user) => user.id === game.currentUserId);
   const level = getLevel(LEVEL_IDS.ICHERISHEHER);
   const [phase, setPhase] = useState("world");
   const [artifactCollected, setArtifactCollected] = useState(false);
@@ -84,8 +88,8 @@ function PlayableIcherisheher() {
   const [mobileInput, setMobileInput] = useState({ forward: false, backward: false, left: false, right: false });
   const [paused, setPaused] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [xp] = useState(getGameProgress().xp);
-  const [completeXp, setCompleteXp] = useState(250);
+  const xp = player.xp;
+  const [completeXp, setCompleteXp] = useState(GAME_CONFIG.levelRewards.icherisheher);
   const [reducedMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   useEffect(() => {
@@ -95,7 +99,7 @@ function PlayableIcherisheher() {
   }, []);
 
   const collectArtifact = () => { if (!canInteract || artifactCollected || paused) return; setArtifactCollected(true); setPhase("quiz"); };
-  const finishQuiz = (score) => { const reward = score === 3 ? 250 : 0; setCompleteXp(reward); completeLevel(LEVEL_IDS.ICHERISHEHER, reward, "maiden-tower-light"); setPhase("complete"); };
+  const finishQuiz = (score) => { const alreadyCompleted = getGameProgress().completedLevels.includes(LEVEL_IDS.ICHERISHEHER); const reward = score === questions.length ? GAME_CONFIG.levelRewards.icherisheher : 0; setCompleteXp(reward); completeLevel(LEVEL_IDS.ICHERISHEHER, reward, "maiden-tower-light"); if (!alreadyCompleted) addLifetimeXp(reward); setPhase("complete"); };
 
   if (phase === "quiz") return <QuizPanel onComplete={finishQuiz} />;
   if (phase === "complete") return <LevelComplete xp={completeXp} artifactName="Qız Qalasının işığı" nextLevelUnlocked />;

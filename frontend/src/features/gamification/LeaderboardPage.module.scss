@@ -3,7 +3,9 @@
 .page {
   max-width: 720px;
   margin: 0 auto;
+  padding: 28px 0 42px;
 }
+.groups{display:grid;gap:14px;margin-top:22px;padding:18px;border:1px solid rgba($mint,.16);border-radius:16px;background:rgba($surface,.62)}.groups h2{margin:0 0 5px;font-size:18px}.groups p{color:$text-secondary;font-size:12px}.groupForms{display:grid;grid-template-columns:1fr 1fr;gap:12px}.groupForms form{display:grid;gap:8px}.groupForms label{display:grid;gap:6px;color:$text-secondary;font-size:12px}.groupForms input{min-height:42px;padding:9px 11px;border:1px solid rgba($mint,.22);border-radius:9px;color:$text-primary;background:$ink}.groupForms button{min-height:42px;border:0;border-radius:9px;color:$navy;background:$mint;font-weight:800}.groupCard{display:flex;justify-content:space-between;gap:10px;padding:12px;border-radius:10px;background:rgba($ink,.6);font-size:12px}.groupCard span{color:$text-secondary}@media(max-width:600px){.groupForms{grid-template-columns:1fr}.groupCard{flex-direction:column}}
 
 .header {
   margin-bottom: 20px;
@@ -21,7 +23,7 @@
 
 .tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 16px;
   padding: 6px;
@@ -35,8 +37,11 @@
     min-height: 40px;
     border-radius: 10px;
     font-weight: 600;
+    padding: 6px 8px;
+    line-height: 1.25;
   }
 }
+.infoNote,.collective,.tie {display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin:10px 0;padding:12px;border:1px solid rgba($mint,.14);border-radius:12px;background:rgba($mint,.06);color:$muted;font-size:11px;line-height:1.5}.infoNote button{margin-left:auto;border:0;background:transparent;color:$mint;font-weight:700;white-space:nowrap}.collective{color:$gold}.inactive{opacity:.7}
 
 .active {
   background: $navy !important;
@@ -102,8 +107,10 @@
   }
 
   span {
+    display: block;
     color: $muted;
     font-size: 13px;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -125,4 +132,11 @@
   .header h1 {
     font-size: 22px;
   }
+  .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+  .tabs button { min-width: 0; font-size: 11px; }
+  .row { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 8px; padding: 11px 10px; }
+  .rank { width: 32px; height: 32px; }
+  .info span { font-size: 11px; }
+  .xp b { font-size: 13px; }
+  .xp span { font-size: 10px; }
 }

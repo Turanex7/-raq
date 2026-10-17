@@ -38,7 +38,7 @@ export default function MuseumMarker({ museum, selected, onSelect }) {
           <h2>{museum.name}</h2>
           <p>{museum.description}</p>
           <Link to={"/museums/" + museum.id} className={styles.exploreLink}>
-            Explore museum
+            Muzeyi kəşf et
             <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
         </div>
