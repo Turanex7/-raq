@@ -1,37 +1,9 @@
 @use "../styles/variables" as *;
 
-.app {
-  min-height: 100vh;
-}
-
-.header {
-  padding: 20px 5%;
-  background: $surface;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  color: $primary;
-  font-size: 26px;
-  font-weight: 800;
-}
-
-.nav {
-  display: flex;
-  gap: 24px;
-}
-
-.main {
-  max-width: 1200px;
-  margin: auto;
-  padding: 32px 20px;
-}
-
-@media (max-width: $mobile) {
-  .header {
-    flex-direction: column;
-    gap: 16px;
-  }
-}
+.app { min-height: 100vh; background: $background; }
+.header { min-height: 76px; padding: 14px clamp(18px, 5vw, 72px); display: flex; align-items: center; gap: 26px; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid rgba($mint, .1); background: rgba($navy, .87); backdrop-filter: blur(18px); }
+.logo { display: inline-flex; align-items: center; gap: 10px; color: $text; }.logoMark { width: 35px; height: 35px; display: grid; place-items: center; color: $navy; background: $mint; border-radius: 11px 11px 11px 3px; box-shadow: 0 0 23px rgba($mint, .22); }.logoWord { font-size: 23px; font-weight: 850; letter-spacing: -.05em; }
+.nav { display: flex; align-items: center; gap: 5px; margin-left: auto; }.navLink, .mobileNavLink { color: $text-secondary; display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 750; transition: color 160ms ease, background 160ms ease; }.navLink { padding: 10px 13px; border-radius: 10px; }.navLink:hover, .navLink.active { color: $mint; background: rgba($mint, .1); }
+.profilePill { display: inline-flex; align-items: center; gap: 9px; padding: 5px 11px 5px 5px; border: 1px solid rgba($mint, .17); border-radius: 12px; background: rgba($surface, .5); }.profilePill:hover { border-color: rgba($mint, .42); }.profilePill > span:last-child { display: flex; flex-direction: column; gap: 3px; color: $text; font-size: 10px; }.profilePill small { display: flex; align-items: center; gap: 3px; color: $gold; font-size: 10px; }.profileAvatar { width: 28px; height: 28px; display: grid; place-items: center; color: $navy; border-radius: 9px; background: $gold; font-size: 12px; font-weight: 900; }
+.main { max-width: 1440px; margin: auto; padding: 0 clamp(18px, 5vw, 72px) 64px; }.mobileNav { display: none; }
+@media (max-width: $mobile) { .header { min-height: 64px; padding: 11px 16px; }.nav, .profilePill { display: none; }.main { padding: 0 16px 91px; }.mobileNav { position: fixed; display: grid; grid-template-columns: repeat(3, 1fr); inset: auto 0 0; z-index: 1000; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid rgba($mint, .15); background: rgba($purple, .96); backdrop-filter: blur(18px); }.mobileNavLink { justify-content: center; flex-direction: column; gap: 4px; padding: 6px; border-radius: 10px; font-size: 10px; }.mobileNavLink.active { color: $mint; background: rgba($mint, .1); } }

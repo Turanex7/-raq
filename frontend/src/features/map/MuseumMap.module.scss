@@ -1,0 +1,42 @@
+@use "../../styles/variables" as *;
+
+.map {
+  width: 100%;
+  height: 100%;
+  background: $surface;
+}
+
+:global(.leaflet-container) {
+  font-family: Inter, system-ui, sans-serif;
+}
+
+:global(.leaflet-tile-pane) {
+  filter: saturate(0.72) contrast(1.03);
+}
+
+:global(.leaflet-control-zoom) {
+  border: 1px solid rgba($mint, 0.25) !important;
+  box-shadow: 0 6px 18px rgba(#000, 0.18) !important;
+}
+
+:global(.leaflet-control-zoom a) {
+  color: $navy !important;
+  background: rgba($mint, 0.92) !important;
+  border-bottom-color: rgba($navy, 0.14) !important;
+}
+
+:global(.leaflet-control-attribution) {
+  font-size: 9px;
+  background: rgba($navy, 0.72) !important;
+  color: rgba($text, 0.72);
+}
+
+:global(.leaflet-control-attribution a) {
+  color: $mint;
+}
+
+:global(.cityPopup .leaflet-popup-content-wrapper),
+:global(.cityPopup .leaflet-popup-tip) {
+  background: $navy;
+  color: $text;
+}

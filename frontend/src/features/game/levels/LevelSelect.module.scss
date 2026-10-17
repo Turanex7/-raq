@@ -1,0 +1,67 @@
+@use "../../../styles/variables" as *;
+
+.overworld { position: relative; min-height: calc(100svh - 76px); margin: 0 -72px; overflow: hidden; background: #10132c; }
+.scene { position: absolute; inset: 0; min-height: calc(100svh - 76px); }
+.scene canvas { display: block; width: 100% !important; height: 100% !important; }
+.hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+.heroHud { position: absolute; top: 28px; left: 34px; right: 34px; display: flex; align-items: flex-start; justify-content: space-between; gap: 22px; }
+.worldTitle { max-width: 420px; text-shadow: 0 3px 18px rgba(#000, .45); }
+.eyebrow, .panelKicker { display: inline-flex; align-items: center; gap: 7px; color: $mint; font-size: 10px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+.worldTitle h1 { margin: 10px 0 8px; color: $text; font-size: clamp(28px, 4vw, 52px); letter-spacing: -.07em; line-height: .94; }
+.worldTitle p { margin: 0; color: rgba($text, .65); font-size: 12px; }
+.progressHud { display: flex; align-items: center; gap: 10px; min-width: 190px; padding: 10px 13px; color: $text; border: 1px solid rgba($mint, .18); border-radius: 12px; background: rgba($navy, .72); box-shadow: 0 14px 35px rgba(#000, .2); backdrop-filter: blur(14px); }
+.avatar { display: grid; place-items: center; width: 30px; height: 30px; color: $navy; border-radius: 50%; background: $mint; font-weight: 900; }
+.progressHud b { display: block; margin-bottom: 6px; font-size: 11px; }
+.xpLine { display: flex; align-items: center; gap: 5px; color: $gold; font-size: 10px; }
+.xpLine i { display: block; width: 64px; height: 4px; overflow: hidden; border-radius: 20px; background: rgba($text, .16); }
+.xpLine em { display: block; height: 100%; border-radius: inherit; background: $gold; }
+.missionPanel { position: absolute; top: 50%; right: 34px; width: min(286px, calc(100vw - 40px)); padding: 20px; color: $text; border: 1px solid rgba($mint, .24); border-radius: 18px; background: linear-gradient(160deg, rgba(#171936, .9), rgba($navy, .88)); box-shadow: 0 24px 60px rgba(#000, .3); backdrop-filter: blur(18px); transform: translateY(-45%); }
+.closePanel { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 27px; height: 27px; color: $muted; border: 0; border-radius: 7px; background: transparent; }
+.closePanel:hover { color: $text; background: rgba($text, .1); }
+.missionNumber { display: block; margin-bottom: 18px; color: rgba($text, .35); font-size: 11px; font-weight: 900; letter-spacing: .14em; }
+.panelKicker { margin-bottom: 11px; color: $gold; }
+.missionPanel h2 { margin: 0 0 4px; font-size: 27px; letter-spacing: -.06em; }
+.panelSubtitle { margin: 0 0 14px; color: $mint; font-size: 11px; font-weight: 750; }
+.panelDescription { margin: 0; color: $muted; font-size: 11px; line-height: 1.5; }
+.panelMeta { display: flex; flex-wrap: wrap; gap: 6px; margin: 17px 0; }
+.panelMeta span { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; color: $gold; border: 1px solid rgba($gold, .2); border-radius: 7px; background: rgba($gold, .08); font-size: 9px; font-weight: 800; }
+.panelMeta .complete { color: $mint; border-color: rgba($mint, .23); background: rgba($mint, .08); }
+.enterButton, .lockedButton { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 13px; border-radius: 9px; font-size: 11px; font-weight: 850; }
+.enterButton { color: $navy; background: $mint; }
+.enterButton:hover { background: $text; transform: translateY(-2px); }
+.enterButton span { font-size: 17px; }
+.lockedButton { justify-content: flex-start; gap: 7px; color: $muted; border: 1px solid rgba($text, .12); background: rgba($text, .05); }
+.bottomHud { position: absolute; right: 34px; bottom: 24px; left: 34px; display: flex; align-items: center; justify-content: space-between; color: rgba($text, .58); font-size: 10px; }
+.controlHint { display: flex; align-items: center; gap: 7px; }
+.controlHint b { padding: 4px 6px; color: $navy; border-radius: 5px; background: rgba($text, .74); font-size: 8px; letter-spacing: .08em; }
+.worldStatus { display: flex; align-items: center; gap: 7px; }
+.worldStatus i { width: 7px; height: 7px; border-radius: 50%; background: $mint; box-shadow: 0 0 11px rgba($mint, .8); }
+.mapLabel { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 94px; padding: 6px 8px; color: rgba($text, .66); border: 1px solid transparent; border-radius: 7px; background: rgba($navy, .52); box-shadow: 0 5px 15px rgba(#000, .18); font-size: 9px; font-weight: 800; white-space: nowrap; transform: translateY(-3px); transition: .2s ease; }
+.mapLabelActive { color: $text; border-color: rgba($mint, .4); background: rgba($navy, .84); transform: translateY(-6px) scale(1.04); }
+.mapLabelLocked { color: rgba($text, .4); }
+.mapLabel small { color: $muted; font-size: 8px; font-weight: 600; }
+
+@media (max-width: $mobile) {
+  .overworld { min-height: calc(100svh - 64px); margin: 0 -16px; }
+  .scene { min-height: calc(100svh - 64px); }
+  .heroHud { top: 15px; left: 14px; right: 14px; display: block; }
+  .worldTitle h1 { max-width: 270px; margin-top: 7px; font-size: 30px; }
+  .worldTitle p { max-width: 250px; font-size: 10px; }
+  .progressHud { position: absolute; top: 0; right: 0; min-width: 0; padding: 7px; }
+  .progressHud > div { display: none; }
+  .missionPanel { top: auto; right: 12px; bottom: 55px; left: 12px; width: auto; padding: 14px 15px; transform: none; }
+  .missionNumber { position: absolute; top: 15px; right: 40px; margin: 0; }
+  .panelKicker { margin-bottom: 7px; font-size: 9px; }
+  .missionPanel h2 { font-size: 21px; }
+  .panelDescription { display: none; }
+  .panelMeta { margin: 11px 0; }
+  .bottomHud { right: 14px; bottom: 13px; left: 14px; }
+  .controlHint { display: none; }
+  .worldStatus { margin-left: auto; }
+  .mapLabel { min-width: 76px; font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enterButton, .mapLabel { transition: none; }
+}

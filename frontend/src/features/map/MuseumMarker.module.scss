@@ -1,0 +1,84 @@
+@use "../../styles/variables" as *;
+
+.markerIcon {
+  background: transparent;
+  border: 0;
+}
+
+.markerIcon :global(span) {
+  display: grid;
+  place-items: center;
+}
+
+.markerIcon > :global(span) {
+  width: 38px;
+  height: 38px;
+  color: $navy;
+  background: var(--marker-color);
+  border: 3px solid rgba($text, 0.9);
+  border-radius: 50% 50% 50% 6px;
+  box-shadow: 0 5px 12px rgba(#080d29, 0.42);
+  transform: rotate(-45deg);
+}
+
+.markerIcon :global(.marker-glyph) {
+  font-size: 18px;
+  transform: rotate(45deg);
+}
+
+.popup :global(.leaflet-popup-content-wrapper),
+.popup :global(.leaflet-popup-tip) {
+  min-width: 245px;
+  background: $navy;
+  color: $text;
+  border: 1px solid rgba($mint, 0.22);
+  box-shadow: 0 12px 35px rgba(#000, 0.3);
+}
+
+.popup :global(.leaflet-popup-content) {
+  margin: 0;
+}
+
+.popupContent {
+  padding: 16px;
+}
+
+.category {
+  color: $mint;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.popupContent h2 {
+  margin: 7px 0 6px;
+  font-size: 17px;
+  line-height: 1.15;
+}
+
+.popupContent p {
+  color: $text-secondary;
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.exploreLink {
+  color: $navy;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: $mint;
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.exploreLink:hover {
+  background: $text;
+}
