@@ -1,0 +1,117 @@
+@use "../../styles/variables" as *;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.avatar,
+.avatarFallback {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.avatar {
+  object-fit: cover;
+  border: 2px solid $primary;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, $purple, $navy);
+  border: 2px solid $primary;
+  color: $primary;
+  font-weight: 800;
+  font-size: 28px;
+}
+
+.kicker {
+  margin: 0 0 4px;
+  color: $primary;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.name {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.university {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: $muted;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat {
+  background: $surface;
+  border-radius: $radius-card;
+  padding: 16px 12px;
+  text-align: center;
+
+  strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 22px;
+  }
+}
+
+.statLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: $muted;
+  font-size: 12px;
+}
+
+.card {
+  background: $surface;
+  border-radius: $radius-card;
+  padding: 20px;
+}
+
+.rewardsLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 18px;
+  border-radius: $radius-button;
+  background: $primary;
+  color: $navy;
+  font-weight: 700;
+  text-align: center;
+}
+
+@media (max-width: $mobile) {
+  .name {
+    font-size: 22px;
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,44 @@
+@use "../../../styles/variables" as *;
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.level {
+  font-weight: 700;
+  color: $gold;
+}
+
+.numbers {
+  color: $muted;
+  font-size: 14px;
+}
+
+.track {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: linear-gradient(90deg, $success, $mint);
+  border-radius: inherit;
+  transition: width 0.4s ease;
+}
+
+.hint {
+  margin: 0;
+  color: $muted;
+  font-size: 13px;
+}

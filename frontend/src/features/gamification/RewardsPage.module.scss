@@ -1,0 +1,90 @@
+@use "../../styles/variables" as *;
+
+.page {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+  }
+
+  p {
+    margin: 0;
+    color: $muted;
+  }
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  font-size: 16px;
+  color: $primary;
+}
+
+.empty {
+  color: $muted;
+  margin: 0 0 24px;
+}
+
+.grid {
+  list-style: none;
+  margin: 0 0 28px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.card {
+  background: $surface;
+  border-radius: $radius-card;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  p {
+    margin: 0;
+    color: $muted;
+    font-size: 14px;
+    flex: 1;
+  }
+
+  time {
+    font-size: 12px;
+    color: $gold;
+  }
+}
+
+.icon {
+  font-size: 32px;
+}
+
+.locked {
+  opacity: 0.55;
+}
+
+.lockLabel {
+  font-size: 12px;
+  color: $muted;
+}
+
+@media (max-width: $mobile) {
+  .header h1 {
+    font-size: 22px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
