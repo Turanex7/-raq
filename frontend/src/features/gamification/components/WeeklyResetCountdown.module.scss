@@ -1,0 +1,4 @@
+@use "../../../styles/variables" as *;
+
+.wrap { display: flex; flex-direction: column; gap: 4px; color: $text-secondary; font-size: 12px; }
+.wrap b { color: $gold; font-size: 14px; }

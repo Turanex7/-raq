@@ -5,6 +5,7 @@ import { useGame } from "../features/gamification/gameStore";
 import { GAME_CONFIG } from "../features/gamification/gameConfig";
 import { useMocks } from "../services/api";
 import useApiResource from "../services/useApiResource";
+import XpExplainer from "../features/gamification/components/XpExplainer";
 import styles from "./AppLayout.module.scss";
 
 const navigation = [
@@ -40,6 +41,7 @@ export default function AppLayout() {
   const { data: apiUser } = useApiResource("/me", !useMocks && hasToken);
   const currentUser = game.users.find((user) => user.id === game.currentUserId);
   const level = useMocks ? Math.floor(currentUser.xp / GAME_CONFIG.levelXp) + 1 : apiUser?.level || 1;
+  const lifetimeXp = useMocks ? currentUser.xp : apiUser?.lifetimeXp ?? 0;
   const title = pageTitle(location.pathname);
   useEffect(() => { document.title = `${title} · Çıraq`; }, [title]);
   const showDemo = () => { window.location.assign("/map?demo=1"); };
@@ -59,8 +61,11 @@ export default function AppLayout() {
         </nav>
         <Link to={useMocks || hasToken ? "/profile" : "/login"} className={styles.profilePill} aria-label={useMocks || hasToken ? "Profilə keç" : "Daxil ol"}>
           <span className={styles.profileAvatar}>{(apiUser?.name || (useMocks ? currentUser.name : "Ç")).slice(0, 1)}</span>
-          <span><b>{useMocks || hasToken ? `Səviyyə ${level}` : "Daxil ol"}</b><small><Zap size={11} /> {useMocks ? currentUser.xp : apiUser?.lifetimeXp ?? 0} XP</small></span>
+          <span><b>{useMocks || hasToken ? `Səviyyə ${level}` : "Daxil ol"}</b><small><Zap size={11} /> Ümumi XP · {lifetimeXp}</small></span>
         </Link>
+        <XpExplainer className={styles.xpHelp}>
+          <Zap size={14} aria-hidden="true"/><span>Ümumi XP · {lifetimeXp}</span>
+        </XpExplainer>
         {hasToken && <button type="button" className={styles.logout} onClick={logOut}><LogOut size={16} aria-hidden="true"/><span>Çıxış</span></button>}
       </header>
       <main className={styles.main}><Outlet /></main>

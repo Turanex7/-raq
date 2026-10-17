@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { Link } from "react-router-dom";
 import { Compass, MapPin, RefreshCw, Sparkles, Trophy, Zap } from "lucide-react";
 import useApiResource from "../../services/useApiResource";
+import WeeklyResetCountdown from "./components/WeeklyResetCountdown";
 import styles from "./ApiWeeklyMap.module.scss";
 
 const BAKU = [40.382, 49.858];
@@ -53,7 +54,7 @@ export default function ApiWeeklyMap() {
   const [tilesFailed, setTilesFailed] = useState(false);
   const places = placesResult.data || [];
   return <section className={styles.page}>
-    <header className={styles.heading}><div><p><Sparkles size={14}/>Həftəlik mövsüm · {seasonResult.data?.theme || "Çıraq kəşfi"}</p><h1>Bakı xəritəsi</h1><span>Muzeyə gedib tapşırıq tamamla, universitetin üçün xal və ərazi qazan.</span></div><div className={styles.timer}><small>Həftənin sonuna</small><b>{seasonResult.data ? formatRemaining(seasonResult.data.seconds_remaining) : "—"}</b></div></header>
+    <header className={styles.heading}><div><p><Sparkles size={14}/>Həftəlik mövsüm · {seasonResult.data?.theme || "Çıraq kəşfi"}</p><h1>Bakı xəritəsi</h1><span>Muzeyə gedib tapşırıq tamamla, universitetin üçün xal və ərazi qazan.</span></div>{seasonResult.data && <WeeklyResetCountdown secondsRemaining={seasonResult.data.seconds_remaining} className={styles.timer}/>}</header>
     {placesResult.loading && <div className={styles.state} role="status">Xəritə yüklənir…</div>}
     {placesResult.error && <Retry message={placesResult.error} onRetry={placesResult.retry}/>}
     {!!placesResult.data && <>
@@ -71,11 +72,4 @@ export default function ApiWeeklyMap() {
       </article>)}</div>
     </>}
   </section>;
-}
-
-function formatRemaining(seconds) {
-  const value = Math.max(0, Number(seconds) || 0);
-  const days = Math.floor(value / 86400);
-  const hours = Math.floor(value % 86400 / 3600);
-  return days ? `${days} gün ${hours} saat` : `${hours} saat ${Math.floor(value % 3600 / 60)} dəqiqə`;
 }

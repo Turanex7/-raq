@@ -403,6 +403,7 @@ public static class ApiRoutes
         var afterUniversity = (string?)afterOwner?.GetType().GetProperty("university_id")?.GetValue(afterOwner);
         var territoryChanged = afterUniversity is not null && beforeUniversity != afterUniversity && afterUniversity == user.UniversityId;
         var lifetime = await XpFor(db, user.Id);
+        var weeklyTotal = await XpFor(db, user.Id, season.Id);
         var level = lifetime / GameRules.LevelXp + 1;
         var oldLevel = (lifetime - total) / GameRules.LevelXp + 1;
         var unlocked = level > oldLevel ? await db.Avatars.Where(x => x.UnlockLevel > oldLevel && x.UnlockLevel <= level).Select(x => new { x.Id, x.Name }).ToListAsync() : [];
@@ -411,6 +412,7 @@ public static class ApiRoutes
             xp_awarded = total,
             breakdown = new { base_xp = baseXp, group_bonus = groupBonus, first_visit = firstVisitXp, multiplier = multiplierXp },
             new_total = lifetime,
+            weekly_total = weeklyTotal,
             level,
             level_up = level > oldLevel,
             avatar_unlocked = unlocked,

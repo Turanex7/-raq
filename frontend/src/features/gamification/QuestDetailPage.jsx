@@ -96,7 +96,23 @@ function ApiTaskPlayer() {
     {!result && task.type === "coop" && <div className={styles.contentCard}><h2>3 dostla eyni məkanda</h2><p>QR kodunu iki dəqiqə ərzində skan edin. Eyni universitetin və ya qrupun iştirakçıları qoşula bilər.</p><button className={styles.action} type="button" onClick={joinCoop}><Users size={16}/>Ko-op-a qoşul</button>{session && <div className={styles.lobby} role="status"><b>{session.joined}/{session.needed} dost qoşuldu</b><span><Clock3 size={14}/>Sessiya vaxtı: 2 dəqiqə</span><ul>{session.participants.map((member) => <li key={member.id}>{member.name}</li>)}</ul></div>}</div>}
     {!result && task.type === "find" && place.type === "museum" && <div className={styles.contentCard}><h2>Tapdığın detalı bölüş</h2><p>Subyektiv tapşırıqdır; istənilən səmimi cavab tam XP qazandırır.</p><form onSubmit={(event) => { event.preventDefault(); complete(); }}><label className={styles.answerLabel}>Məkanda hansı detalı tapdın?<input value={answer} onChange={(event) => setAnswer(event.target.value)} required maxLength={240} placeholder="Məsələn, fasaddakı naxış"/></label><button className={styles.action} type="submit" disabled={submitting}>Tapşırığı tamamla</button></form></div>}
     {!result && task.type === "find" && place.type === "outdoor" && <div className={styles.contentCard}><h2>Məkanın radiusunda ol</h2><p>GPS icazəsi olmadan açıq hava yoxlaması mümkün deyil. Lokasiya məlumatı yalnız yoxlama zamanı istifadə olunur.</p><Link className={styles.action} to={`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}&checkin=1`}>Yoxlamaya başla</Link></div>}
-    {result && <div className={styles.contentCard}><p className={styles.kicker}><Check size={15}/>Tapşırıq tamamlandı</p><h2>+{result.xp_awarded} XP</h2><p>Əsas XP: {result.breakdown.base_xp} · Qrup bonusu: {result.breakdown.group_bonus} · İlk muzey ziyarəti: {result.breakdown.first_visit} · Çarpan: {result.breakdown.multiplier}</p>{result.correct === false && <p>Düzgün cavab: <b>{result.correct_answer}</b>. {result.fact}</p>}{result.level_up && <p>Yeni səviyyə açıldı: {result.level}</p>}{result.avatar_unlocked?.length > 0 && <p>Açılan avatar: {result.avatar_unlocked.map((avatar) => avatar.name).join(", ")}</p>}{result.souvenir_drop && <p>Suvenir kolleksiyaya əlavə olundu: <b>{result.souvenir_drop.name}</b> · {rarityName(result.souvenir_drop.rarity)}</p>}{result.territory_change && <p>{result.territory_change.message}</p>}<ShareCardButton placeId={place.slug}/><Link className={styles.secondary} to={`/museums/${place.slug}`}>Başqa tapşırıq seç</Link></div>}
+    {result && <div className={styles.contentCard}>
+      <p className={styles.kicker}><Check size={15}/>Tapşırıq tamamlandı</p>
+      <div className={styles.xpGain} aria-live="polite"><strong>+{result.xp_awarded} XP</strong><span>Qazanılan XP</span></div>
+      <div className={styles.xpTotals}><p><span>Ümumi XP</span><b>{result.new_total}</b></p><p><span>Həftəlik XP</span><b>{result.weekly_total ?? "—"}</b></p></div>
+      <div className={styles.breakdown}><b>XP bölgüsü</b><ul>
+        <li>Əsas XP: {result.breakdown.base_xp}</li>
+        <li>İlk muzey ziyarəti: {result.breakdown.first_visit}</li>
+        <li>Dəstə bonusu: {result.breakdown.group_bonus}</li>
+        <li>Həftəlik liqa əlavəsi: {result.breakdown.multiplier}</li>
+      </ul></div>
+      {result.correct === false && <p>Düzgün cavab: <b>{result.correct_answer}</b>. {result.fact}</p>}
+      {result.level_up && <p className={styles.levelMoment}>Yeni səviyyə açıldı: <b>{result.level}</b></p>}
+      {result.avatar_unlocked?.length > 0 && <p className={styles.levelMoment}>Açılan avatar: <b>{result.avatar_unlocked.map((avatar) => avatar.name).join(", ")}</b></p>}
+      {result.souvenir_drop && <p>Suvenir kolleksiyaya əlavə olundu: <b>{result.souvenir_drop.name}</b> · {rarityName(result.souvenir_drop.rarity)}</p>}
+      {result.territory_change && <p>{result.territory_change.message}</p>}
+      <ShareCardButton placeId={place.slug}/><Link className={styles.secondary} to={`/museums/${place.slug}`}>Başqa tapşırıq seç</Link>
+    </div>}
   </section>;
 }
 
