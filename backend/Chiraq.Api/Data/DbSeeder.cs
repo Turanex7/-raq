@@ -15,6 +15,39 @@ public static class DbSeeder
         ("atmu", "Azərbaycan Turizm və Menecment Universiteti", "ATMU", ["atmu.edu.az"]),
         ("khazar", "Xəzər Universiteti", "Xəzər", ["khazar.org"]),
         ("atu", "Azərbaycan Tibb Universiteti", "ATU", ["amu.edu.az"]),
+        ("banm", "Bakı Ali Neft Məktəbi", "BANM", ["bhos.edu.az"]),
+        ("adpu", "Azərbaycan Dövlət Pedaqoji Universiteti", "ADPU", ["adpu.edu.az"]),
+        ("azmiu", "Azərbaycan Memarlıq və İnşaat Universiteti", "AzMİU", ["azmiu.edu.az"]),
+        ("bsu-slavyan", "Bakı Slavyan Universiteti", "BSU", ["bsu-uni.edu.az"]),
+        ("adu", "Azərbaycan Dillər Universiteti", "ADU", ["adu.edu.az"]),
+        ("beu", "Bakı Mühəndislik Universiteti", "BMU", ["beu.edu.az"]),
+        ("bma", "Üzeyir Hacıbəyli adına Bakı Musiqi Akademiyası", "BMA", ["musakademiya.musigi-dunya.az"]),
+        ("admiu", "Azərbaycan Dövlət Mədəniyyət və İncəsənət Universiteti", "ADMİU", ["admiu.edu.az"]),
+        ("sdu", "Sumqayıt Dövlət Universiteti", "SDU", ["sdu.edu.az"]),
+        ("lsu", "Lənkəran Dövlət Universiteti", "LDU", ["lsu.edu.az"]),
+        ("gsu", "Gəncə Dövlət Universiteti", "GDU", ["gsu.az"]),
+        ("atu-gence", "Azərbaycan Texnologiya Universiteti", "ATU", ["atu.edu.az"]),
+        ("mdu", "Mingəçevir Dövlət Universiteti", "MDU", ["mdu.edu.az"]),
+        ("ndu", "Naxçıvan Dövlət Universiteti", "NDU", ["ndu.edu.az"]),
+        ("azra", "Azərbaycan Dövlət Rəssamlıq Akademiyası", "ADRA", ["azra.edu.az"]),
+        ("konservatoriya", "Azərbaycan Milli Konservatoriyası", "AMK", ["conservatory.az"]),
+        ("nmi", "Naxçıvan Müəllimlər İnstitutu", "NMİ", ["nmi.edu.az"]),
+        ("qarabag", "Qarabağ Universiteti", "Qarabağ", ["karabakh.edu.az"]),
+        ("tau", "Türkiyə-Azərbaycan Universiteti", "TAU", ["tau.edu.az"]),
+        ("sport", "Azərbaycan İdman Akademiyası", "AİA", ["sport.edu.az"]),
+        ("adau", "Azərbaycan Dövlət Aqrar Universiteti", "ADAU", ["adau.edu.az"]),
+        ("dia", "Prezident yanında Dövlət İdarəçilik Akademiyası", "DİA", ["dia.edu.az"]),
+        ("adda", "Azərbaycan Dövlət Dəniz Akademiyası", "ADDA", ["adda.edu.az"]),
+        ("naa", "Milli Aviasiya Akademiyası", "MAA", ["naa.az"]),
+        ("bxa", "Bakı Xoreoqrafiya Akademiyası", "BXA", ["bxa.edu.az"]),
+        ("ait", "Azərbaycan İlahiyyat İnstitutu", "Aİİ", ["ait.edu.az"]),
+        ("qku", "Qərbi Kaspi Universiteti", "QKU", ["wu.edu.az"]),
+        ("au", "Azərbaycan Universiteti", "AU", ["au.edu.az"]),
+        ("oyu", "Odlar Yurdu Universiteti", "OYU", ["oyu.edu.az"]),
+        ("baau", "Bakı Avrasiya Universiteti", "BAAU", ["baau.edu.az"]),
+        ("aku", "Azərbaycan Kooperasiya Universiteti", "AKU", ["aku.edu.az"]),
+        ("bbu", "Bakı Biznes Universiteti", "BBU", ["bbu.edu.az"]),
+        ("aesma", "Azərbaycan Əmək və Sosial Münasibətlər Akademiyası", "AESMA", ["aesma.edu.az"]),
     ];
 
     private static readonly (string Slug, string Name, string District, string Type, double Lat, double Lng, string Description, string Rarity)[] Places =
@@ -46,12 +79,21 @@ public static class DbSeeder
     public static async Task InitializeAsync(AppDbContext db, IConfiguration configuration)
     {
         await db.Database.MigrateAsync();
-        if (await db.Universities.AnyAsync()) return;
+        var existingUniversityIds = await db.Universities.Select(x => x.Id).ToListAsync();
+        var missingUniversities = Universities
+            .Where(x => !existingUniversityIds.Contains(x.Id))
+            .Select(x => new University { Id = x.Id, Name = x.Name, ShortName = x.Short, EmailDomains = JsonSerializer.Serialize(x.Domains) })
+            .ToList();
+        if (missingUniversities.Count > 0)
+        {
+            db.Universities.AddRange(missingUniversities);
+            await db.SaveChangesAsync();
+        }
+        if (await db.Seasons.AnyAsync()) return;
 
         var now = DateTimeOffset.UtcNow;
         var seasonRange = GameRules.CurrentSeason(now);
         var season = new Season { Id = "season-current", StartsAtUtc = seasonRange.StartUtc, EndsAtUtc = seasonRange.EndUtc.AddTicks(-1), Theme = "Muzey həftəsi" };
-        var universities = Universities.Select(x => new University { Id = x.Id, Name = x.Name, ShortName = x.Short, EmailDomains = JsonSerializer.Serialize(x.Domains) }).ToList();
         var places = Places.Select((x, index) => new Place
         {
             Id = $"place-{x.Slug}", Slug = x.Slug, Name = x.Name, District = x.District, Type = x.Type,
@@ -114,7 +156,6 @@ public static class DbSeeder
 
         await using var tx = await db.Database.BeginTransactionAsync();
         db.Seasons.Add(season);
-        db.Universities.AddRange(universities);
         db.Places.AddRange(places);
         db.Tasks.AddRange(tasks);
         db.Avatars.AddRange(avatars);

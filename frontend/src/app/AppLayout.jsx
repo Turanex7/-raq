@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Compass, Crown, Map, UserRound, Zap, GalleryVerticalEnd } from "lucide-react";
+import { Compass, Crown, Map, UserRound, Zap, GalleryVerticalEnd, LogOut } from "lucide-react";
 import { NavLink, Outlet, Link, useLocation } from "react-router-dom";
 import { useGame } from "../features/gamification/gameStore";
 import { GAME_CONFIG } from "../features/gamification/gameConfig";
@@ -43,6 +43,10 @@ export default function AppLayout() {
   const title = pageTitle(location.pathname);
   useEffect(() => { document.title = `${title} · Çıraq`; }, [title]);
   const showDemo = () => { window.location.assign("/map?demo=1"); };
+  const logOut = () => {
+    window.localStorage.removeItem("chiraq_token");
+    window.location.assign("/login");
+  };
   return (
     <div className={styles.app}>
       <header className={styles.header}>
@@ -57,6 +61,7 @@ export default function AppLayout() {
           <span className={styles.profileAvatar}>{(apiUser?.name || (useMocks ? currentUser.name : "Ç")).slice(0, 1)}</span>
           <span><b>{useMocks || hasToken ? `Səviyyə ${level}` : "Daxil ol"}</b><small><Zap size={11} /> {useMocks ? currentUser.xp : apiUser?.lifetimeXp ?? 0} XP</small></span>
         </Link>
+        {hasToken && <button type="button" className={styles.logout} onClick={logOut}><LogOut size={16} aria-hidden="true"/><span>Çıxış</span></button>}
       </header>
       <main className={styles.main}><Outlet /></main>
       <nav className={styles.mobileNav} aria-label="Mobil naviqasiya">

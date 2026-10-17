@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
   Popup,
   TileLayer,
   ZoomControl,
+  useMap,
   useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -15,6 +16,28 @@ const BAKU_CENTER = [40.382, 49.858];
 
 function MapReadySignal() {
   useMapEvents({ load: () => undefined });
+  return null;
+}
+
+function MapResizeSignal() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    let frame = 0;
+    const refresh = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+    };
+    const observer = new ResizeObserver(refresh);
+    observer.observe(container);
+    window.addEventListener("resize", refresh);
+    refresh();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", refresh);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [map]);
   return null;
 }
 
@@ -38,6 +61,7 @@ export default function MuseumMap({ museums }) {
       />
       <ZoomControl position="bottomright" />
       <MapReadySignal />
+      <MapResizeSignal />
 
       {museums.map((museum) => (
         <MuseumMarker

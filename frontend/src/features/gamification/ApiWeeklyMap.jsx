@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { Circle, CircleMarker, MapContainer, Popup, TileLayer, ZoomControl, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import { Link } from "react-router-dom";
 import { Compass, MapPin, RefreshCw, Sparkles, Trophy, Zap } from "lucide-react";
 import useApiResource from "../../services/useApiResource";
@@ -9,7 +10,23 @@ const BAKU = [40.382, 49.858];
 
 function MapResize({ revision }) {
   const map = useMap();
-  useEffect(() => { const timer = window.setTimeout(() => map.invalidateSize(), 80); return () => window.clearTimeout(timer); }, [map, revision]);
+  useEffect(() => {
+    const container = map.getContainer();
+    let frame = 0;
+    const refresh = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => map.invalidateSize({ pan: false }));
+    };
+    const observer = new ResizeObserver(refresh);
+    observer.observe(container);
+    window.addEventListener("resize", refresh);
+    refresh();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", refresh);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [map, revision]);
   return null;
 }
 

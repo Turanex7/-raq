@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [avatarId, setAvatarId] = useState("nizami");
   const [visited, setVisited] = useState("");
   const [universities, setUniversities] = useState(useMocks ? UNIVERSITIES.map((item) => ({ id: item.id, name: item.name })) : []);
-  const [avatars, setAvatars] = useState(useMocks ? HISTORICAL_AVATARS.map((item, index) => ({ id: ["nizami", "uzeyir", "nesimi", "natavan", "babek"][index], name: item.name, unlock_level: 1 })) : []);
+  const [avatars, setAvatars] = useState(useMocks ? HISTORICAL_AVATARS.map((item, index) => ({ id: ["nizami", "uzeyir", "nesimi", "natavan", "babek"][index], name: item.name, unlock_level: [1, 2, 3, 4, 6][index] })) : []);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function LoginPage() {
       {mode === "register" && <>
         <label>Ad və soyad<input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} maxLength={50} autoComplete="name" placeholder="Ad Soyad"/></label>
         <label>Universitet<input list="ciraq-universities" value={universityName} onChange={(event) => setUniversityId(universities.find((item) => item.name.toLowerCase() === event.target.value.trim().toLowerCase())?.id || "")} required placeholder="Universiteti axtar"/><datalist id="ciraq-universities">{universities.map((uni) => <option key={uni.id} value={uni.name}/>)}</datalist></label>
-        <label>Avatar<select value={avatarId} onChange={(event) => setAvatarId(event.target.value)}>{avatars.map((avatar) => <option key={avatar.id} value={avatar.id}>{avatar.name}{avatar.unlock_level > 1 ? ` · ${avatar.unlock_level}-ci səviyyədə açılır` : ""}</option>)}</select></label>
+        <label>Avatar<select value={avatarId} onChange={(event) => setAvatarId(event.target.value)}>{avatars.map((avatar) => <option key={avatar.id} value={avatar.id} disabled={avatar.unlock_level > 1}>{avatar.name}{avatar.unlock_level > 1 ? ` · ${avatar.unlock_level}-ci səviyyədə açılır` : ""}</option>)}</select></label>
         <label>Son 12 ayda muzeyə getmisən?<select value={visited} onChange={(event) => setVisited(event.target.value)}><option value="">Cavab vermək istəmirəm</option><option value="yes">Bəli</option><option value="no">Xeyr</option></select></label>
       </>}
       <label>Universitet e-poçtu<input type="email" placeholder="ad@universitet.edu.az" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email"/></label>
