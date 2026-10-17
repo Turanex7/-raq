@@ -1,0 +1,26 @@
+@use "sass:color";
+
+// Çıraq — Brand Colors
+$navy: #080d29;
+$purple: #301c58;
+$mint: #a0e4c9;
+$success: #009a69;
+$gold: #f5b942;
+
+// Layout Colors
+$background: $navy;
+$surface: $purple;
+$primary: $mint;
+
+// Typography
+$text: #ffffff;
+$text-primary: #ffffff;
+$text-secondary: #b9b4cf;
+$muted: #b9b4cf;
+
+// Border Radius
+$radius-card: 18px;
+$radius-button: 12px;
+
+// Responsive
+$mobile: 768px;
