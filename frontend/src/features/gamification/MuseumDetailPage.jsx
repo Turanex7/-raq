@@ -25,7 +25,7 @@ function ApiMuseumDetail({ slug }) {
   const routeTasks = route ? tasks.slice(0, 4) : tasks;
   return <section className={styles.page}>
     <Link to="/map" className={styles.back}><ArrowLeft size={16}/>Xəritəyə qayıt</Link>
-    <article className={styles.hero}><span aria-hidden="true">{place.type === "museum" ? "⌂" : "⌖"}</span><p className={styles.kicker}><Sparkles size={14}/>{place.status === "open" ? "Bu həftə açıqdır" : "Bu həftə bağlıdır"} · {place.district}</p><h1>{place.name}</h1><p className={styles.location}><MapPin size={15}/>{place.district} · {place.radiusMeters} m radius</p><p>{place.description}</p>
+    <article className={styles.hero}><span aria-hidden="true">{place.type === "museum" ? "⌂" : "⌖"}</span><p className={styles.kicker}><Sparkles size={14}/>{place.status === "open" ? "Bu həftə açıqdır" : "Bu həftə bağlıdır"} · {place.district}</p><h1>{place.name}</h1><p className={styles.location}><MapPin size={15}/>{place.district} · {place.radiusMeters} m radius</p><p>{place.description}</p>{place.is_ticketed && <p className={styles.reward}>Biletli məkan · hər tapşırığa əlavə +{place.ticketed_place_bonus_xp} XP</p>}
       {owner ? <TerritorySummary owner={owner} universityId={me?.universityId}/> : <div className={styles.reward}>Bu həftə ərazi xalı hələ qazanılmayıb.</div>}
     </article>
     <GroupBonusInfo status={place.group_bonus}/>
@@ -34,7 +34,7 @@ function ApiMuseumDetail({ slug }) {
       {place.status === "open" && firstAvailableTask && <Link className={styles.action} to={`/quests/${firstAvailableTask.id}?place=${encodeURIComponent(place.slug)}`}>Fəth et · tapşırığa başla<ArrowRight size={15}/></Link>}
       {tasks.length === 0 && <p>Bu məkanda hazırda tapşırıq yoxdur.</p>}
       <div className={styles.taskList}>{routeTasks.map((task) => <article className={styles.taskCard} key={task.id}>
-        <div><span className={styles.difficulty}>{difficultyLabel(task.difficulty)}</span>{task.completed && <span className={styles.completed}>Tamamlandı</span>}<h3>{task.title}</h3><p>{task.description}</p><small>+{task.xp} XP · {task.needsReview ? "Məzmun yoxlanış növbəsindədir" : ""}</small></div>
+        <div><span className={styles.difficulty}>{difficultyLabel(task.difficulty)}</span>{task.completed && <span className={styles.completed}>Tamamlandı</span>}<h3>{task.title}</h3><p>{task.description}</p><small>+{task.xp} XP{task.ticketed_place_bonus_xp > 0 ? ` + ${task.ticketed_place_bonus_xp} XP bilet bonusu` : ""} · {task.needsReview ? "Məzmun yoxlanış növbəsindədir" : ""}</small></div>
         {!task.completed && <Link className={styles.secondary} to={`/quests/${task.id}?place=${encodeURIComponent(place.slug)}`}>{task.type === "coop" ? "Komanda qur" : task.type === "qr_scan" ? "QR skan et" : "Tapşırığa başla"}<ArrowRight size={15}/></Link>}
       </article>)}</div>
       <p className={styles.routeNote}>Marşrut {Math.min(routeTasks.length, 4)} tapşırıqdan ibarətdir. Tapşırıqlar məkana görə qruplaşdırılıb.</p>

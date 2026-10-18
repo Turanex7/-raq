@@ -5,6 +5,8 @@ const LEVEL_XP = 250;
 const STREAK_DAYS = 7;
 const STREAK_REWARD_XP = 10;
 const GROUP_MULTIPLIERS = [1, 1.2, 1.3, 1.4];
+const TICKETED_PLACE_BONUS_XP = 3;
+const TICKETED_PLACE_SLUGS = new Set(["carpet-museum", "national-history", "modern-art", "literature-museum", "miniature-book-museum", "ateshgah"]);
 
 const UNIVERSITIES = [
   ["bdu", "Bakı Dövlət Universiteti", "BDU"], ["ada", "ADA Universiteti", "ADA"],
@@ -45,6 +47,7 @@ const PLACES = [
 ].map(([slug, name, district, type, lat, lng, description, rarity], index) => ({
   id: "place-" + slug, slug, name, district, type, lat, lng, description, rarity,
   radius_m: type === "museum" ? 60 : 50, status: index < 8 ? "open" : "locked",
+  is_ticketed: TICKETED_PLACE_SLUGS.has(slug), ticketed_place_bonus_xp: TICKETED_PLACE_SLUGS.has(slug) ? TICKETED_PLACE_BONUS_XP : 0,
 }));
 
 const AVATARS = [
@@ -190,9 +193,8 @@ function seedSpecialXp(index) {
 
 function xpForSeedAward(award) {
   const taskId = award[2];
-  if (taskId.endsWith("-quiz")) return award[3] ? 20 : 8;
-  if (taskId.endsWith("-challenge")) return 40;
-  return 10;
+  const taskXp = taskId.endsWith("-quiz") ? (award[3] ? 20 : 8) : taskId.endsWith("-challenge") ? 40 : 10;
+  return taskXp + (TICKETED_PLACE_SLUGS.has(award[1]) ? TICKETED_PLACE_BONUS_XP : 0);
 }
 
 function seedBoardRow(index, round) {
@@ -278,6 +280,7 @@ function makeTasks(place, state, user) {
     return {
       id, code: task.code, title: task.title, description: task.description, type: task.type,
       difficulty: task.difficulty, xp: task.xp, coopSize: task.coopSize || 0,
+      ticketed_place_bonus_xp: place.ticketed_place_bonus_xp || 0,
       needsReview: true, completed,
       payload: task.type === "quiz" ? { question: task.payload.question, choices: [] } : task.type === "vote" ? { question: task.payload.question, choices: task.payload.choices } : task.payload,
     };
@@ -383,6 +386,7 @@ function detailPlace(state, place, user) {
   return {
     id: place.id, slug: place.slug, type: place.type, name: place.name, district: place.district,
     description: place.description, latitude: place.lat, longitude: place.lng, radiusMeters: place.radius_m,
+    is_ticketed: Boolean(place.is_ticketed), ticketed_place_bonus_xp: place.ticketed_place_bonus_xp || 0,
     status: place.status, territory: territoryOwner(state, season, place),
     group_bonus: user ? groupBonus(state, user, place) : { minimum_members: 3, current_members: 0, members_needed: 3, multiplier: 1.2, window_minutes: 60, already_awarded: false, earned_xp: 0 },
     tasks,
@@ -524,6 +528,7 @@ function completeTask(state, user, taskId, body) {
   const beforeOwner = territoryOwner(state, season, place);
   const now = new Date().toISOString();
   const baseXp = task.type === "quiz" && !correct ? 8 : task.xp;
+  const ticketedPlaceBonus = place.ticketed_place_bonus_xp || 0;
   let firstVisitXp = 0;
   if (place.type === "museum" && !user.firstMuseumVisitCompleted) {
     user.firstMuseumVisitCompleted = true;
@@ -531,15 +536,16 @@ function completeTask(state, user, taskId, body) {
   }
   state.completions.push({ user_id: user.id, task_id: task.id, place_id: place.id, season_id: season.id, correct, completed_at_utc: now });
   state.xp_events.push({ user_id: user.id, season_id: season.id, place_id: place.id, task_id: task.id, kind: "base", amount: baseXp, created_at_utc: now });
+  if (ticketedPlaceBonus > 0) state.xp_events.push({ user_id: user.id, season_id: season.id, place_id: place.id, task_id: task.id, kind: "ticketed_place_bonus", amount: ticketedPlaceBonus, created_at_utc: now });
   if (firstVisitXp) state.xp_events.push({ user_id: user.id, season_id: season.id, place_id: place.id, task_id: task.id, kind: "first_visit", amount: firstVisitXp, created_at_utc: now });
   const souvenirDrop = souvenirFor(state, user, place, false);
   const rareFlameDrop = task.type === "qr_scan" && Math.random() < 0.05 ? souvenirFor(state, user, place, true) : null;
   const afterOwner = territoryOwner(state, season, place);
   const level = Math.floor(userXp(state, user.id) / LEVEL_XP) + 1;
-  const previousLevel = Math.floor((userXp(state, user.id) - baseXp - firstVisitXp) / LEVEL_XP) + 1;
+  const previousLevel = Math.floor((userXp(state, user.id) - baseXp - ticketedPlaceBonus - firstVisitXp) / LEVEL_XP) + 1;
   return {
-    xp_awarded: baseXp + firstVisitXp,
-    breakdown: { base_xp: baseXp, group_bonus: 0, first_visit: firstVisitXp, multiplier: 0 },
+    xp_awarded: baseXp + ticketedPlaceBonus + firstVisitXp,
+    breakdown: { base_xp: baseXp, ticketed_place_bonus: ticketedPlaceBonus, group_bonus: 0, first_visit: firstVisitXp, multiplier: 0 },
     new_total: userXp(state, user.id), weekly_total: userXp(state, user.id, season.id), level,
     level_up: level > previousLevel,
     avatar_unlocked: AVATARS.filter((avatar) => avatar.unlock_level > previousLevel && avatar.unlock_level <= level).map(({ id, name }) => ({ id, name })),
@@ -575,7 +581,7 @@ function coopView(state, session, user) {
     my_role: mine?.role || null, role_question: mine ? { text: roles[mine.role], needs_review: true } : null,
     answered: Boolean(mine?.answered), answered_count: session.participants.filter((row) => row.answered).length,
     xp_awarded: session.completed ? session.xp_awarded || 0 : 0,
-    breakdown: { base_xp: session.completed ? session.base_xp || 0 : 0, group_bonus: 0 },
+    breakdown: { base_xp: session.completed ? session.base_xp || 0 : 0, ticketed_place_bonus: session.completed ? session.ticketed_place_bonus_xp || 0 : 0, group_bonus: 0 },
   };
 }
 
@@ -614,6 +620,7 @@ export async function demoApiRequest(path, init = {}) {
     result = {
       level_xp: LEVEL_XP, outdoor_pin_xp: 10,
       difficulty_xp: { easy: 10, medium: 20, hard: 40 },
+      ticketed_places: { bonus_xp: TICKETED_PLACE_BONUS_XP, slugs: [...TICKETED_PLACE_SLUGS] },
       university_ranking: { top_members: 10, minimum_active: 3 },
       group_bonus: { minimum_members: 3, window_minutes: 60, multipliers: GROUP_MULTIPLIERS },
       maximum_week_multiplier: 1.1, time_zone: "Asia/Baku",
@@ -718,6 +725,7 @@ export async function demoApiRequest(path, init = {}) {
       return {
         id: place.id, slug: place.slug, type: place.type, name: place.name, district: place.district,
         description: place.description, lat: place.lat, lng: place.lng, radius_m: place.radius_m,
+        is_ticketed: place.is_ticketed, ticketed_place_bonus_xp: place.ticketed_place_bonus_xp,
         status: place.status, task_count: 5, completed_count: completions,
         xp_total: placeXpTotal(state, season, place), territory_owner: territoryOwner(state, season, place),
       };
@@ -815,7 +823,7 @@ export async function demoApiRequest(path, init = {}) {
     if (!session) {
       session = {
         id: sessionId, task_id: taskId, place_id: place.id, season_id: season.id,
-        completed: false, expires_at_utc: new Date(Date.now() + 60 * 60000).toISOString(), xp_awarded: 0, base_xp: 0,
+        completed: false, expires_at_utc: new Date(Date.now() + 60 * 60000).toISOString(), xp_awarded: 0, base_xp: 0, ticketed_place_bonus_xp: 0,
         participants: [
           { id: user.id, name: publicName(user.name), role: "Kəşfiyyatçı", answered: false },
           { id: "demo-peer-a", name: "Nihad Q.", role: "Tarixçi", answered: false },
@@ -854,9 +862,11 @@ export async function demoApiRequest(path, init = {}) {
       const task = place && makeTasks(place, state, user).find((row) => row.id === session.task_id);
       const now = new Date().toISOString();
       session.base_xp = task?.xp || 20;
-      session.xp_awarded = session.base_xp;
+      session.ticketed_place_bonus_xp = place?.ticketed_place_bonus_xp || 0;
+      session.xp_awarded = session.base_xp + session.ticketed_place_bonus_xp;
       state.completions.push({ user_id: user.id, task_id: session.task_id, place_id: session.place_id, season_id: season.id, correct: true, completed_at_utc: now });
       state.xp_events.push({ user_id: user.id, season_id: season.id, place_id: session.place_id, task_id: session.task_id, kind: "base", amount: session.base_xp, created_at_utc: now });
+      if (session.ticketed_place_bonus_xp > 0) state.xp_events.push({ user_id: user.id, season_id: season.id, place_id: session.place_id, task_id: session.task_id, kind: "ticketed_place_bonus", amount: session.ticketed_place_bonus_xp, created_at_utc: now });
     }
     result = coopView(state, session, user);
   } else if (parts.length === 2 && parts[0] === "me" && parts[1] === "collection" && method !== "GET") {

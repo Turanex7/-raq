@@ -164,8 +164,10 @@ public static class DbSeeder
             if (index == 37) count = 4;
             foreach (var task in leaderboardTasks.Take(count))
             {
+                var ticketedBonus = GameRules.TicketedPlaceBonus(placeById[task.PlaceId].Slug);
                 db.TaskCompletions.Add(new TaskCompletion { UserId = user.Id, TaskId = task.Id, SeasonId = season.Id, Correct = index % 2 == 0, CompletedAtUtc = now.AddDays(-(index % 6)).AddMinutes(index * 3) });
                 db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = now.AddDays(-(index % 6)).AddMinutes(index * 3) });
+                if (ticketedBonus > 0) db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "ticketed_place_bonus", Amount = ticketedBonus, CreatedAtUtc = now.AddDays(-(index % 6)).AddMinutes(index * 3) });
                 if (placeById[task.PlaceId].Type == "museum" && user.VisitedMuseumLast12Months == false) user.FirstMuseumVisitCompleted = true;
             }
         }
@@ -209,8 +211,10 @@ public static class DbSeeder
         var seedUserIds = seedUsers.Keys.ToArray();
         var currentSeedEvents = await db.XpEvents.Where(x => x.SeasonId == seasonId && placeIds.Contains(x.PlaceId) && seedUserIds.Contains(x.UserId))
             .Select(x => new { x.UserId, x.TaskId, x.Amount, x.Kind }).ToListAsync();
-        var alreadyBalanced = currentSeedEvents.Count == expected.Length && expected.All(item =>
-            currentSeedEvents.Any(row => row.UserId == item.UserId && row.TaskId == item.TaskId && row.Kind == "base" && row.Amount == SeedTaskXp(item, taskById[item.TaskId])));
+        var ticketedAwards = expected.Count(item => SeedTaskTicketedBonus(taskById[item.TaskId]) > 0);
+        var alreadyBalanced = currentSeedEvents.Count == expected.Length + ticketedAwards && expected.All(item =>
+            currentSeedEvents.Any(row => row.UserId == item.UserId && row.TaskId == item.TaskId && row.Kind == "base" && row.Amount == SeedTaskBaseXp(item, taskById[item.TaskId])) &&
+            (SeedTaskTicketedBonus(taskById[item.TaskId]) == 0 || currentSeedEvents.Any(row => row.UserId == item.UserId && row.TaskId == item.TaskId && row.Kind == "ticketed_place_bonus" && row.Amount == SeedTaskTicketedBonus(taskById[item.TaskId]))));
         if (alreadyBalanced) return;
 
         var targetedTaskIds = tasks.Select(x => x.Id).ToArray();
@@ -222,7 +226,9 @@ public static class DbSeeder
             var task = taskById[item.TaskId];
             var completedAt = now.AddMinutes(index * 7);
             db.TaskCompletions.Add(new TaskCompletion { UserId = item.UserId, TaskId = task.Id, SeasonId = seasonId, Correct = item.Correct, CompletedAtUtc = completedAt });
-            db.XpEvents.Add(new XpEvent { UserId = item.UserId, SeasonId = seasonId, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = SeedTaskXp(item, task), CreatedAtUtc = completedAt });
+            db.XpEvents.Add(new XpEvent { UserId = item.UserId, SeasonId = seasonId, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = SeedTaskBaseXp(item, task), CreatedAtUtc = completedAt });
+            var ticketedBonus = SeedTaskTicketedBonus(task);
+            if (ticketedBonus > 0) db.XpEvents.Add(new XpEvent { UserId = item.UserId, SeasonId = seasonId, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "ticketed_place_bonus", Amount = ticketedBonus, CreatedAtUtc = completedAt });
             if (places.First(x => x.Id == task.PlaceId).Type == "museum") seedUsers[item.UserId].FirstMuseumVisitCompleted = true;
         }
         await db.SaveChangesAsync();
@@ -326,5 +332,11 @@ public static class DbSeeder
 
     private sealed record DemoTerritoryTask(string UserId, string TaskId, bool Correct);
 
-    private static int SeedTaskXp(DemoTerritoryTask item, GameTask task) => task.Type == "quiz" ? GameRules.QuizXp(task.Xp, item.Correct) : task.Xp;
+    private static int SeedTaskBaseXp(DemoTerritoryTask item, GameTask task) => task.Type == "quiz" ? GameRules.QuizXp(task.Xp, item.Correct) : task.Xp;
+
+    private static int SeedTaskTicketedBonus(GameTask task)
+    {
+        var slug = task.PlaceId.StartsWith("place-", StringComparison.Ordinal) ? task.PlaceId["place-".Length..] : task.PlaceId;
+        return GameRules.TicketedPlaceBonus(slug);
+    }
 }

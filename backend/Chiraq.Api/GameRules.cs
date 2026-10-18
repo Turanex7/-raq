@@ -7,6 +7,7 @@ public static class GameRules
     public const int OutdoorPinXp = 10;
     public const int WrongAnswerPercent = 40;
     public const int FirstVisitXp = 20;
+    public const int TicketedPlaceBonusXp = 3;
     public const int UniversityTopMembers = 10;
     public const int UniversityMinimumActive = 3;
     public const int GroupBonusMinimumMembers = 3;
@@ -21,8 +22,12 @@ public static class GameRules
     public const double MaximumWeekMultiplier = 1.10;
     public static readonly int[] DifficultyXp = [10, 20, 40];
     public static readonly double[] GroupMultipliers = [1.0, 1.2, 1.3, 1.4];
+    public static readonly string[] TicketedPlaceSlugs = [
+        "carpet-museum", "national-history", "modern-art", "literature-museum", "miniature-book-museum", "ateshgah",
+    ];
     public static readonly TimeZoneInfo BakuZone = TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId);
     public static int QuizXp(int taskXp, bool correct) => correct ? taskXp : Math.Max(1, (int)Math.Floor(taskXp * WrongAnswerPercent / 100d));
+    public static int TicketedPlaceBonus(string placeSlug) => TicketedPlaceSlugs.Contains(placeSlug, StringComparer.Ordinal) ? TicketedPlaceBonusXp : 0;
     public static bool IsInsideRadius(double distanceMeters, double accuracyMeters, int radiusMeters) =>
         double.IsFinite(distanceMeters) && double.IsFinite(accuracyMeters) && distanceMeters <= radiusMeters && accuracyMeters >= 0 && accuracyMeters <= radiusMeters;
     public static (int Score, int Participants, bool Eligible) UniversityFairScore(IEnumerable<int> activeWeeklyXp)

@@ -104,3 +104,34 @@ test("demo mini-games award fixed XP once per place and enforce the Baku-day cap
   assert.equal(capped.xp_awarded, 0);
   assert.equal((await demoApiRequest("/me")).lifetimeXp, 9);
 });
+
+test("demo ticketed museum tasks award a separate configured XP bonus", async (t) => {
+  const values = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, String(value)),
+      removeItem: (key) => values.delete(key),
+    },
+  };
+  t.after(() => { clearDemoApiState(); delete globalThis.window; });
+
+  const registration = await demoApiRequest("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ name: "Demo Ziyarətçi", email: "ticketed-place@example.test", password: "test-password-2026", universityId: "ada", avatarId: "nizami", visitedMuseumLast12Months: true }),
+  });
+  window.localStorage.setItem("chiraq_token", registration.token);
+  const mapPlaces = await demoApiRequest("/places");
+  const carpet = mapPlaces.find((place) => place.slug === "carpet-museum");
+  assert.equal(carpet.is_ticketed, true);
+  assert.equal(carpet.ticketed_place_bonus_xp, 3);
+
+  const qr = await demoApiRequest("/demo/qr/carpet-museum-visit");
+  const completion = await demoApiRequest("/tasks/carpet-museum-visit/complete", {
+    method: "POST",
+    body: JSON.stringify({ qrToken: qr.qr_payload }),
+  });
+  assert.equal(completion.xp_awarded, 13);
+  assert.equal(completion.breakdown.ticketed_place_bonus, 3);
+  assert.equal(completion.breakdown.first_visit, 0);
+});

@@ -58,6 +58,7 @@ public static class ApiRoutes
             level_xp = GameRules.LevelXp,
             outdoor_pin_xp = GameRules.OutdoorPinXp,
             difficulty_xp = new { easy = GameRules.DifficultyXp[0], medium = GameRules.DifficultyXp[1], hard = GameRules.DifficultyXp[2] },
+            ticketed_places = new { bonus_xp = GameRules.TicketedPlaceBonusXp, slugs = GameRules.TicketedPlaceSlugs },
             university_ranking = new { top_members = GameRules.UniversityTopMembers, minimum_active = GameRules.UniversityMinimumActive },
             group_bonus = new { minimum_members = GameRules.GroupBonusMinimumMembers, window_minutes = GameRules.GroupBonusWindowMinutes, multipliers = GameRules.GroupMultipliers },
             maximum_week_multiplier = GameRules.MaximumWeekMultiplier,
@@ -355,7 +356,7 @@ public static class ApiRoutes
             var completions = user is null || season is null ? [] : await db.TaskCompletions.Where(x => x.UserId == user.Id && x.SeasonId == season.Id).Join(db.Tasks, x => x.TaskId, t => t.Id, (x, t) => t.PlaceId).Where(x => x == place.Id).ToListAsync();
             var tasks = await db.Tasks.CountAsync(x => x.PlaceId == place.Id);
             var xp = season is null ? 0 : await db.XpEvents.Where(x => x.SeasonId == season.Id && x.PlaceId == place.Id).SumAsync(x => (int?)x.Amount) ?? 0;
-            result.Add(new { place.Id, place.Slug, place.Type, place.Name, district = place.District, place.Description, lat = place.Latitude, lng = place.Longitude, radius_m = place.RadiusMeters, status = place.IsOpen ? "open" : "locked", task_count = tasks, completed_count = completions.Count, xp_total = xp, territory_owner = owner });
+            result.Add(new { place.Id, place.Slug, place.Type, place.Name, district = place.District, place.Description, lat = place.Latitude, lng = place.Longitude, radius_m = place.RadiusMeters, status = place.IsOpen ? "open" : "locked", is_ticketed = GameRules.TicketedPlaceBonus(place.Slug) > 0, ticketed_place_bonus_xp = GameRules.TicketedPlaceBonus(place.Slug), task_count = tasks, completed_count = completions.Count, xp_total = xp, territory_owner = owner });
         }
         return Results.Ok(result);
     }
@@ -380,9 +381,9 @@ public static class ApiRoutes
                 var choices = root.TryGetProperty("choices", out var choicesNode) ? choicesNode.EnumerateArray().Select(x => x.GetString()).ToArray() : Array.Empty<string?>();
                 payload = new { question, choices };
             }
-            statuses.Add(new { task.Id, task.Code, task.Title, task.Description, task.Type, task.Difficulty, task.Xp, task.CoopSize, task.NeedsReview, completed, payload });
+            statuses.Add(new { task.Id, task.Code, task.Title, task.Description, task.Type, task.Difficulty, task.Xp, ticketed_place_bonus_xp = GameRules.TicketedPlaceBonus(place.Slug), task.CoopSize, task.NeedsReview, completed, payload });
         }
-        return Results.Ok(new { place.Id, place.Slug, place.Type, place.Name, place.District, place.Description, place.Latitude, place.Longitude, place.RadiusMeters, status = place.IsOpen ? "open" : "locked", territory = season is null ? null : await TerritoryOwner(db, season.Id, place.Id), group_bonus = await GroupBonusStatus(db, user, season?.Id, place.Id), tasks = statuses });
+        return Results.Ok(new { place.Id, place.Slug, place.Type, place.Name, place.District, place.Description, place.Latitude, place.Longitude, place.RadiusMeters, status = place.IsOpen ? "open" : "locked", is_ticketed = GameRules.TicketedPlaceBonus(place.Slug) > 0, ticketed_place_bonus_xp = GameRules.TicketedPlaceBonus(place.Slug), territory = season is null ? null : await TerritoryOwner(db, season.Id, place.Id), group_bonus = await GroupBonusStatus(db, user, season?.Id, place.Id), tasks = statuses });
     }
 
     private static async Task<object> GroupBonusStatus(AppDbContext db, AppUser? user, string? seasonId, string placeId)
@@ -538,7 +539,9 @@ public static class ApiRoutes
         var beforeOwner = await TerritoryOwner(db, season.Id, place.Id);
         var previousRank = await PreviousRank(db, user.UniversityId);
         var baseXp = task.Type == "quiz" ? GameRules.QuizXp(task.Xp, correct) : task.Xp;
-        var multiplierXp = GameRules.BaseXp(baseXp, previousRank) - baseXp;
+        var ticketedPlaceBonus = GameRules.TicketedPlaceBonus(place.Slug);
+        var multiplierBase = baseXp + ticketedPlaceBonus;
+        var multiplierXp = GameRules.BaseXp(multiplierBase, previousRank) - multiplierBase;
         var nowForEvent = DateTimeOffset.UtcNow;
         if (request.Latitude.HasValue || request.Longitude.HasValue)
         {
@@ -554,6 +557,7 @@ public static class ApiRoutes
         await AddVelocityFlag(db, user.Id, place, nowForEvent);
         db.TaskCompletions.Add(new TaskCompletion { UserId = user.Id, TaskId = task.Id, SeasonId = season.Id, Correct = correct, CompletedAtUtc = nowForEvent });
         db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = place.Id, TaskId = task.Id, Kind = "base", Amount = baseXp, CreatedAtUtc = nowForEvent });
+        if (ticketedPlaceBonus > 0) db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = place.Id, TaskId = task.Id, Kind = "ticketed_place_bonus", Amount = ticketedPlaceBonus, CreatedAtUtc = nowForEvent });
         if (multiplierXp > 0) db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = place.Id, TaskId = task.Id, Kind = "multiplier", Amount = multiplierXp, CreatedAtUtc = nowForEvent });
 
         var firstVisitXp = 0;
@@ -582,7 +586,7 @@ public static class ApiRoutes
         await db.SaveChangesAsync();
 
         var groupBonus = await GrantGroupBonus(db, user.Id, place.Id, season.Id, nowForEvent);
-        var total = baseXp + multiplierXp + firstVisitXp + groupBonus;
+        var total = baseXp + ticketedPlaceBonus + multiplierXp + firstVisitXp + groupBonus;
         var afterOwner = await TerritoryOwner(db, season.Id, place.Id);
         var beforeUniversity = (string?)beforeOwner?.GetType().GetProperty("university_id")?.GetValue(beforeOwner);
         var afterUniversity = (string?)afterOwner?.GetType().GetProperty("university_id")?.GetValue(afterOwner);
@@ -595,7 +599,7 @@ public static class ApiRoutes
         var result = new
         {
             xp_awarded = total,
-            breakdown = new { base_xp = baseXp, group_bonus = groupBonus, first_visit = firstVisitXp, multiplier = multiplierXp },
+            breakdown = new { base_xp = baseXp, ticketed_place_bonus = ticketedPlaceBonus, group_bonus = groupBonus, first_visit = firstVisitXp, multiplier = multiplierXp },
             new_total = lifetime,
             weekly_total = weeklyTotal,
             level,
@@ -878,8 +882,9 @@ public static class ApiRoutes
         var mine = await db.CoopParticipants.FirstAsync(x => x.SessionId == session.Id && x.UserId == user.Id);
         var sessionStart = session.ExpiresAtUtc.AddMinutes(-GameRules.GroupBonusWindowMinutes);
         var baseXp = session.Completed ? await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == session.SeasonId && x.TaskId == session.TaskId && x.Kind == "base" && x.CreatedAtUtc >= sessionStart).SumAsync(x => (int?)x.Amount) ?? 0 : 0;
+        var ticketedPlaceBonus = session.Completed ? await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == session.SeasonId && x.TaskId == session.TaskId && x.Kind == "ticketed_place_bonus" && x.CreatedAtUtc >= sessionStart).SumAsync(x => (int?)x.Amount) ?? 0 : 0;
         var groupBonus = session.Completed ? await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == session.SeasonId && x.PlaceId == session.PlaceId && x.Kind == "group_bonus" && x.CreatedAtUtc >= sessionStart).SumAsync(x => (int?)x.Amount) ?? 0 : 0;
-        return Results.Ok(new { session.Id, session.Completed, expired = !session.Completed && session.ExpiresAtUtc <= DateTimeOffset.UtcNow, participants, joined = participants.Count, needed = task?.CoopSize ?? 3, expires_at_utc = session.ExpiresAtUtc, my_role = mine.Role, role_question = RoleQuestion(mine.Role), answered = mine.AnsweredAtUtc != null, answered_count = participants.Count(x => x.answered), xp_awarded = baseXp + groupBonus, breakdown = new { base_xp = baseXp, group_bonus = groupBonus } });
+        return Results.Ok(new { session.Id, session.Completed, expired = !session.Completed && session.ExpiresAtUtc <= DateTimeOffset.UtcNow, participants, joined = participants.Count, needed = task?.CoopSize ?? 3, expires_at_utc = session.ExpiresAtUtc, my_role = mine.Role, role_question = RoleQuestion(mine.Role), answered = mine.AnsweredAtUtc != null, answered_count = participants.Count(x => x.answered), xp_awarded = baseXp + ticketedPlaceBonus + groupBonus, breakdown = new { base_xp = baseXp, ticketed_place_bonus = ticketedPlaceBonus, group_bonus = groupBonus } });
     }
 
     private static readonly string[] ThreeFlameRoles = ["Kəşfiyyatçı", "Tarixçi", "Müşahidəçi"];
@@ -917,12 +922,15 @@ public static class ApiRoutes
         {
             var task = await db.Tasks.FindAsync(session.TaskId);
             if (task is null) return Fail(404, "coop_task_not_found", "Komanda tapşırığı tapılmadı.");
+            var place = await db.Places.FindAsync(session.PlaceId);
+            var ticketedPlaceBonus = place is null ? 0 : GameRules.TicketedPlaceBonus(place.Slug);
             session.Completed = true;
             foreach (var member in participants)
             {
                 if (await db.TaskCompletions.AnyAsync(x => x.UserId == member.UserId && x.TaskId == task.Id && x.SeasonId == session.SeasonId)) continue;
                 db.TaskCompletions.Add(new TaskCompletion { UserId = member.UserId, TaskId = task.Id, SeasonId = session.SeasonId, Correct = true, CompletedAtUtc = now });
                 db.XpEvents.Add(new XpEvent { UserId = member.UserId, SeasonId = session.SeasonId, PlaceId = session.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = now });
+                if (ticketedPlaceBonus > 0) db.XpEvents.Add(new XpEvent { UserId = member.UserId, SeasonId = session.SeasonId, PlaceId = session.PlaceId, TaskId = task.Id, Kind = "ticketed_place_bonus", Amount = ticketedPlaceBonus, CreatedAtUtc = now });
             }
             await db.SaveChangesAsync();
             foreach (var member in participants) await GrantGroupBonus(db, member.UserId, session.PlaceId, session.SeasonId, now);
@@ -1102,9 +1110,12 @@ public static class ApiRoutes
             var user = users[(i + season.Id.Length) % users.Count];
             var task = tasks[(i * 3 + season.Id.Length) % tasks.Count];
             if (await db.TaskCompletions.AnyAsync(x => x.UserId == user.Id && x.TaskId == task.Id && x.SeasonId == season.Id)) continue;
+            var place = await db.Places.FindAsync(task.PlaceId);
+            var ticketedBonus = place is null ? 0 : GameRules.TicketedPlaceBonus(place.Slug);
             db.TaskCompletions.Add(new TaskCompletion { UserId = user.Id, TaskId = task.Id, SeasonId = season.Id, Correct = i % 2 == 0 });
             db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp });
-            awarded.Add(new { user = PublicName(user.Name), task = task.Title, xp = task.Xp });
+            if (ticketedBonus > 0) db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "ticketed_place_bonus", Amount = ticketedBonus });
+            awarded.Add(new { user = PublicName(user.Name), task = task.Title, xp = task.Xp + ticketedBonus });
         }
         await db.SaveChangesAsync();
         return Results.Ok(new { simulated = awarded.Count, rows = awarded });
@@ -1155,10 +1166,12 @@ public static class ApiRoutes
             var now = DateTimeOffset.UtcNow;
             var correct = selectedTask.Type == "quiz";
             var xp = selectedTask.Type == "quiz" ? GameRules.QuizXp(selectedTask.Xp, correct) : selectedTask.Xp;
+            var ticketedBonus = GameRules.TicketedPlaceBonus(place.Slug);
             db.TaskCompletions.Add(new TaskCompletion { UserId = selectedUser.Id, TaskId = selectedTask.Id, SeasonId = season.Id, Correct = correct, CompletedAtUtc = now });
             db.XpEvents.Add(new XpEvent { UserId = selectedUser.Id, SeasonId = season.Id, PlaceId = place.Id, TaskId = selectedTask.Id, Kind = "base", Amount = xp, CreatedAtUtc = now });
+            if (ticketedBonus > 0) db.XpEvents.Add(new XpEvent { UserId = selectedUser.Id, SeasonId = season.Id, PlaceId = place.Id, TaskId = selectedTask.Id, Kind = "ticketed_place_bonus", Amount = ticketedBonus, CreatedAtUtc = now });
             await db.SaveChangesAsync();
-            awarded.Add(new { user = PublicName(selectedUser.Name), university_id = targetUniversityId, task = selectedTask.Title, xp });
+            awarded.Add(new { user = PublicName(selectedUser.Name), university_id = targetUniversityId, task = selectedTask.Title, xp = xp + ticketedBonus });
             afterOwner = await TerritoryOwner(db, season.Id, place.Id);
             var newOwnerId = (string?)afterOwner?.GetType().GetProperty("university_id")?.GetValue(afterOwner);
             if (newOwnerId == targetUniversityId) break;

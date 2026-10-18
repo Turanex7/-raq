@@ -41,6 +41,15 @@ public sealed class GameRulesTests
     }
 
     [Fact]
+    public void TicketedPlacesHaveConfiguredBonusAndFreePlacesDoNot()
+    {
+        Assert.Equal(3, GameRules.TicketedPlaceBonus("carpet-museum"));
+        Assert.Equal(3, GameRules.TicketedPlaceBonus("ateshgah"));
+        Assert.Equal(0, GameRules.TicketedPlaceBonus("heydar-aliyev"));
+        Assert.Equal(0, GameRules.TicketedPlaceBonus("bulvar"));
+    }
+
+    [Fact]
     public void UniversityScoreUsesActiveTopMembersAndMinimum()
     {
         var full = GameRules.UniversityFairScore([500, 400, 300, 0]);
@@ -226,7 +235,7 @@ public sealed class GameRulesTests
             if (museum.Slug == "carpet-museum")
             {
                 Assert.Equal("adnsu", ranking[0].UniversityId);
-                Assert.Equal(8, ranking[0].Score);
+                Assert.Equal(11, ranking[0].Score);
                 Assert.Single(ranking);
             }
             if (museum.Slug == "national-history")
