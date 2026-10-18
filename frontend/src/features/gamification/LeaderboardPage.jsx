@@ -58,6 +58,7 @@ function ApiLeaderboard() {
     <div className={styles.tabs} role="tablist">{tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={type === id} className={type === id ? styles.active : ""} onClick={() => setType(id)}>{label}</button>)}</div>
     {type === "universities" && (config?.university_ranking ? <div className={styles.infoNote}><Info size={16}/>Bal ən aktiv {config.university_ranking.top_members} iştirakçının orta həftəlik XP-sidir. Reytinq üçün minimum {config.university_ranking.minimum_active} aktiv iştirakçı lazımdır.</div> : <p className={styles.infoNote} role="status">Liqanın qaydaları yüklənir…</p>)}
     {data?.my_message && <p className={styles.infoNote} role="status">{data.my_message}</p>}
+    {type === "mine" && !loading && !error && rows.length === 1 && rows[0].current && <p className={styles.infoNote} role="status">Bu həftə universitetindən yalnız sən XP qazanmısan. Digər universitetlərdəki iştirakçıları “Ümumi” bölməsində görə bilərsən.</p>}
     {loading && <p role="status" className={styles.infoNote}>Reytinq yüklənir…</p>}
     {error && <div className={styles.infoNote} role="alert">{error}<button type="button" onClick={retry}>Yenidən yoxla</button></div>}
     {!loading && !error && rows.length === 0 && <BoardEmpty type={type} message={data?.my_message}/ >}
