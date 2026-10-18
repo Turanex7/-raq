@@ -1,16 +1,19 @@
 export const TICKET_CONFIG = {
   links: {
     "place-carpet-museum": [
-      { provider: "iTicket", label: "Bilet al", url: "https://example.com/replace-with-carpet-museum-ticket-link" },
-      { provider: "Platforma 2", label: "Bilet al", url: "https://example.com/replace-with-carpet-museum-alternative-ticket-link" },
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
     ],
     "place-national-history": [
-      { provider: "iTicket", label: "Bilet al", url: "https://example.com/replace-with-national-history-ticket-link" },
-      { provider: "Platforma 2", label: "Bilet al", url: "https://example.com/replace-with-national-history-alternative-ticket-link" },
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
     ],
     "place-miniature-book-museum": [
-      { provider: "iTicket", label: "Bilet al", url: "https://example.com/replace-with-miniature-book-ticket-link" },
-      { provider: "Platforma 2", label: "Bilet al", url: "https://example.com/replace-with-miniature-book-alternative-ticket-link" },
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
+    "place-icherisheher": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
+    "place-heydar-aliyev": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
     ],
   },
   sponsor: {

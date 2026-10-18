@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveTicketLinks } from "./tickets.js";
+import { resolveTicketLinks, TICKET_CONFIG } from "./tickets.js";
+import { levelRegistry } from "../features/game/levels/levelRegistry.js";
 
 const placeId = "place-carpet-museum";
 const now = new Date("2026-10-18T12:00:00+04:00");
@@ -53,20 +54,32 @@ test("inactive, out-of-scope, or out-of-date sponsor falls back to regular ticke
   }
 });
 
-test("regular resolution keeps every provider link and never marks it sponsored", () => {
+test("regular resolution keeps multiple providers and never marks them sponsored", () => {
   const config = {
     links: {
       [placeId]: [
         { provider: "iTicket", label: "Bilet al", url: "https://example.com/one" },
-        { provider: "Platforma 2", label: "Bilet al", url: "https://example.com/two" },
+        { provider: "Məkan kassası", label: "Bilet al", url: "https://example.com/two" },
       ],
     },
     sponsor: { active: false },
   };
   const result = resolveTicketLinks(placeId, config, now);
 
-  assert.deepEqual(result.map((link) => link.provider), ["iTicket", "Platforma 2"]);
+  assert.deepEqual(result.map((link) => link.provider), ["iTicket", "Məkan kassası"]);
   assert.ok(result.every((link) => link.sponsored === false));
+});
+
+test("every game-map landmark links to iTicket", () => {
+  for (const place of levelRegistry) {
+    const placeId = `place-${place.placeSlug}`;
+    const result = resolveTicketLinks(placeId, TICKET_CONFIG, now);
+
+    assert.equal(result.length, 1, `${place.title} should have one ticket link`);
+    assert.equal(result[0].provider, "iTicket");
+    assert.equal(result[0].sponsored, false);
+    assert.equal(new URL(result[0].url).hostname, "iticket.az");
+  }
 });
 
 test("per-place sponsor URLs work and places without configured links return an empty list", () => {
@@ -75,5 +88,5 @@ test("per-place sponsor URLs work and places without configured links return an 
     placeUrls: { [placeId]: "https://example.com/custom-sponsor" },
   });
   assert.equal(new URL(resolveTicketLinks(placeId, sponsorConfig, now)[0].url).pathname, "/custom-sponsor");
-  assert.deepEqual(resolveTicketLinks("place-heydar-aliyev", { links: {}, sponsor: { active: false } }, now), []);
+  assert.deepEqual(resolveTicketLinks("place-unconfigured", { links: {}, sponsor: { active: false } }, now), []);
 });
