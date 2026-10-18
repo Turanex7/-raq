@@ -11,7 +11,6 @@ export default function ScannerPage() {
   const navigate = useNavigate();
   const taskId = search.get("taskId");
   const placeSlug = search.get("place");
-  const chapter = search.get("chapter") === "lantern" ? "&chapter=lantern" : "";
   const coop = search.get("coop") === "1";
   const checkin = search.get("checkin") === "1";
   const demoEnabled = import.meta.env.VITE_DEMO_MODE === "true";
@@ -72,9 +71,9 @@ export default function ScannerPage() {
         response = await apiPost(`/tasks/${encodeURIComponent(targetTaskId)}/complete`, { qrToken: raw });
       }
       if (!coop) window.dispatchEvent(new Event("chiraq:xp-updated"));
-      if (!coop || response.completed) celebrateLantern();
+      if (coop && response.completed) celebrateLantern();
       if (coop) navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}&sessionId=${encodeURIComponent(response.session_id)}`);
-      else navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}${chapter}`, { state: { completion: response, lanternChapter: Boolean(chapter) } });
+      else navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}`, { state: { completion: response } });
     } catch (cause) {
       setError(cause.message || "QR kod təsdiqlənmədi.");
       setBusy(false);
@@ -104,9 +103,8 @@ export default function ScannerPage() {
     setBusy(true); setError("");
     try {
       const response = await validateLocation(placeSlug, taskId);
-      celebrateLantern();
       window.dispatchEvent(new Event("chiraq:xp-updated"));
-      navigate(`/quests/${encodeURIComponent(taskId)}?place=${encodeURIComponent(placeSlug)}${chapter}`, { state: { completion: response, lanternChapter: Boolean(chapter) } });
+      navigate(`/quests/${encodeURIComponent(taskId)}?place=${encodeURIComponent(placeSlug)}`, { state: { completion: response } });
     } catch (cause) {
       const message = cause.code === 1 ? "Məkan icazəsi verilmədi. GPS yoxlaması üçün brauzer icazəsini aç." : cause.message;
       setError(message || "GPS yoxlaması baş tutmadı.");

@@ -85,6 +85,15 @@ public sealed class XpEvent
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 
+public sealed class LanternIgnition
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string UserId { get; set; } = "";
+    public string BakuDate { get; set; } = "";
+    public int ConsecutiveDays { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public sealed class Checkin
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");

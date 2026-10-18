@@ -1,91 +1,107 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Flame, LockKeyhole, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Flame, Volume2, VolumeX } from "lucide-react";
 import { Link } from "react-router-dom";
+import { apiPost } from "../../services/api";
 import useApiResource from "../../services/useApiResource";
-import { celebrateLantern, getLanternSoundEnabled, setLanternSoundEnabled } from "./lanternEffects";
+import { celebrateLantern, getLanternSoundEnabled, playLanternChime, setLanternSoundEnabled } from "./lanternEffects";
 import styles from "./LanternJourney.module.scss";
 
-const answerPattern = [1, 3, 2];
-
-export default function LanternJourney({ places }) {
+export default function LanternJourney() {
   const hasToken = typeof window !== "undefined" && Boolean(window.localStorage.getItem("chiraq_token"));
-  const { data: user, loading: userLoading } = useApiResource("/me", hasToken);
+  const { data: user, loading, error, retry, setData } = useApiResource("/me", hasToken);
   const { data: config } = useApiResource("/config");
-  const [started, setStarted] = useState(false);
-  const [remaining, setRemaining] = useState(60);
-  const [step, setStep] = useState(0);
-  const [unlocked, setUnlocked] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(getLanternSoundEnabled);
-  const deadlineTimer = useRef(null);
-  const target = useMemo(() => places?.find((place) => place.type === "museum" && place.status === "open"), [places]);
+  const lantern = user?.lantern;
+  const target = config?.daily_lantern?.streak_days ?? lantern?.streak_target ?? 0;
+  const milestoneXp = config?.daily_lantern?.milestone_xp ?? lantern?.milestone_xp;
+  const progress = lantern?.progress_day ?? 0;
 
   useEffect(() => {
-    if (!started) return undefined;
-    const timer = window.setInterval(() => setRemaining((value) => Math.max(0, value - 1)), 1000);
-    return () => window.clearInterval(timer);
-  }, [started]);
+    if (!hasToken) return undefined;
+    const refreshOnReturn = () => {
+      if (document.visibilityState === "visible") retry();
+    };
+    window.addEventListener("focus", refreshOnReturn);
+    document.addEventListener("visibilitychange", refreshOnReturn);
+    return () => {
+      window.removeEventListener("focus", refreshOnReturn);
+      document.removeEventListener("visibilitychange", refreshOnReturn);
+    };
+  }, [hasToken, retry]);
 
-  useEffect(() => () => window.clearTimeout(deadlineTimer.current), []);
-
-  function startPuzzle() {
-    setRemaining(60);
-    setStep(0);
+  async function ignite() {
+    if (busy || lantern?.today_lit) return;
+    setBusy(true);
     setNotice("");
-    setUnlocked(false);
-    window.clearTimeout(deadlineTimer.current);
-    deadlineTimer.current = window.setTimeout(() => {
-      setStarted(false);
-      setStep(0);
-      setNotice("Vaxt bitdi. Hazır olanda yenidən başla.");
-    }, 60_000);
-    setStarted(true);
+    setActionError("");
+    try {
+      const result = await apiPost("/lantern/ignite", {});
+      setData({ ...user, lifetimeXp: result.new_total, weeklyXp: result.weekly_total, lantern: result.lantern });
+      if (result.already_lit_today) {
+        setNotice("Bu günün alovu artıq yanıb.");
+      } else {
+        celebrateLantern();
+        if (result.xp_awarded > 0) {
+          window.dispatchEvent(new Event("chiraq:xp-updated"));
+          setNotice(`Yeddi günlük seriya tamamlandı: +${result.xp_awarded} XP.`);
+        } else if (result.streak_reset) {
+          setNotice("Gün buraxıldığı üçün əvvəlki seriya söndü. Yeni seriya başladı.");
+        } else {
+          setNotice(`Alov yandı. Ardıcıl gün: ${result.lantern.streak_days}.`);
+        }
+      }
+    } catch (cause) {
+      setActionError(cause.message || "Alovu yandırmaq mümkün olmadı.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function toggleSound() {
     const next = !soundEnabled;
     setSoundEnabled(next);
     setLanternSoundEnabled(next);
-    if (next) celebrateLantern();
-  }
-
-  function tapPoint(value) {
-    if (!started || !target) return;
-    if (value !== answerPattern[step]) {
-      setStep(0);
-      setNotice("Nöqtələrin sırasını yenidən yoxla.");
-      return;
-    }
-    const next = step + 1;
-    if (next === answerPattern.length) {
-      window.clearTimeout(deadlineTimer.current);
-      setStarted(false);
-      setUnlocked(true);
-      setNotice("");
-      return;
-    }
-    setStep(next);
-    setNotice("");
+    if (next) playLanternChime();
   }
 
   return <section className={styles.lanternJourney} aria-labelledby="lantern-title">
     <div className={styles.lanternIntro}>
-      <span className={styles.lanternIcon} aria-hidden="true"><Flame size={22}/></span>
-      <div><p className={styles.sectionEyebrow}>Çırağı yandır · {config?.story_chapter?.title || "Hekayə bölməsi"}</p><h2 id="lantern-title">Bir ipucu qazan</h2><p>Qısa tapmacanı tamamla, sonra eksponata baxmaq üçün muzeyə yollan.</p></div>
-      <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>}Səs {soundEnabled ? "açıqdır" : "bağlıdır"}</button>
+      <span className={styles.lanternIcon} aria-hidden="true"><Flame size={24} fill="currentColor"/></span>
+      <div>
+        <p className={styles.sectionEyebrow}>Gündəlik çıraq</p>
+        <h2 id="lantern-title">Alovu yandır</h2>
+        <p>Hər gün bir dəfə yandır, ardıcıl gün seriyanı qoru.</p>
+      </div>
+      <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>
+        {soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>}Səs {soundEnabled ? "açıqdır" : "bağlıdır"}
+      </button>
     </div>
-    {!hasToken ? <div className={styles.lanternState}><p>İpucu açmaq və çıraq irəliləyişini görmək üçün hesaba daxil ol.</p><Link to="/login" className={styles.lanternAction}>Daxil ol</Link></div>
-      : userLoading ? <p role="status" className={styles.lanternState}>Çıraq yüklənir…</p>
-      : !user ? <div className={styles.lanternState}><p>Hesab məlumatı əlçatan deyil.</p><Link to="/login" className={styles.lanternAction}>Daxil ol</Link></div>
-      : <>
-        <div className={styles.lanternProgress} aria-label={`Çıraq ${user.lantern?.lit ?? 1}/${user.lantern?.total ?? 5} alovla işıqlanıb`}>
-          {Array.from({ length: user.lantern?.total ?? 5 }, (_, index) => <span key={index} className={index < (user.lantern?.lit ?? 1) ? styles.flameOn : styles.flameOff}><Flame size={17} fill="currentColor"/></span>)}
-          <b>{user.lantern?.lit ?? 1}/{user.lantern?.total ?? 5}</b>
+    {!hasToken ? <div className={styles.lanternState}><p>Gündəlik seriyanı başlamaq üçün hesabına daxil ol.</p><Link to="/login" className={styles.loginAction}>Daxil ol</Link></div>
+      : loading ? <p role="status" className={styles.lanternState}>Gündəlik çıraq yüklənir…</p>
+      : error || !user ? <div className={styles.lanternState}><p role="alert">{error || "Hesab məlumatı əlçatan deyil."}</p><button type="button" className={styles.loginAction} onClick={retry}>Yenidən yoxla</button></div>
+      : <div className={styles.lanternGame}>
+        <div className={styles.progressBlock}>
+          <div className={styles.progressLabel}><b>Seriya</b><span>{lantern?.streak_days ?? 0} gün ardıcıl</span></div>
+          <div className={styles.lanternProgress} aria-label={`Növbəti mükafata irəliləyiş: ${progress}/${target}`}>
+            {Array.from({ length: target }, (_, index) => <span key={index} className={index < progress ? styles.flameOn : styles.flameOff}><Flame size={19} fill="currentColor"/></span>)}
+            <b>{progress}/{target}</b>
+          </div>
+          <p className={styles.rewardRule}>{target && milestoneXp != null ? `Hər ${target} ardıcıl günə +${milestoneXp} XP` : "Mükafat qaydası yüklənir…"}</p>
         </div>
-        {!unlocked && !started && <div className={styles.lanternState}><p>{config?.story_chapter?.puzzle_hint || "Qaranlıqda parlayan nöqtəni tap və toxun."}</p><p className={styles.puzzleNote}>Bu tapmaca XP vermir; XP muzey tapşırıqlarından qazanılır.</p><button type="button" className={styles.lanternAction} onClick={startPuzzle} disabled={!target}>Tapmacaya başla</button>{!target && <small>Hazırda açıq muzey tapılmır.</small>}</div>}
-        {started && <div className={styles.puzzleBox}><div className={styles.puzzleHeader}><span><Sparkles size={15}/>İpucu tapmacası</span><b>{remaining} san.</b></div><p>{config?.story_chapter?.puzzle_hint || "Qaranlıqda parlayan nöqtəni tap və toxun."}</p><div className={styles.puzzleSequence} aria-label="Nöqtələrin sırası: 1, 3, 2"><span>1</span><i>→</i><span>3</span><i>→</i><span>2</span></div><div className={styles.puzzlePoints} aria-label="Parlayan nöqtəni seç">{[1, 2, 3].map((point) => <button type="button" key={point} aria-label={`Nöqtə ${point}`} onClick={() => tapPoint(point)}><span aria-hidden="true">✦</span></button>)}</div><small>{step}/3</small>{notice && <p role="status">{notice}</p>}</div>}
-        {unlocked && target && <div className={styles.clueCard}><p><LockKeyhole size={15}/>İpucu kartı açıldı</p><span>{config?.story_chapter?.clue || "Eksponata diqqətlə bax, sonra yaxınlıqdakı QR işarəsini skan et."}</span><Link to={`/museums/${encodeURIComponent(target.slug)}?chapter=lantern`} className={styles.lanternAction}>İpucunu götür</Link></div>}
-        {notice && !started && !unlocked && <p role="status" className={styles.puzzleNotice}>{notice}</p>}
-      </>}
+        <div className={styles.lanternActionArea}>
+          {lantern?.today_lit ? <p className={styles.todayDone}>Bu gün alovunu yandırmısan. Seriyan sabah davam edə bilər.</p>
+            : <>
+              {lantern?.missed_day && <p className={styles.resetNote}>Bir günü buraxdığın üçün seriya sönüb. Bu gün yenidən başla.</p>}
+              <button type="button" className={`${styles.igniteButton} ${busy ? styles.igniting : ""}`} onClick={ignite} disabled={busy}>
+                <Flame size={20} fill="currentColor"/>{busy ? "Yandırılır…" : "Bu gün alovu yandır"}
+              </button>
+            </>}
+          {notice && <p role="status" className={styles.notice}>{notice}</p>}
+          {actionError && <p role="alert" className={styles.error}>{actionError}</p>}
+        </div>
+      </div>}
   </section>;
 }

@@ -62,16 +62,7 @@ public static class ApiRoutes
             group_bonus = new { minimum_members = GameRules.GroupBonusMinimumMembers, window_minutes = GameRules.GroupBonusWindowMinutes, multipliers = GameRules.GroupMultipliers },
             maximum_week_multiplier = GameRules.MaximumWeekMultiplier,
             time_zone = GameRules.TimeZoneId,
-            story_chapter = new
-            {
-                id = config["GAME_STORY:ChapterId"] ?? "lantern",
-                title = config["GAME_STORY:ChapterTitle"] ?? "Çırağın ilk işığı",
-                puzzle_hint = config["GAME_STORY:PuzzleHint"] ?? "Qaranlıqda parlayan nöqtəni tap və toxun.",
-                clue = config["GAME_STORY:Clue"] ?? "Eksponata diqqətlə bax, sonra yaxınlıqdakı QR işarəsini skan et.",
-                flame_lit = config["GAME_STORY:FlameLit"] ?? "Bir alov parçası işıqlandı.",
-                cliffhanger = config["GAME_STORY:Cliffhanger"] ?? "Növbəti alov başqa yerdədir...",
-                needs_review = true,
-            },
+            daily_lantern = new { streak_days = GameRules.DailyLanternStreakDays, milestone_xp = GameRules.DailyLanternMilestoneXp, time_zone = GameRules.TimeZoneId },
             rare_flame = new { chance_percent = RareFlameChancePercent(config) },
         }));
         api.MapGet("/universities", async (AppDbContext db) => Results.Ok(await db.Universities.OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, shortName = x.ShortName }).ToListAsync()));
@@ -80,6 +71,7 @@ public static class ApiRoutes
         api.MapPost("/auth/login", Login).RequireRateLimiting("auth");
         api.MapGet("/me", GetMe);
         api.MapPatch("/me", PatchMe);
+        api.MapPost("/lantern/ignite", IgniteLantern).RequireRateLimiting("complete");
         api.MapGet("/places", GetPlaces);
         api.MapGet("/places/{slug}", GetPlace);
         api.MapGet("/seasons/current", GetSeason);
@@ -106,7 +98,7 @@ public static class ApiRoutes
     }
 
     private static IResult Fail(int status, string code, string message) => Results.Json(new { error = new { code, message } }, statusCode: status);
-    private static int RareFlameChancePercent(IConfiguration config) => int.TryParse(config["GAME_STORY:RareFlameChancePercent"], out var chance) ? Math.Clamp(chance, 0, 100) : 5;
+    private static int RareFlameChancePercent(IConfiguration config) => int.TryParse(config["GAMEPLAY:RareFlameChancePercent"], out var chance) ? Math.Clamp(chance, 0, 100) : 5;
     private static string? UserId(HttpContext context, Tokens tokens) => tokens.Validate(context.Request.Headers.Authorization.ToString().Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase), DateTimeOffset.UtcNow);
     private static async Task<Season?> ActiveSeason(AppDbContext db, DateTimeOffset now) => await db.Seasons.FirstOrDefaultAsync(x => !x.Finalized && x.StartsAtUtc <= now && x.EndsAtUtc >= now);
     private static async Task<AppUser?> CurrentUser(HttpContext context, AppDbContext db, Tokens tokens)
@@ -170,16 +162,30 @@ public static class ApiRoutes
         return new { user.Id, user.Name, user.Email, university = uni?.Name, universityId = user.UniversityId, user.AvatarId,
             user.VisitedMuseumLast12Months, user.FirstMuseumVisitCompleted, lifetimeXp = await XpFor(db, user.Id), weeklyXp = await XpFor(db, user.Id, seasonId),
             level = (await XpFor(db, user.Id)) / GameRules.LevelXp + 1,
-            lantern = await LanternProgress(db, user.Id, seasonId) };
+            lantern = await LanternProgress(db, user.Id, DateTimeOffset.UtcNow) };
     }
 
-    private static async Task<object> LanternProgress(AppDbContext db, string userId, string? seasonId)
+    private static DateOnly BakuDate(DateTimeOffset utcNow) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(utcNow, GameRules.BakuZone).DateTime);
+
+    private static bool TryReadBakuDate(string? value, out DateOnly date) => DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+
+    private static async Task<object> LanternProgress(AppDbContext db, string userId, DateTimeOffset utcNow)
     {
-        var completedPlaces = seasonId is null ? 0 : await db.TaskCompletions
-            .Where(x => x.UserId == userId && x.SeasonId == seasonId)
-            .Join(db.Tasks, completion => completion.TaskId, task => task.Id, (completion, task) => task.PlaceId)
-            .Distinct().CountAsync();
-        return new { lit = Math.Min(5, 1 + completedPlaces), total = 5, completed_places = completedPlaces };
+        var today = BakuDate(utcNow);
+        var latest = await db.LanternIgnitions.Where(x => x.UserId == userId).OrderByDescending(x => x.BakuDate).FirstOrDefaultAsync();
+        var hasDate = TryReadBakuDate(latest?.BakuDate, out var latestDate);
+        var missedDay = hasDate && latestDate < today.AddDays(-1);
+        var streakDays = !hasDate || missedDay ? 0 : latest!.ConsecutiveDays;
+        var progressDay = streakDays == 0 ? 0 : (streakDays - 1) % GameRules.DailyLanternStreakDays + 1;
+        return new
+        {
+            streak_days = streakDays,
+            progress_day = progressDay,
+            streak_target = GameRules.DailyLanternStreakDays,
+            milestone_xp = GameRules.DailyLanternMilestoneXp,
+            today_lit = hasDate && latestDate == today,
+            missed_day = missedDay,
+        };
     }
 
     private static async Task<IResult> GetMe(HttpContext http, AppDbContext db, Tokens tokens)
@@ -188,6 +194,54 @@ public static class ApiRoutes
         if (user is null) return Fail(401, "unauthorized", "Daxil ol və yenidən cəhd et.");
         var season = await ActiveSeason(db, DateTimeOffset.UtcNow);
         return Results.Ok(await UserView(db, user, season?.Id));
+    }
+
+    private static async Task<IResult> IgniteLantern(HttpContext http, AppDbContext db, Tokens tokens)
+    {
+        var user = await CurrentUser(http, db, tokens);
+        if (user is null) return Fail(401, "unauthorized", "Gündəlik çırağı yandırmaq üçün daxil ol.");
+
+        var now = DateTimeOffset.UtcNow;
+        var today = BakuDate(now);
+        var todayKey = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        var existing = await db.LanternIgnitions.FirstOrDefaultAsync(x => x.UserId == user.Id && x.BakuDate == todayKey);
+        var season = await ActiveSeason(db, now);
+        if (existing is not null)
+        {
+            return Results.Ok(new
+            {
+                already_lit_today = true,
+                streak_reset = false,
+                xp_awarded = 0,
+                new_total = await XpFor(db, user.Id),
+                weekly_total = await XpFor(db, user.Id, season?.Id),
+                lantern = await LanternProgress(db, user.Id, now),
+            });
+        }
+        if (season is null) return Fail(503, "season_unavailable", "Cari mövsüm tapılmadı.");
+
+        var previous = await db.LanternIgnitions.Where(x => x.UserId == user.Id).OrderByDescending(x => x.BakuDate).FirstOrDefaultAsync();
+        var hasPreviousDate = TryReadBakuDate(previous?.BakuDate, out var previousDate);
+        var yesterday = today.AddDays(-1);
+        var streakContinues = hasPreviousDate && previousDate == yesterday;
+        var streakReset = hasPreviousDate && previousDate < yesterday;
+        var streakDays = streakContinues ? previous!.ConsecutiveDays + 1 : 1;
+        var xpAwarded = streakDays % GameRules.DailyLanternStreakDays == 0 ? GameRules.DailyLanternMilestoneXp : 0;
+
+        db.LanternIgnitions.Add(new LanternIgnition { UserId = user.Id, BakuDate = todayKey, ConsecutiveDays = streakDays, CreatedAtUtc = now });
+        if (xpAwarded > 0)
+            db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = "", Kind = "daily_lantern_streak", Amount = xpAwarded, CreatedAtUtc = now });
+        await db.SaveChangesAsync();
+
+        return Results.Ok(new
+        {
+            already_lit_today = false,
+            streak_reset = streakReset,
+            xp_awarded = xpAwarded,
+            new_total = await XpFor(db, user.Id),
+            weekly_total = await XpFor(db, user.Id, season.Id),
+            lantern = await LanternProgress(db, user.Id, now),
+        });
     }
 
     private static async Task<IResult> PatchMe(ProfilePatch request, HttpContext http, AppDbContext db, Tokens tokens)
@@ -480,7 +534,7 @@ public static class ApiRoutes
             territory_change = territoryChanged ? new { message = TerritoryTakeoverMessage(place, beforeOwner), owner = afterOwner } : null,
             correct, correct_answer = correct ? null : correctAnswer, fact = correct ? null : fact,
             prize_eligible = user.PrizeEligible,
-            lantern = await LanternProgress(db, user.Id, season.Id),
+            lantern = await LanternProgress(db, user.Id, nowForEvent),
         };
         return Results.Ok(result);
     }

@@ -36,19 +36,17 @@ Aşağıdakı şablonlar `DbSeeder.CreateTasksForPlace` tərəfindən hər məka
 - Səhv və ya təsdiqlənməmiş məlumatı yayımlamayın. Düzəlişdən sonra yalnız məsul şəxs təsdiqlədikdə review bayrağını dəyişin.
 - Mövcud seed tapşırıqları `NeedsReview = true` ilə yaradılır. Test bütün seed tapşırıqlarında bu vəziyyəti yoxlayır.
 
-## Çıraq hekayəsi üçün yoxlanmalı ümumi mətnlər
+## Gündəlik çıraq üçün yoxlanmalı mətnlər
 
-Bu hekayə mətnləri tarixi fakt iddiası daşımır. API konfiqurasiyasında `needs_review=true` ilə verilir və mədəniyyət üzrə məsul şəxs yoxlayana qədər təsdiqlənmiş məzmun sayılmır.
+Bu, tarixi hekayə deyil və tarixi fakt iddiası daşımır. Sayğac ardıcıl gündəlik girişləri göstərir; XP yalnız serverin yeddinci ardıcıl gündə verdiyi mükafatdır.
 
-- Bölmə adı: “Çırağın ilk işığı”.
-- Tapmaca ipucu: “Qaranlıqda parlayan nöqtəni tap və toxun.”
-- İpucu kartı: “Eksponata diqqətlə bax, sonra yaxınlıqdakı QR işarəsini skan et.”
-- Alov nəticəsi: “Bir alov parçası işıqlandı.”
-- Bölmə sonu: “Növbəti alov başqa yerdədir...”
-- Ev bölməsi: “Bir ipucu qazan”; “Qısa tapmacanı tamamla, sonra eksponata baxmaq üçün muzeyə yollan.”
-- Tapmaca paneli: “İpucu tapmacası”; “Nöqtələrin sırası: 1, 3, 2”; “Nöqtələrin sırasını yenidən yoxla.”
-- Tapmaca qeydi: “Bu tapmaca XP vermir; XP muzey tapşırıqlarından qazanılır.”
-- Tapşırıqdan sonrakı istiqamət: “İndi eksponata bax”; “Yaxınlıqda tamamlanmamış asan və orta tapşırıqlar.”
+- Bölmə adı və düymə: “Gündəlik çıraq”; “Alovu yandır”; “Bu gün alovu yandır”.
+- İzah: “Hər gün bir dəfə yandır, ardıcıl gün seriyanı qoru.”
+- Sayğac: “Seriya”; “N gün ardıcıl”; “Növbəti mükafata irəliləyiş: N/7.”
+- Mükafat: “Hər 7 ardıcıl günə +10 XP”; “Yeddi günlük seriya tamamlandı: +10 XP.”
+- Gündəlik vəziyyət: “Bu gün alovunu yandırmısan. Seriyan sabah davam edə bilər.”
+- Buraxılmış gün: “Bir günü buraxdığın üçün seriya sönüb. Bu gün yenidən başla.”
+- Gündəlik nəticə: “Alov yandı. Ardıcıl gün: N.”
 - Kosmetik suvenir: “Nadir alov kolleksiyaya əlavə olundu”; “XP qazandırmır.”
 
 ## Üçlü alov üçün yoxlanmalı ümumi suallar

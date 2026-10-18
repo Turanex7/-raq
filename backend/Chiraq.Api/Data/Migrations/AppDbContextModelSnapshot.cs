@@ -308,6 +308,33 @@ namespace Chiraq.Api.Data.Migrations
                     b.ToTable("GroupMembers");
                 });
 
+            modelBuilder.Entity("Chiraq.Api.Data.LanternIgnition", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BakuDate")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ConsecutiveDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("CreatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "BakuDate")
+                        .IsUnique();
+
+                    b.ToTable("LanternIgnitions");
+                });
+
             modelBuilder.Entity("Chiraq.Api.Data.Place", b =>
                 {
                     b.Property<string>("Id")

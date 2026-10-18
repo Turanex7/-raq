@@ -12,6 +12,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<GameTask> Tasks => Set<GameTask>();
     public DbSet<TaskCompletion> TaskCompletions => Set<TaskCompletion>();
     public DbSet<XpEvent> XpEvents => Set<XpEvent>();
+    public DbSet<LanternIgnition> LanternIgnitions => Set<LanternIgnition>();
     public DbSet<Checkin> Checkins => Set<Checkin>();
     public DbSet<GameGroup> Groups => Set<GameGroup>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
@@ -41,6 +42,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         model.Entity<XpEvent>().HasIndex(x => new { x.UserId, x.SeasonId });
         model.Entity<XpEvent>().HasIndex(x => new { x.UserId, x.SeasonId, x.PlaceId })
             .IsUnique().HasFilter("\"Kind\" = 'group_bonus'");
+        model.Entity<LanternIgnition>().HasKey(x => x.Id);
+        model.Entity<LanternIgnition>().HasIndex(x => new { x.UserId, x.BakuDate }).IsUnique();
         model.Entity<Checkin>().HasKey(x => x.Id);
         model.Entity<Checkin>().HasIndex(x => new { x.UserId, x.PlaceId, x.SeasonId }).IsUnique();
         model.Entity<GameGroup>().HasKey(x => x.Id);

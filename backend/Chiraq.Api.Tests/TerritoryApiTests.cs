@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Globalization;
 using System.Text.Json;
 using System.Threading.RateLimiting;
 using Chiraq.Api.Data;
@@ -169,6 +170,81 @@ public sealed class TerritoryApiTests
         Assert.Equal(100, converted.GetProperty("percent").GetDouble());
     }
 
+    [Fact]
+    public async Task DailyLanternAwardsTenXpOnEachSeventhConsecutiveDayAndOnlyOncePerDay()
+    {
+        await using var api = await TestApi.StartAsync();
+        var client = api.Client;
+        var token = await RegisterAsync(client, "Aysu Hüseynova", "daily-lantern-test@example.test", "ada", true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var bakuToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Baku")).DateTime);
+
+        await using (var db = api.CreateDb())
+        {
+            for (var daysAgo = 6; daysAgo >= 1; daysAgo--)
+            {
+                db.LanternIgnitions.Add(new LanternIgnition
+                {
+                    UserId = DecodeUserId(token),
+                    BakuDate = bakuToday.AddDays(-daysAgo).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    ConsecutiveDays = 7 - daysAgo,
+                    CreatedAtUtc = DateTimeOffset.UtcNow.AddDays(-daysAgo),
+                });
+            }
+            await db.SaveChangesAsync();
+        }
+
+        using var response = await client.PostAsJsonAsync("/api/lantern/ignite", new { });
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(10, json.RootElement.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(7, json.RootElement.GetProperty("lantern").GetProperty("streak_days").GetInt32());
+        Assert.Equal(7, json.RootElement.GetProperty("lantern").GetProperty("progress_day").GetInt32());
+        Assert.True(json.RootElement.GetProperty("lantern").GetProperty("today_lit").GetBoolean());
+        Assert.Equal(10, json.RootElement.GetProperty("new_total").GetInt32());
+
+        using var duplicateResponse = await client.PostAsJsonAsync("/api/lantern/ignite", new { });
+        duplicateResponse.EnsureSuccessStatusCode();
+        using var duplicateJson = JsonDocument.Parse(await duplicateResponse.Content.ReadAsStringAsync());
+        Assert.True(duplicateJson.RootElement.GetProperty("already_lit_today").GetBoolean());
+        Assert.Equal(0, duplicateJson.RootElement.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(10, duplicateJson.RootElement.GetProperty("new_total").GetInt32());
+    }
+
+    [Fact]
+    public async Task MissingBakuDayExtinguishesStreakAndNextIgnitionStartsAtOne()
+    {
+        await using var api = await TestApi.StartAsync();
+        var client = api.Client;
+        var token = await RegisterAsync(client, "Elvin Quliyev", "missed-lantern-day@example.test", "bdu", true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var bakuToday = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Baku")).DateTime);
+        await using (var db = api.CreateDb())
+        {
+            db.LanternIgnitions.Add(new LanternIgnition
+            {
+                UserId = DecodeUserId(token),
+                BakuDate = bakuToday.AddDays(-2).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                ConsecutiveDays = 4,
+                CreatedAtUtc = DateTimeOffset.UtcNow.AddDays(-2),
+            });
+            await db.SaveChangesAsync();
+        }
+
+        using var meResponse = await client.GetAsync("/api/me");
+        meResponse.EnsureSuccessStatusCode();
+        using var meJson = JsonDocument.Parse(await meResponse.Content.ReadAsStringAsync());
+        Assert.Equal(0, meJson.RootElement.GetProperty("lantern").GetProperty("streak_days").GetInt32());
+        Assert.True(meJson.RootElement.GetProperty("lantern").GetProperty("missed_day").GetBoolean());
+
+        using var igniteResponse = await client.PostAsJsonAsync("/api/lantern/ignite", new { });
+        igniteResponse.EnsureSuccessStatusCode();
+        using var igniteJson = JsonDocument.Parse(await igniteResponse.Content.ReadAsStringAsync());
+        Assert.True(igniteJson.RootElement.GetProperty("streak_reset").GetBoolean());
+        Assert.Equal(0, igniteJson.RootElement.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(1, igniteJson.RootElement.GetProperty("lantern").GetProperty("streak_days").GetInt32());
+    }
+
     private static async Task CompleteQrTaskAsync(HttpClient client, string taskId)
     {
         using var qrResponse = await client.GetAsync($"/api/demo/qr/{taskId}");
@@ -333,7 +409,7 @@ public sealed class TerritoryApiTests
                 ["QR_HMAC_SECRET"] = "test-qr-secret-with-at-least-32-characters",
                 ["DEMO_MODE"] = "true",
                 ["ADMIN_TOKEN"] = AdminToken,
-                ["GAME_STORY:RareFlameChancePercent"] = rareFlameChancePercent.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["GAMEPLAY:RareFlameChancePercent"] = rareFlameChancePercent.ToString(System.Globalization.CultureInfo.InvariantCulture),
             }).Build();
 
             var connection = new SqliteConnection("Data Source=:memory:");

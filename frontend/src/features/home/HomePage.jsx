@@ -92,7 +92,7 @@ export default function HomePage() {
           <MascotTip />
         </div>
       </section>
-      <LanternJourney places={apiPlaces || []}/>
+      <LanternJourney />
       <MissionCards apiPlaces={apiPlaces} loading={placesLoading} error={placesError} />
       <p className={styles.illustrationNote}>3D səhnə tarixi məkanlardan ilhamlanan stilizə edilmiş oyun dünyasıdır; tarixi rekonstruksiya deyil.</p>
     </div>

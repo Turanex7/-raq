@@ -11,6 +11,8 @@ public static class GameRules
     public const int UniversityMinimumActive = 3;
     public const int GroupBonusMinimumMembers = 3;
     public const int GroupBonusWindowMinutes = 60;
+    public const int DailyLanternStreakDays = 7;
+    public const int DailyLanternMilestoneXp = 10;
     public const int MaximumCheckinsPerHour = 6;
     public const int MaximumCompletionsPerHour = 20;
     public const int SoftGeoFlagMeters = 500;
