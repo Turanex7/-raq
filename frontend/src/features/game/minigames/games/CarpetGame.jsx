@@ -4,7 +4,7 @@ import shell from "../MiniGameShell.module.scss";
 
 const COLORS = ["#f5b942", "#a0e4c9", "#be8cff", "#f07a72", "#75b8ff"];
 
-export default function CarpetGame({ durationSeconds, onFinish }) {
+export default function CarpetGame({ durationSeconds, targetIntervalMs = 780, onFinish }) {
   const [remaining, setRemaining] = useState(durationSeconds);
   const [targetColumn, setTargetColumn] = useState(0);
   const [hits, setHits] = useState(0);
@@ -23,9 +23,9 @@ export default function CarpetGame({ durationSeconds, onFinish }) {
       }
       return value - 1;
     }), 1000);
-    const thread = window.setInterval(() => setTargetColumn((value) => (value + 1 + Math.floor(Math.random() * 2)) % COLORS.length), 1050);
+    const thread = window.setInterval(() => setTargetColumn((value) => (value + 1 + Math.floor(Math.random() * 2)) % COLORS.length), targetIntervalMs);
     return () => { window.clearInterval(timer); window.clearInterval(thread); };
-  }, []);
+  }, [targetIntervalMs]);
 
   function hitColumn(index) {
     if (finishedRef.current || index !== targetColumn) return;

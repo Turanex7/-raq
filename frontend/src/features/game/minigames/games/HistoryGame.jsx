@@ -3,8 +3,8 @@ import { Archive } from "lucide-react";
 import styles from "./MiniGameVisuals.module.scss";
 import shell from "../MiniGameShell.module.scss";
 
-const FRAGILE_CELLS = new Set([12, 27, 52]);
-const ARTIFACT_CELLS = new Set([34, 35, 36, 44, 45, 46]);
+const FRAGILE_CELLS = new Set([12, 27, 39, 52, 68]);
+const ARTIFACT_CELLS = new Set([23, 24, 25, 26, 33, 34, 35, 36, 43, 44, 45, 46]);
 const SOIL_COUNT = 80;
 
 export default function HistoryGame({ durationSeconds, onFinish }) {
@@ -56,7 +56,7 @@ export default function HistoryGame({ durationSeconds, onFinish }) {
     const artifactRevealed = [...ARTIFACT_CELLS].every((cell) => next.has(cell));
     if (artifactRevealed) {
       finishedRef.current = true;
-      finishRef.current(next.size + 24);
+      finishRef.current(next.size + 18);
     }
   }
 

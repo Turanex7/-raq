@@ -5,7 +5,7 @@ import shell from "../MiniGameShell.module.scss";
 const MAX_BLOCKS = 12;
 const BLOCK_HEIGHT = 21;
 
-export default function TowerGame({ durationSeconds, onFinish }) {
+export default function TowerGame({ durationSeconds, perfectTolerance = 3, speedBase = 0.38, speedRamp = 0.02, onFinish }) {
   const areaRef = useRef(null);
   const [areaWidth, setAreaWidth] = useState(0);
   const [blockWidth, setBlockWidth] = useState(0);
@@ -46,7 +46,7 @@ export default function TowerGame({ durationSeconds, onFinish }) {
     const tick = window.setInterval(() => {
       if (finishedRef.current) return;
       const maxX = Math.max(0, areaWidth - widthRef.current);
-      const speed = Math.max(1.6, areaWidth * (0.32 + blocksRef.current.length * 0.018) / 60);
+      const speed = Math.max(1.6, areaWidth * (speedBase + blocksRef.current.length * speedRamp) / 60);
       let next = movingXRef.current + speed * directionRef.current;
       if (next >= maxX) { next = maxX; directionRef.current = -1; }
       if (next <= 0) { next = 0; directionRef.current = 1; }
@@ -54,7 +54,7 @@ export default function TowerGame({ durationSeconds, onFinish }) {
       setMovingX(next);
     }, 16);
     return () => window.clearInterval(tick);
-  }, [areaWidth]);
+  }, [areaWidth, speedBase, speedRamp]);
 
   function dropBlock() {
     if (finishedRef.current || !areaWidth) return;
@@ -69,7 +69,7 @@ export default function TowerGame({ durationSeconds, onFinish }) {
       return;
     }
     const movingCenter = movingXRef.current + previousWidth / 2;
-    const perfect = Math.abs(movingCenter - previousCenter) <= 5;
+    const perfect = Math.abs(movingCenter - previousCenter) <= perfectTolerance;
     const nextWidth = perfect ? previousWidth : overlap;
     const nextCenter = perfect ? previousCenter : (left + right) / 2;
     const nextBlocks = [...blocksRef.current, { center: nextCenter, width: nextWidth }];
