@@ -49,6 +49,7 @@ Bu hekayə mətnləri tarixi fakt iddiası daşımır. API konfiqurasiyasında `
 - Tapmaca paneli: “İpucu tapmacası”; “Nöqtələrin sırası: 1, 3, 2”; “Nöqtələrin sırasını yenidən yoxla.”
 - Tapmaca qeydi: “Bu tapmaca XP vermir; XP muzey tapşırıqlarından qazanılır.”
 - Tapşırıqdan sonrakı istiqamət: “İndi eksponata bax”; “Yaxınlıqda tamamlanmamış asan və orta tapşırıqlar.”
+- Kosmetik suvenir: “Nadir alov kolleksiyaya əlavə olundu”; “XP qazandırmır.”
 
 ## Üçlü alov üçün yoxlanmalı ümumi suallar
 

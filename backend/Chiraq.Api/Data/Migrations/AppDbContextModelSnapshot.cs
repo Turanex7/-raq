@@ -447,6 +447,9 @@ namespace Chiraq.Api.Data.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsRareFlame")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -465,7 +468,7 @@ namespace Chiraq.Api.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlaceId", "SeasonId")
+                    b.HasIndex("PlaceId", "SeasonId", "IsRareFlame")
                         .IsUnique();
 
                     b.ToTable("Souvenirs");

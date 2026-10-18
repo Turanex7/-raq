@@ -42,7 +42,10 @@ public static class ApiRoutes
             next = new Season { Id = nextId, StartsAtUtc = start, EndsAtUtc = end.AddTicks(-1), Theme = "Şəhər həftəsi" };
             db.Seasons.Add(next);
             foreach (var place in await db.Places.ToListAsync())
+            {
                 db.Souvenirs.Add(new Souvenir { Id = $"souvenir-{nextId}-{place.Slug}", PlaceId = place.Id, SeasonId = nextId, Name = place.Name, Rarity = place.Rarity });
+                db.Souvenirs.Add(new Souvenir { Id = $"souvenir-rare-{nextId}-{place.Slug}", PlaceId = place.Id, SeasonId = nextId, Name = "Çıraq alovu", Rarity = "nadir", IsRareFlame = true });
+            }
         }
         await db.SaveChangesAsync();
     }
@@ -69,6 +72,7 @@ public static class ApiRoutes
                 cliffhanger = config["GAME_STORY:Cliffhanger"] ?? "Növbəti alov başqa yerdədir...",
                 needs_review = true,
             },
+            rare_flame = new { chance_percent = RareFlameChancePercent(config) },
         }));
         api.MapGet("/universities", async (AppDbContext db) => Results.Ok(await db.Universities.OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, shortName = x.ShortName }).ToListAsync()));
         api.MapGet("/avatars", async (AppDbContext db) => Results.Ok(await db.Avatars.OrderBy(x => x.UnlockLevel).Select(x => new { x.Id, x.Name, unlock_level = x.UnlockLevel, illustration = x.Illustration }).ToListAsync()));
@@ -102,6 +106,7 @@ public static class ApiRoutes
     }
 
     private static IResult Fail(int status, string code, string message) => Results.Json(new { error = new { code, message } }, statusCode: status);
+    private static int RareFlameChancePercent(IConfiguration config) => int.TryParse(config["GAME_STORY:RareFlameChancePercent"], out var chance) ? Math.Clamp(chance, 0, 100) : 5;
     private static string? UserId(HttpContext context, Tokens tokens) => tokens.Validate(context.Request.Headers.Authorization.ToString().Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase), DateTimeOffset.UtcNow);
     private static async Task<Season?> ActiveSeason(AppDbContext db, DateTimeOffset now) => await db.Seasons.FirstOrDefaultAsync(x => !x.Finalized && x.StartsAtUtc <= now && x.EndsAtUtc >= now);
     private static async Task<AppUser?> CurrentUser(HttpContext context, AppDbContext db, Tokens tokens)
@@ -355,7 +360,7 @@ public static class ApiRoutes
         return Results.Ok(new { valid, place_id = place.Id, accuracy_m = request.Accuracy, radius_m = place.RadiusMeters, checked_at_utc = now });
     }
 
-    private static async Task<IResult> CompleteTask(string id, TaskCompleteRequest request, HttpContext http, AppDbContext db, Tokens tokens)
+    private static async Task<IResult> CompleteTask(string id, TaskCompleteRequest request, HttpContext http, AppDbContext db, Tokens tokens, IConfiguration config)
     {
         var user = await CurrentUser(http, db, tokens);
         if (user is null) return Fail(401, "unauthorized", "Giriş etdikdən sonra yenidən cəhd et.");
@@ -435,13 +440,18 @@ public static class ApiRoutes
                 db.XpEvents.Add(new XpEvent { UserId = user.Id, SeasonId = season.Id, PlaceId = place.Id, TaskId = task.Id, Kind = "first_visit", Amount = firstVisitXp, CreatedAtUtc = nowForEvent });
             }
         }
-        var souvenir = await db.Souvenirs.FirstOrDefaultAsync(x => x.PlaceId == place.Id && x.SeasonId == season.Id);
+        var souvenir = await db.Souvenirs.FirstOrDefaultAsync(x => x.PlaceId == place.Id && x.SeasonId == season.Id && !x.IsRareFlame);
         var souvenirDrop = false;
         if (souvenir is not null && !await db.UserSouvenirs.AnyAsync(x => x.UserId == user.Id && x.SouvenirId == souvenir.Id))
         {
             db.UserSouvenirs.Add(new UserSouvenir { UserId = user.Id, SouvenirId = souvenir.Id, EarnedAtUtc = nowForEvent });
             souvenirDrop = true;
         }
+        var rareFlame = task.Type == "qr_scan" && RareFlameChancePercent(config) > 0 && RandomNumberGenerator.GetInt32(100) < RareFlameChancePercent(config)
+            ? await db.Souvenirs.FirstOrDefaultAsync(x => x.PlaceId == place.Id && x.SeasonId == season.Id && x.IsRareFlame)
+            : null;
+        var rareFlameDrop = rareFlame is not null && !await db.UserSouvenirs.AnyAsync(x => x.UserId == user.Id && x.SouvenirId == rareFlame.Id);
+        if (rareFlameDrop) db.UserSouvenirs.Add(new UserSouvenir { UserId = user.Id, SouvenirId = rareFlame!.Id, EarnedAtUtc = nowForEvent });
         payload?.Dispose();
         await db.SaveChangesAsync();
 
@@ -466,6 +476,7 @@ public static class ApiRoutes
             level_up = level > oldLevel,
             avatar_unlocked = unlocked,
             souvenir_drop = souvenirDrop ? new { souvenir!.Id, souvenir.Name, souvenir.Rarity } : null,
+            rare_flame_drop = rareFlameDrop ? new { rareFlame!.Id, rareFlame.Name, rareFlame.Rarity } : null,
             territory_change = territoryChanged ? new { message = TerritoryTakeoverMessage(place, beforeOwner), owner = afterOwner } : null,
             correct, correct_answer = correct ? null : correctAnswer, fact = correct ? null : fact,
             prize_eligible = user.PrizeEligible,
@@ -807,8 +818,11 @@ public static class ApiRoutes
             foreach (var item in souvenirs)
             {
                 var earned = await db.UserSouvenirs.AnyAsync(x => x.UserId == user.Id && x.SouvenirId == item.Souvenir.Id);
-                var status = earned ? "earned" : activeSeason?.Id == season.Id ? "available" : season.Finalized ? "missed" : "upcoming";
-                items.Add(new { id = item.Souvenir.Id, name = item.Souvenir.Name, place = item.Place.Name, rarity = item.Souvenir.Rarity, earned, season_id = season.Id, season_theme = season.Theme, season_starts_at_utc = season.StartsAtUtc, limited = true, status });
+                var scannedQr = item.Souvenir.IsRareFlame && await db.TaskCompletions
+                    .Join(db.Tasks, completion => completion.TaskId, task => task.Id, (completion, task) => new { completion, task })
+                    .AnyAsync(x => x.completion.UserId == user.Id && x.completion.SeasonId == season.Id && x.task.PlaceId == item.Place.Id && x.task.Type == "qr_scan");
+                var status = earned ? "earned" : activeSeason?.Id == season.Id ? item.Souvenir.IsRareFlame && scannedQr ? "missed" : "available" : season.Finalized ? "missed" : "upcoming";
+                items.Add(new { id = item.Souvenir.Id, name = item.Souvenir.Name, place = item.Place.Name, rarity = item.Souvenir.Rarity, rare_flame = item.Souvenir.IsRareFlame, earned, season_id = season.Id, season_theme = season.Theme, season_starts_at_utc = season.StartsAtUtc, limited = true, status });
             }
         }
         return Results.Ok(new { rows = items, avatars = await AvatarCollection(db, user) });
@@ -913,6 +927,9 @@ public static class ApiRoutes
         var firstStart = await db.Seasons.OrderBy(x => x.StartsAtUtc).Select(x => (DateTimeOffset?)x.StartsAtUtc).FirstOrDefaultAsync();
         var userIds = users.Select(x => x.Id).ToList();
         var museumCompletions = await db.TaskCompletions.Join(db.Tasks, x => x.TaskId, x => x.Id, (completion, task) => new { completion, task }).Join(db.Places, x => x.task.PlaceId, x => x.Id, (x, place) => new { x.completion, place }).Where(x => x.place.Type == "museum" && userIds.Contains(x.completion.UserId)).ToListAsync();
+        var museumPlacesPerUser = museumCompletions.GroupBy(x => x.completion.UserId).Select(group => group.Select(x => x.place.Id).Distinct().Count()).ToList();
+        var usersWithMuseum = museumPlacesPerUser.Count;
+        var usersWithSecondMuseum = museumPlacesPerUser.Count(count => count >= 2);
         var places = await db.Places.ToListAsync();
         var visitsByPlace = places.Select(place => new { place = place.Name, visits = museumCompletions.Count(x => x.place.Id == place.Id) }).ToList();
         var universities = await db.Universities.ToListAsync();
@@ -922,7 +939,16 @@ public static class ApiRoutes
         var week2 = await db.Seasons.OrderBy(x => x.StartsAtUtc).Skip(1).FirstOrDefaultAsync();
         var cohort = week1 is null ? [] : await db.TaskCompletions.Where(x => x.SeasonId == week1.Id && userIds.Contains(x.UserId)).Select(x => x.UserId).Distinct().ToListAsync();
         var retained = week2 is null || cohort.Count == 0 ? 0 : await db.TaskCompletions.Where(x => x.SeasonId == week2.Id && cohort.Contains(x.UserId)).Select(x => x.UserId).Distinct().CountAsync();
-        return Results.Ok(new { new_users = firstStart is null ? 0 : users.Count(x => x.CreatedAtUtc >= firstStart), users_with_museum_completion = museumCompletions.Select(x => x.completion.UserId).Distinct().Count(), first_time_museum_visitors = firstTimers, visits_per_place = visitsByPlace, visits_per_university = visitsByUniversity, week1_to_week2_retention = new { cohort_users = cohort.Count, returned_users = retained, percent = cohort.Count == 0 ? (double?)null : Math.Round(100d * retained / cohort.Count, 1) } });
+        return Results.Ok(new
+        {
+            new_users = firstStart is null ? 0 : users.Count(x => x.CreatedAtUtc >= firstStart),
+            users_with_museum_completion = usersWithMuseum,
+            second_museum_conversion = new { eligible_users = usersWithMuseum, converted_users = usersWithSecondMuseum, percent = usersWithMuseum == 0 ? (double?)null : Math.Round(100d * usersWithSecondMuseum / usersWithMuseum, 1) },
+            first_time_museum_visitors = firstTimers,
+            visits_per_place = visitsByPlace,
+            visits_per_university = visitsByUniversity,
+            week1_to_week2_retention = new { cohort_users = cohort.Count, returned_users = retained, percent = cohort.Count == 0 ? (double?)null : Math.Round(100d * retained / cohort.Count, 1) },
+        });
     }
 
     private static bool AdminAuthorized(HttpContext http, IConfiguration config)

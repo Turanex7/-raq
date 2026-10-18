@@ -142,6 +142,7 @@ public sealed class Souvenir
     public string SeasonId { get; set; } = "";
     public string Name { get; set; } = "";
     public string Rarity { get; set; } = "adi";
+    public bool IsRareFlame { get; set; }
 }
 
 public sealed class UserSouvenir

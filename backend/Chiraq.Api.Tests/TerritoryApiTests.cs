@@ -100,6 +100,85 @@ public sealed class TerritoryApiTests
     }
 
     [Fact]
+    public async Task RareFlameIsCosmeticAndCollectionLabelsItAsRare()
+    {
+        await using var api = await TestApi.StartAsync(rareFlameChancePercent: 100);
+        var client = api.Client;
+        var accessToken = await RegisterAsync(client, "Lalə Məmmədova", "rare-flame-test@example.test", "ada", true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var qrResponse = await client.GetAsync("/api/demo/qr/carpet-museum-visit");
+        qrResponse.EnsureSuccessStatusCode();
+        using var qrJson = JsonDocument.Parse(await qrResponse.Content.ReadAsStringAsync());
+        using var completeResponse = await client.PostAsJsonAsync("/api/tasks/carpet-museum-visit/complete", new { qrToken = qrJson.RootElement.GetProperty("qr_payload").GetString() });
+        completeResponse.EnsureSuccessStatusCode();
+        using var completeJson = JsonDocument.Parse(await completeResponse.Content.ReadAsStringAsync());
+        var result = completeJson.RootElement;
+        Assert.Equal(10, result.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(10, result.GetProperty("new_total").GetInt32());
+        var rareDrop = result.GetProperty("rare_flame_drop");
+        Assert.Equal("Çıraq alovu", rareDrop.GetProperty("name").GetString());
+        Assert.Equal("nadir", rareDrop.GetProperty("rarity").GetString());
+
+        using var collectionResponse = await client.GetAsync("/api/me/collection");
+        collectionResponse.EnsureSuccessStatusCode();
+        using var collectionJson = JsonDocument.Parse(await collectionResponse.Content.ReadAsStringAsync());
+        var card = collectionJson.RootElement.GetProperty("rows").EnumerateArray()
+            .Single(x => x.GetProperty("rare_flame").GetBoolean() && x.GetProperty("earned").GetBoolean());
+        Assert.Equal("nadir", card.GetProperty("rarity").GetString());
+        Assert.Equal("Çıraq alovu", card.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public async Task SecondMuseumConversionExcludesDemoUsersAndCountsDistinctMuseums()
+    {
+        await using var api = await TestApi.StartAsync();
+        var client = api.Client;
+        client.DefaultRequestHeaders.Add("X-Admin-Token", AdminToken);
+
+        using var emptyResponse = await client.GetAsync("/api/admin/metrics");
+        emptyResponse.EnsureSuccessStatusCode();
+        using var emptyJson = JsonDocument.Parse(await emptyResponse.Content.ReadAsStringAsync());
+        var emptyConversion = emptyJson.RootElement.GetProperty("second_museum_conversion");
+        Assert.Equal(0, emptyConversion.GetProperty("eligible_users").GetInt32());
+        Assert.Equal(0, emptyConversion.GetProperty("converted_users").GetInt32());
+        Assert.Equal(JsonValueKind.Null, emptyConversion.GetProperty("percent").ValueKind);
+
+        var accessToken = await RegisterAsync(client, "Murad Əliyev", "second-museum-test@example.test", "bdu", true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        await CompleteQrTaskAsync(client, "carpet-museum-visit");
+        using (var sameMuseumTaskResponse = await client.PostAsJsonAsync("/api/tasks/carpet-museum-vote/complete", new { answer = "Memarlıq" }))
+            sameMuseumTaskResponse.EnsureSuccessStatusCode();
+        using (var firstPlaceResponse = await client.GetAsync("/api/admin/metrics"))
+        {
+            firstPlaceResponse.EnsureSuccessStatusCode();
+            using var firstPlaceJson = JsonDocument.Parse(await firstPlaceResponse.Content.ReadAsStringAsync());
+            var conversion = firstPlaceJson.RootElement.GetProperty("second_museum_conversion");
+            Assert.Equal(1, conversion.GetProperty("eligible_users").GetInt32());
+            Assert.Equal(0, conversion.GetProperty("converted_users").GetInt32());
+            Assert.Equal(0, conversion.GetProperty("percent").GetDouble());
+        }
+
+        await CompleteQrTaskAsync(client, "national-history-visit");
+        using var convertedResponse = await client.GetAsync("/api/admin/metrics");
+        convertedResponse.EnsureSuccessStatusCode();
+        using var convertedJson = JsonDocument.Parse(await convertedResponse.Content.ReadAsStringAsync());
+        var converted = convertedJson.RootElement.GetProperty("second_museum_conversion");
+        Assert.Equal(1, converted.GetProperty("eligible_users").GetInt32());
+        Assert.Equal(1, converted.GetProperty("converted_users").GetInt32());
+        Assert.Equal(100, converted.GetProperty("percent").GetDouble());
+    }
+
+    private static async Task CompleteQrTaskAsync(HttpClient client, string taskId)
+    {
+        using var qrResponse = await client.GetAsync($"/api/demo/qr/{taskId}");
+        qrResponse.EnsureSuccessStatusCode();
+        using var qrJson = JsonDocument.Parse(await qrResponse.Content.ReadAsStringAsync());
+        using var completeResponse = await client.PostAsJsonAsync($"/api/tasks/{taskId}/complete", new { qrToken = qrJson.RootElement.GetProperty("qr_payload").GetString() });
+        completeResponse.EnsureSuccessStatusCode();
+    }
+
+    [Fact]
     public async Task TerritoryChangeFiresWhenAUniversityBreaksAnEarlierTieAndOnlyOnce()
     {
         await using var api = await TestApi.StartAsync();
@@ -246,7 +325,7 @@ public sealed class TerritoryApiTests
         public HttpClient Client { get; } = client;
         public AppDbContext CreateDb() => new(dbOptions);
 
-        public static async Task<TestApi> StartAsync()
+        public static async Task<TestApi> StartAsync(int rareFlameChancePercent = 0)
         {
             var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -254,6 +333,7 @@ public sealed class TerritoryApiTests
                 ["QR_HMAC_SECRET"] = "test-qr-secret-with-at-least-32-characters",
                 ["DEMO_MODE"] = "true",
                 ["ADMIN_TOKEN"] = AdminToken,
+                ["GAME_STORY:RareFlameChancePercent"] = rareFlameChancePercent.ToString(System.Globalization.CultureInfo.InvariantCulture),
             }).Build();
 
             var connection = new SqliteConnection("Data Source=:memory:");

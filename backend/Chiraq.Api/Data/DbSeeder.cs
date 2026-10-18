@@ -132,7 +132,11 @@ public static class DbSeeder
             PasswordHash = "!seed-only!", UniversityId = SeedUniversityId(i), AvatarId = avatars[i % 5].Id,
             VisitedMuseumLast12Months = i % 3 == 0, IsDemo = true, CreatedAtUtc = now.AddDays(-40 - i),
         }).ToList();
-        var souvenirs = places.Select((place, i) => new Souvenir { Id = $"souvenir-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = place.Name, Rarity = place.Rarity }).ToList();
+        var souvenirs = places.SelectMany(place => new[]
+        {
+            new Souvenir { Id = $"souvenir-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = place.Name, Rarity = place.Rarity },
+            new Souvenir { Id = $"souvenir-rare-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = "Çıraq alovu", Rarity = "nadir", IsRareFlame = true },
+        }).ToList();
 
         await using var tx = await db.Database.BeginTransactionAsync();
         db.Seasons.Add(season);
@@ -291,16 +295,33 @@ public static class DbSeeder
             Latitude = x.Lat, Longitude = x.Lng, RadiusMeters = x.Type == "museum" ? 60 : 50,
             Description = x.Description, Rarity = x.Rarity, IsOpen = Array.IndexOf(Places.Select(p => p.Slug).ToArray(), x.Slug) < 8,
         }).ToList();
-        if (missing.Count == 0) return;
+        if (missing.Count > 0)
+        {
+            db.Places.AddRange(missing);
+            await db.SaveChangesAsync();
+            db.Tasks.AddRange(missing.SelectMany(CreateTasksForPlace));
+            await db.SaveChangesAsync();
+        }
 
-        db.Places.AddRange(missing);
-        await db.SaveChangesAsync();
-        db.Tasks.AddRange(missing.SelectMany(CreateTasksForPlace));
+        var places = await db.Places.ToListAsync();
         var seasons = await db.Seasons.ToListAsync();
-        db.Souvenirs.AddRange(from place in missing
-                              from season in seasons
-                              select new Souvenir { Id = $"souvenir-{season.Id}-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = place.Name, Rarity = place.Rarity });
-        await db.SaveChangesAsync();
+        var existingSouvenirKeys = (await db.Souvenirs.Select(x => new { x.PlaceId, x.SeasonId, x.IsRareFlame }).ToListAsync())
+            .Select(x => $"{x.PlaceId}|{x.SeasonId}|{x.IsRareFlame}").ToHashSet(StringComparer.Ordinal);
+        var missingSouvenirs = new List<Souvenir>();
+        foreach (var place in places)
+        foreach (var season in seasons)
+        foreach (var rareFlame in new[] { false, true })
+        {
+            if (existingSouvenirKeys.Contains($"{place.Id}|{season.Id}|{rareFlame}")) continue;
+            missingSouvenirs.Add(rareFlame
+                ? new Souvenir { Id = $"souvenir-rare-{season.Id}-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = "Çıraq alovu", Rarity = "nadir", IsRareFlame = true }
+                : new Souvenir { Id = $"souvenir-{season.Id}-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = place.Name, Rarity = place.Rarity });
+        }
+        if (missingSouvenirs.Count > 0)
+        {
+            db.Souvenirs.AddRange(missingSouvenirs);
+            await db.SaveChangesAsync();
+        }
     }
 
     private sealed record DemoTerritoryTask(string UserId, string TaskId, bool Correct);

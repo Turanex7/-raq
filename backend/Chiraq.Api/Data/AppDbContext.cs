@@ -51,7 +51,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         model.Entity<CoopParticipant>().HasKey(x => x.Id);
         model.Entity<CoopParticipant>().HasIndex(x => new { x.SessionId, x.UserId }).IsUnique();
         model.Entity<Souvenir>().HasKey(x => x.Id);
-        model.Entity<Souvenir>().HasIndex(x => new { x.PlaceId, x.SeasonId }).IsUnique();
+        model.Entity<Souvenir>().HasIndex(x => new { x.PlaceId, x.SeasonId, x.IsRareFlame }).IsUnique();
         model.Entity<UserSouvenir>().HasKey(x => x.Id);
         model.Entity<UserSouvenir>().HasIndex(x => new { x.UserId, x.SouvenirId }).IsUnique();
         model.Entity<Avatar>().HasKey(x => x.Id);
