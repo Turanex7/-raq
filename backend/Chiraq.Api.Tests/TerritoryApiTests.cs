@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Threading.RateLimiting;
 using Chiraq.Api.Data;
 using Chiraq.Api.Security;
+using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -17,97 +18,208 @@ namespace Chiraq.Api.Tests;
 
 public sealed class TerritoryApiTests
 {
+    private const string AdminToken = "territory-api-test-admin-token-2026";
+
     [Fact]
-    public async Task NewAdaMemberCanCaptureCarpetMuseumWithOneEasyTask()
+    public async Task NewAdaMemberCapturesCarpetMuseumWithOneEasyTaskWithoutFirstVisitBonus()
     {
-        const string adminToken = "territory-api-test-admin-token-2026";
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        await using var api = await TestApi.StartAsync();
+        var client = api.Client;
+
+        using var beforeResponse = await client.GetAsync("/api/places/carpet-museum");
+        beforeResponse.EnsureSuccessStatusCode();
+        using var beforeJson = JsonDocument.Parse(await beforeResponse.Content.ReadAsStringAsync());
+        var before = beforeJson.RootElement.GetProperty("territory");
+        Assert.Equal("adnsu", before.GetProperty("university_id").GetString());
+        Assert.Equal(8, before.GetProperty("score").GetInt32());
+
+        var accessToken = await RegisterAsync(client, "Aylin Əliyeva", "territory-flip-test@example.test", "ada", true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var qrResponse = await client.GetAsync("/api/demo/qr/carpet-museum-visit");
+        qrResponse.EnsureSuccessStatusCode();
+        using var qrJson = JsonDocument.Parse(await qrResponse.Content.ReadAsStringAsync());
+        var qrPayload = qrJson.RootElement.GetProperty("qr_payload").GetString();
+        using var completeResponse = await client.PostAsJsonAsync("/api/tasks/carpet-museum-visit/complete", new { qrToken = qrPayload });
+        completeResponse.EnsureSuccessStatusCode();
+        using var completeJson = JsonDocument.Parse(await completeResponse.Content.ReadAsStringAsync());
+        var result = completeJson.RootElement;
+        Assert.Equal(10, result.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(0, result.GetProperty("breakdown").GetProperty("first_visit").GetInt32());
+        Assert.Equal("Xalça Muzeyini ADNSU-dan fəth etdin!", result.GetProperty("territory_change").GetProperty("message").GetString());
+
+        using var afterResponse = await client.GetAsync("/api/places/carpet-museum");
+        afterResponse.EnsureSuccessStatusCode();
+        using var afterJson = JsonDocument.Parse(await afterResponse.Content.ReadAsStringAsync());
+        Assert.Equal("ada", afterJson.RootElement.GetProperty("territory").GetProperty("university_id").GetString());
+        Assert.Equal(10, afterJson.RootElement.GetProperty("territory").GetProperty("score").GetInt32());
+
+        using var meResponse = await client.GetAsync("/api/me");
+        meResponse.EnsureSuccessStatusCode();
+        using var meJson = JsonDocument.Parse(await meResponse.Content.ReadAsStringAsync());
+        Assert.Equal(10, meJson.RootElement.GetProperty("lifetimeXp").GetInt32());
+        Assert.Equal(10, meJson.RootElement.GetProperty("weeklyXp").GetInt32());
+
+        client.DefaultRequestHeaders.Add("X-Admin-Token", AdminToken);
+        using var metricsResponse = await client.GetAsync("/api/admin/metrics");
+        metricsResponse.EnsureSuccessStatusCode();
+        using var metricsJson = JsonDocument.Parse(await metricsResponse.Content.ReadAsStringAsync());
+        var metrics = metricsJson.RootElement;
+        Assert.Equal(1, metrics.GetProperty("new_users").GetInt32());
+        Assert.Equal(1, metrics.GetProperty("users_with_museum_completion").GetInt32());
+        Assert.Equal(0, metrics.GetProperty("first_time_museum_visitors").GetInt32());
+        Assert.Equal(1, metrics.GetProperty("visits_per_place").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
+        Assert.Equal(1, metrics.GetProperty("visits_per_university").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
+    }
+
+    [Fact]
+    public async Task FirstMuseumVisitBonusIsReturnedAsItsOwnBreakdownLine()
+    {
+        await using var api = await TestApi.StartAsync();
+        var accessToken = await RegisterAsync(api.Client, "Nigar Əliyeva", "first-visit-test@example.test", "bdu", false);
+        api.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var qrResponse = await api.Client.GetAsync("/api/demo/qr/national-history-visit");
+        qrResponse.EnsureSuccessStatusCode();
+        using var qrJson = JsonDocument.Parse(await qrResponse.Content.ReadAsStringAsync());
+        using var completeResponse = await api.Client.PostAsJsonAsync("/api/tasks/national-history-visit/complete", new { qrToken = qrJson.RootElement.GetProperty("qr_payload").GetString() });
+        completeResponse.EnsureSuccessStatusCode();
+        using var completeJson = JsonDocument.Parse(await completeResponse.Content.ReadAsStringAsync());
+        Assert.Equal(20, completeJson.RootElement.GetProperty("breakdown").GetProperty("first_visit").GetInt32());
+        Assert.Equal(30, completeJson.RootElement.GetProperty("xp_awarded").GetInt32());
+
+        api.Client.DefaultRequestHeaders.Add("X-Admin-Token", AdminToken);
+        using var metricsResponse = await api.Client.GetAsync("/api/admin/metrics");
+        metricsResponse.EnsureSuccessStatusCode();
+        using var metricsJson = JsonDocument.Parse(await metricsResponse.Content.ReadAsStringAsync());
+        var metrics = metricsJson.RootElement;
+        Assert.Equal(1, metrics.GetProperty("new_users").GetInt32());
+        Assert.Equal(1, metrics.GetProperty("users_with_museum_completion").GetInt32());
+        Assert.Equal(1, metrics.GetProperty("first_time_museum_visitors").GetInt32());
+        Assert.Equal(1, metrics.GetProperty("visits_per_place").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
+        Assert.Equal(1, metrics.GetProperty("visits_per_university").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
+    }
+
+    [Fact]
+    public async Task TerritoryChangeFiresWhenAUniversityBreaksAnEarlierTieAndOnlyOnce()
+    {
+        await using var api = await TestApi.StartAsync();
+        var accessToken = await RegisterAsync(api.Client, "Aylin Əliyeva", "territory-tie-test@example.test", "ada", true);
+        api.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        var userId = DecodeUserId(accessToken);
+
+        await using (var db = api.CreateDb())
         {
-            ["JWT_SECRET"] = "test-jwt-secret-with-at-least-32-characters",
-            ["QR_HMAC_SECRET"] = "test-qr-secret-with-at-least-32-characters",
-            ["DEMO_MODE"] = "true",
-            ["ADMIN_TOKEN"] = adminToken,
-        }).Build();
-
-        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-        var dbOptions = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
-        await using (var seedDb = new AppDbContext(dbOptions))
-            await DbSeeder.InitializeAsync(seedDb, configuration);
-
-        var builder = WebApplication.CreateBuilder();
-        builder.WebHost.UseUrls("http://127.0.0.1:0");
-        builder.Configuration.AddInMemoryCollection(configuration.AsEnumerable().ToDictionary(x => x.Key, x => x.Value));
-        builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection));
-        builder.Services.AddSingleton<Tokens>();
-        builder.Services.AddRateLimiter(options =>
-        {
-            options.AddPolicy("auth", _ => TestRateLimit());
-            options.AddPolicy("complete", _ => TestRateLimit());
-            options.AddPolicy("checkin", _ => TestRateLimit());
-        });
-
-        await using var app = builder.Build();
-        app.UseRateLimiter();
-        app.MapChiraqApi();
-        await app.StartAsync();
-        try
-        {
-            var addresses = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
-            using var client = new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) };
-
-            using var beforeResponse = await client.GetAsync("/api/places/carpet-museum");
-            beforeResponse.EnsureSuccessStatusCode();
-            using var beforeJson = JsonDocument.Parse(await beforeResponse.Content.ReadAsStringAsync());
-            Assert.Equal("adnsu", beforeJson.RootElement.GetProperty("territory").GetProperty("university_id").GetString());
-            Assert.Equal(5, beforeJson.RootElement.GetProperty("territory").GetProperty("gap").GetInt32());
-
-            using var registerResponse = await client.PostAsJsonAsync("/api/auth/register", new
+            var season = await db.Seasons.SingleAsync();
+            var place = await db.Places.SingleAsync(x => x.Slug == "carpet-museum");
+            db.XpEvents.Add(new XpEvent
             {
-                name = "Aylin Əliyeva",
-                email = "territory-flip-test@example.test",
-                password = "test-password-2026",
-                universityId = "ada",
-                avatarId = "nizami",
-                visitedMuseumLast12Months = false,
+                UserId = userId,
+                SeasonId = season.Id,
+                PlaceId = place.Id,
+                TaskId = "carpet-museum-visit",
+                Kind = "base",
+                Amount = 8,
+                CreatedAtUtc = DateTimeOffset.UtcNow,
             });
-            registerResponse.EnsureSuccessStatusCode();
-            using var registerJson = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync());
-            var accessToken = registerJson.RootElement.GetProperty("token").GetString()!;
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            using var qrResponse = await client.GetAsync("/api/demo/qr/carpet-museum-visit");
-            qrResponse.EnsureSuccessStatusCode();
-            using var qrJson = JsonDocument.Parse(await qrResponse.Content.ReadAsStringAsync());
-            var qrPayload = qrJson.RootElement.GetProperty("qr_payload").GetString();
-            using var completeResponse = await client.PostAsJsonAsync("/api/tasks/carpet-museum-visit/complete", new { qrToken = qrPayload });
-            completeResponse.EnsureSuccessStatusCode();
-            using var completeJson = JsonDocument.Parse(await completeResponse.Content.ReadAsStringAsync());
-            Assert.Equal("Xalça Muzeyini ADNSU-dan fəth etdin!", completeJson.RootElement.GetProperty("territory_change").GetProperty("message").GetString());
-
-            using var afterResponse = await client.GetAsync("/api/places/carpet-museum");
-            afterResponse.EnsureSuccessStatusCode();
-            using var afterJson = JsonDocument.Parse(await afterResponse.Content.ReadAsStringAsync());
-            Assert.Equal("ada", afterJson.RootElement.GetProperty("territory").GetProperty("university_id").GetString());
-            Assert.Equal(20, afterJson.RootElement.GetProperty("territory").GetProperty("score").GetInt32());
-
-            client.DefaultRequestHeaders.Add("X-Admin-Token", adminToken);
-            using var metricsResponse = await client.GetAsync("/api/admin/metrics");
-            metricsResponse.EnsureSuccessStatusCode();
-            using var metricsJson = JsonDocument.Parse(await metricsResponse.Content.ReadAsStringAsync());
-            var metrics = metricsJson.RootElement;
-            Assert.Equal(1, metrics.GetProperty("new_users").GetInt32());
-            Assert.Equal(1, metrics.GetProperty("users_with_museum_completion").GetInt32());
-            Assert.Equal(1, metrics.GetProperty("first_time_museum_visitors").GetInt32());
-            Assert.Equal(1, metrics.GetProperty("visits_per_place").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
-            Assert.Equal(1, metrics.GetProperty("visits_per_university").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
+            await db.SaveChangesAsync();
         }
-        finally
+
+        using var tiedResponse = await api.Client.GetAsync("/api/places/carpet-museum");
+        tiedResponse.EnsureSuccessStatusCode();
+        using var tiedJson = JsonDocument.Parse(await tiedResponse.Content.ReadAsStringAsync());
+        var tiedTerritory = tiedJson.RootElement.GetProperty("territory");
+        Assert.Equal("adnsu", tiedTerritory.GetProperty("university_id").GetString());
+        Assert.False(tiedTerritory.GetProperty("tied").GetBoolean());
+        Assert.Equal(0, tiedTerritory.GetProperty("gap").GetInt32());
+
+        using var qrResponse = await api.Client.GetAsync("/api/demo/qr/carpet-museum-visit");
+        qrResponse.EnsureSuccessStatusCode();
+        using var qrJson = JsonDocument.Parse(await qrResponse.Content.ReadAsStringAsync());
+        using var captureResponse = await api.Client.PostAsJsonAsync("/api/tasks/carpet-museum-visit/complete", new { qrToken = qrJson.RootElement.GetProperty("qr_payload").GetString() });
+        captureResponse.EnsureSuccessStatusCode();
+        using var captureJson = JsonDocument.Parse(await captureResponse.Content.ReadAsStringAsync());
+        Assert.Equal("Xalça Muzeyini ADNSU-dan fəth etdin!", captureJson.RootElement.GetProperty("territory_change").GetProperty("message").GetString());
+
+        using var anotherTaskResponse = await api.Client.PostAsJsonAsync("/api/tasks/carpet-museum-vote/complete", new { answer = "Memarlıq" });
+        anotherTaskResponse.EnsureSuccessStatusCode();
+        using var anotherTaskJson = JsonDocument.Parse(await anotherTaskResponse.Content.ReadAsStringAsync());
+        Assert.Equal(JsonValueKind.Null, anotherTaskJson.RootElement.GetProperty("territory_change").ValueKind);
+    }
+
+    private static async Task<string> RegisterAsync(HttpClient client, string name, string email, string universityId, bool visitedMuseumLast12Months)
+    {
+        using var response = await client.PostAsJsonAsync("/api/auth/register", new
         {
-            await app.StopAsync();
-        }
+            name,
+            email,
+            password = "test-password-2026",
+            universityId,
+            avatarId = "nizami",
+            visitedMuseumLast12Months,
+        });
+        response.EnsureSuccessStatusCode();
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.GetProperty("token").GetString()!;
+    }
+
+    private static string DecodeUserId(string token)
+    {
+        var payload = token.Split('.')[1];
+        payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+        using var json = JsonDocument.Parse(Convert.FromBase64String(payload.Replace('-', '+').Replace('_', '/')));
+        return json.RootElement.GetProperty("sub").GetString()!;
     }
 
     private static RateLimitPartition<string> TestRateLimit() => RateLimitPartition.GetFixedWindowLimiter(
         "test", _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromMinutes(1) });
+
+    private sealed class TestApi(SqliteConnection connection, DbContextOptions<AppDbContext> dbOptions, WebApplication app, HttpClient client) : IAsyncDisposable
+    {
+        public HttpClient Client { get; } = client;
+        public AppDbContext CreateDb() => new(dbOptions);
+
+        public static async Task<TestApi> StartAsync()
+        {
+            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["JWT_SECRET"] = "test-jwt-secret-with-at-least-32-characters",
+                ["QR_HMAC_SECRET"] = "test-qr-secret-with-at-least-32-characters",
+                ["DEMO_MODE"] = "true",
+                ["ADMIN_TOKEN"] = AdminToken,
+            }).Build();
+
+            var connection = new SqliteConnection("Data Source=:memory:");
+            await connection.OpenAsync();
+            var dbOptions = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(connection).Options;
+            await using (var seedDb = new AppDbContext(dbOptions))
+                await DbSeeder.InitializeAsync(seedDb, configuration);
+
+            var builder = WebApplication.CreateBuilder();
+            builder.WebHost.UseUrls("http://127.0.0.1:0");
+            builder.Configuration.AddInMemoryCollection(configuration.AsEnumerable().ToDictionary(x => x.Key, x => x.Value));
+            builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite(connection));
+            builder.Services.AddSingleton<Tokens>();
+            builder.Services.AddRateLimiter(options =>
+            {
+                options.AddPolicy("auth", _ => TestRateLimit());
+                options.AddPolicy("complete", _ => TestRateLimit());
+                options.AddPolicy("checkin", _ => TestRateLimit());
+            });
+
+            var app = builder.Build();
+            app.UseRateLimiter();
+            app.MapChiraqApi();
+            await app.StartAsync();
+            var addresses = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!;
+            return new TestApi(connection, dbOptions, app, new HttpClient { BaseAddress = new Uri(addresses.Addresses.Single()) });
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            Client.Dispose();
+            await app.StopAsync();
+            await app.DisposeAsync();
+            await connection.DisposeAsync();
+        }
+    }
 }

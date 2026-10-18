@@ -198,7 +198,19 @@ public sealed class GameRulesTests
             Assert.InRange(xp, 0, achievableCeiling);
         }
 
-        var museums = await db.Places.Where(x => x.Type == "museum").ToListAsync();
+        var allPlaces = await db.Places.ToListAsync();
+        foreach (var place in allPlaces)
+        {
+            var placeLedger = await db.XpEvents.Where(x => x.SeasonId == season.Id && x.PlaceId == place.Id)
+                .Join(db.Users, xp => xp.UserId, user => user.Id, (xp, user) => new TerritoryLedgerEntry(user.UniversityId, xp.UserId, xp.Amount, xp.CreatedAtUtc))
+                .ToListAsync();
+            var placeRanking = TerritoryRules.Rank(placeLedger);
+            Assert.DoesNotContain(placeRanking, row => row.Tied);
+            for (var index = 1; index < placeRanking.Count; index++)
+                Assert.NotEqual(placeRanking[index - 1].Score, placeRanking[index].Score);
+        }
+
+        var museums = allPlaces.Where(x => x.Type == "museum").ToList();
         Assert.All(await db.Tasks.ToListAsync(), task => Assert.True(task.NeedsReview, $"{task.Id} must be reviewed before publication."));
         Assert.True(museums.Count >= 6);
         var owners = new HashSet<string>(StringComparer.Ordinal);
@@ -208,15 +220,30 @@ public sealed class GameRulesTests
                 .Join(db.Users, xp => xp.UserId, user => user.Id, (xp, user) => new TerritoryLedgerEntry(user.UniversityId, xp.UserId, xp.Amount, xp.CreatedAtUtc))
                 .ToListAsync();
             var ranking = TerritoryRules.Rank(ledger);
-            Assert.True(ranking.Count >= 2);
-            Assert.True(ranking[0].Score > ranking[1].Score, $"{museum.Name} should have a nonzero territory gap.");
+            Assert.True(ranking.Count >= (museum.Slug == "carpet-museum" ? 1 : 2));
+            if (ranking.Count > 1) Assert.True(ranking[0].Score > ranking[1].Score, $"{museum.Name} should have a nonzero territory gap.");
             owners.Add(ranking[0].UniversityId);
             if (museum.Slug == "carpet-museum")
             {
                 Assert.Equal("adnsu", ranking[0].UniversityId);
-                Assert.Equal(15, ranking[0].Score);
-                Assert.Equal("ada", ranking[1].UniversityId);
-                Assert.Equal(10, ranking[1].Score);
+                Assert.Equal(8, ranking[0].Score);
+                Assert.Single(ranking);
+            }
+            if (museum.Slug == "national-history")
+            {
+                Assert.Equal(12, ranking[0].Score - ranking[1].Score);
+            }
+            if (museum.Slug == "heydar-aliyev")
+            {
+                Assert.Equal(4, ranking[0].Score - ranking[1].Score);
+            }
+            if (museum.Slug == "modern-art")
+            {
+                Assert.Equal(7, ranking[0].Score - ranking[1].Score);
+            }
+            if (museum.Slug == "literature-museum")
+            {
+                Assert.Equal(15, ranking[0].Score - ranking[1].Score);
             }
         }
         Assert.True(owners.Count >= 4);

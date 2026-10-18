@@ -71,6 +71,7 @@ function ApiTaskPlayer() {
       const response = await apiPost(`/tasks/${encodeURIComponent(task.id)}/complete`, { answer: value });
       setResult(response);
       sessionStorage.setItem("chiraq_last_completion", JSON.stringify({ taskId: task.id, data: response }));
+      window.dispatchEvent(new Event("chiraq:xp-updated"));
       const refreshed = await apiRequest(`/places/${encodeURIComponent(place.slug)}`);
       setTask(refreshed.tasks.find((item) => item.id === task.id));
     } catch (submitError) { setError(submitError.message || "Tapşırıq tamamlanmadı."); }

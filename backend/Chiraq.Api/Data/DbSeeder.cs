@@ -150,7 +150,14 @@ public static class DbSeeder
         foreach (var user in users)
         {
             var index = int.Parse(user.Id[^2..]);
-            var count = 1 + index % 5;
+            var count = 1 + index % 4;
+            // Small per-university offsets keep the map's seeded owners out of score ties.
+            if (index == 7) count = 1;
+            if (index == 28) count = 2;
+            if (index == 30) count = 4;
+            if (index == 33) count = 1;
+            if (index == 36) count = 2;
+            if (index == 37) count = 4;
             foreach (var task in leaderboardTasks.Take(count))
             {
                 db.TaskCompletions.Add(new TaskCompletion { UserId = user.Id, TaskId = task.Id, SeasonId = season.Id, Correct = index % 2 == 0, CompletedAtUtc = now.AddDays(-(index % 6)).AddMinutes(index * 3) });
@@ -168,7 +175,7 @@ public static class DbSeeder
         var seedUsers = await db.Users.Where(x => x.PasswordHash == "!seed-only!").ToDictionaryAsync(x => x.Id);
         if (!seedUsers.ContainsKey("seed-01") || !seedUsers.ContainsKey("seed-06") || !seedUsers.ContainsKey("seed-11") || !seedUsers.ContainsKey("seed-16") || !seedUsers.ContainsKey("seed-21") || !seedUsers.ContainsKey("seed-22") || !seedUsers.ContainsKey("seed-30") || !seedUsers.ContainsKey("seed-34") || !seedUsers.ContainsKey("seed-38")) return;
 
-        var placeSlugs = Places.Where(x => x.Type == "museum").Select(x => x.Slug).ToArray();
+        var placeSlugs = Places.Where(x => x.Type == "museum" || x.Slug == "bulvar").Select(x => x.Slug).ToArray();
         var places = await db.Places.Where(x => placeSlugs.Contains(x.Slug)).ToListAsync();
         if (places.Count != placeSlugs.Length) return;
         var placeIds = places.Select(x => x.Id).ToArray();
@@ -176,30 +183,30 @@ public static class DbSeeder
         var taskById = tasks.ToDictionary(x => x.Id);
         var expected = new[]
         {
-            new DemoTerritoryTask("seed-21", "carpet-museum-visit", false),
-            new DemoTerritoryTask("seed-22", "carpet-museum-quiz", true),
-            new DemoTerritoryTask("seed-06", "carpet-museum-visit", false),
-            new DemoTerritoryTask("seed-21", "national-history-visit", false),
-            new DemoTerritoryTask("seed-06", "national-history-quiz", true),
+            new DemoTerritoryTask("seed-21", "carpet-museum-quiz", false),
+            new DemoTerritoryTask("seed-01", "national-history-quiz", true),
+            new DemoTerritoryTask("seed-06", "national-history-quiz", false),
             new DemoTerritoryTask("seed-11", "heydar-aliyev-quiz", true),
+            new DemoTerritoryTask("seed-12", "heydar-aliyev-quiz", false),
             new DemoTerritoryTask("seed-16", "heydar-aliyev-visit", false),
-            new DemoTerritoryTask("seed-01", "modern-art-quiz", true),
-            new DemoTerritoryTask("seed-11", "modern-art-visit", false),
-            new DemoTerritoryTask("seed-30", "literature-museum-quiz", true),
-            new DemoTerritoryTask("seed-34", "literature-museum-visit", false),
-            new DemoTerritoryTask("seed-34", "miniature-book-museum-quiz", true),
-            new DemoTerritoryTask("seed-38", "miniature-book-museum-visit", false),
+            new DemoTerritoryTask("seed-01", "modern-art-visit", false),
+            new DemoTerritoryTask("seed-02", "modern-art-quiz", true),
+            new DemoTerritoryTask("seed-06", "modern-art-quiz", false),
+            new DemoTerritoryTask("seed-29", "literature-museum-challenge", false),
+            new DemoTerritoryTask("seed-30", "literature-museum-visit", false),
+            new DemoTerritoryTask("seed-16", "literature-museum-visit", false),
+            new DemoTerritoryTask("seed-37", "miniature-book-museum-challenge", false),
+            new DemoTerritoryTask("seed-38", "miniature-book-museum-quiz", true),
+            new DemoTerritoryTask("seed-16", "miniature-book-museum-visit", false),
+            new DemoTerritoryTask("seed-30", "bulvar-visit", false),
         };
         if (expected.Any(x => !taskById.ContainsKey(x.TaskId))) return;
 
         var seedUserIds = seedUsers.Keys.ToArray();
-        var hasRealVisitor = await db.XpEvents.AnyAsync(x => x.SeasonId == seasonId && placeIds.Contains(x.PlaceId) && !seedUserIds.Contains(x.UserId));
-        if (hasRealVisitor) return;
-
         var currentSeedEvents = await db.XpEvents.Where(x => x.SeasonId == seasonId && placeIds.Contains(x.PlaceId) && seedUserIds.Contains(x.UserId))
             .Select(x => new { x.UserId, x.TaskId, x.Amount, x.Kind }).ToListAsync();
         var alreadyBalanced = currentSeedEvents.Count == expected.Length && expected.All(item =>
-            currentSeedEvents.Any(row => row.UserId == item.UserId && row.TaskId == item.TaskId && row.Kind == "base" && row.Amount == taskById[item.TaskId].Xp));
+            currentSeedEvents.Any(row => row.UserId == item.UserId && row.TaskId == item.TaskId && row.Kind == "base" && row.Amount == SeedTaskXp(item, taskById[item.TaskId])));
         if (alreadyBalanced) return;
 
         var targetedTaskIds = tasks.Select(x => x.Id).ToArray();
@@ -211,7 +218,7 @@ public static class DbSeeder
             var task = taskById[item.TaskId];
             var completedAt = now.AddMinutes(index * 7);
             db.TaskCompletions.Add(new TaskCompletion { UserId = item.UserId, TaskId = task.Id, SeasonId = seasonId, Correct = item.Correct, CompletedAtUtc = completedAt });
-            db.XpEvents.Add(new XpEvent { UserId = item.UserId, SeasonId = seasonId, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = completedAt });
+            db.XpEvents.Add(new XpEvent { UserId = item.UserId, SeasonId = seasonId, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = SeedTaskXp(item, task), CreatedAtUtc = completedAt });
             if (places.First(x => x.Id == task.PlaceId).Type == "museum") seedUsers[item.UserId].FirstMuseumVisitCompleted = true;
         }
         await db.SaveChangesAsync();
@@ -290,4 +297,6 @@ public static class DbSeeder
     }
 
     private sealed record DemoTerritoryTask(string UserId, string TaskId, bool Correct);
+
+    private static int SeedTaskXp(DemoTerritoryTask item, GameTask task) => task.Type == "quiz" ? GameRules.QuizXp(task.Xp, item.Correct) : task.Xp;
 }

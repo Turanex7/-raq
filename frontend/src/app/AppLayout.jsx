@@ -38,12 +38,16 @@ export default function AppLayout() {
   const game = useGame();
   const location = useLocation();
   const hasToken = typeof window !== "undefined" && Boolean(window.localStorage.getItem("chiraq_token"));
-  const { data: apiUser } = useApiResource("/me", !useMocks && hasToken);
+  const { data: apiUser, retry: refreshApiUser } = useApiResource("/me", !useMocks && hasToken);
   const currentUser = game.users.find((user) => user.id === game.currentUserId);
   const level = useMocks ? Math.floor(currentUser.xp / GAME_CONFIG.levelXp) + 1 : apiUser?.level || 1;
   const lifetimeXp = useMocks ? currentUser.xp : apiUser?.lifetimeXp ?? 0;
   const title = pageTitle(location.pathname);
   useEffect(() => { document.title = `${title} · Çıraq`; }, [title]);
+  useEffect(() => {
+    window.addEventListener("chiraq:xp-updated", refreshApiUser);
+    return () => window.removeEventListener("chiraq:xp-updated", refreshApiUser);
+  }, [refreshApiUser]);
   const showDemo = () => { window.location.assign("/map?demo=1"); };
   const logOut = () => {
     window.localStorage.removeItem("chiraq_token");
@@ -61,7 +65,7 @@ export default function AppLayout() {
         </nav>
         <Link to={useMocks || hasToken ? "/profile" : "/login"} className={styles.profilePill} aria-label={useMocks || hasToken ? "Profilə keç" : "Daxil ol"}>
           <span className={styles.profileAvatar}>{(apiUser?.name || (useMocks ? currentUser.name : "Ç")).slice(0, 1)}</span>
-          <span><b>{useMocks || hasToken ? `Səviyyə ${level}` : "Daxil ol"}</b><small><Zap size={11} /> Ümumi XP · {lifetimeXp}</small></span>
+          <span><b>{useMocks || hasToken ? `Səviyyə ${level}` : "Daxil ol"}</b></span>
         </Link>
         <XpExplainer className={styles.xpHelp}>
           <Zap size={14} aria-hidden="true"/><span>Ümumi XP · {lifetimeXp}</span>
