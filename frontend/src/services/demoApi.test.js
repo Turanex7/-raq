@@ -124,14 +124,14 @@ test("demo ticketed museum tasks award a separate configured XP bonus", async (t
   const mapPlaces = await demoApiRequest("/places");
   const carpet = mapPlaces.find((place) => place.slug === "carpet-museum");
   assert.equal(carpet.is_ticketed, true);
-  assert.equal(carpet.ticketed_place_bonus_xp, 3);
+  assert.equal(carpet.ticketed_place_bonus_xp, 20);
 
   const qr = await demoApiRequest("/demo/qr/carpet-museum-visit");
   const completion = await demoApiRequest("/tasks/carpet-museum-visit/complete", {
     method: "POST",
     body: JSON.stringify({ qrToken: qr.qr_payload }),
   });
-  assert.equal(completion.xp_awarded, 13);
-  assert.equal(completion.breakdown.ticketed_place_bonus, 3);
+  assert.equal(completion.xp_awarded, 30);
+  assert.equal(completion.breakdown.ticketed_place_bonus, 20);
   assert.equal(completion.breakdown.first_visit, 0);
 });

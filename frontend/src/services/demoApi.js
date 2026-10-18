@@ -5,7 +5,7 @@ const LEVEL_XP = 250;
 const STREAK_DAYS = 7;
 const STREAK_REWARD_XP = 10;
 const GROUP_MULTIPLIERS = [1, 1.2, 1.3, 1.4];
-const TICKETED_PLACE_BONUS_XP = 3;
+const TICKETED_PLACE_BONUS_XP = 20;
 const TICKETED_PLACE_SLUGS = new Set(["carpet-museum", "national-history", "modern-art", "literature-museum", "miniature-book-museum", "ateshgah"]);
 
 const UNIVERSITIES = [

@@ -43,8 +43,8 @@ public sealed class GameRulesTests
     [Fact]
     public void TicketedPlacesHaveConfiguredBonusAndFreePlacesDoNot()
     {
-        Assert.Equal(3, GameRules.TicketedPlaceBonus("carpet-museum"));
-        Assert.Equal(3, GameRules.TicketedPlaceBonus("ateshgah"));
+        Assert.Equal(20, GameRules.TicketedPlaceBonus("carpet-museum"));
+        Assert.Equal(20, GameRules.TicketedPlaceBonus("ateshgah"));
         Assert.Equal(0, GameRules.TicketedPlaceBonus("heydar-aliyev"));
         Assert.Equal(0, GameRules.TicketedPlaceBonus("bulvar"));
     }
@@ -235,7 +235,7 @@ public sealed class GameRulesTests
             if (museum.Slug == "carpet-museum")
             {
                 Assert.Equal("adnsu", ranking[0].UniversityId);
-                Assert.Equal(11, ranking[0].Score);
+                Assert.Equal(28, ranking[0].Score);
                 Assert.Single(ranking);
             }
             if (museum.Slug == "national-history")

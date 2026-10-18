@@ -7,7 +7,7 @@ public static class GameRules
     public const int OutdoorPinXp = 10;
     public const int WrongAnswerPercent = 40;
     public const int FirstVisitXp = 20;
-    public const int TicketedPlaceBonusXp = 3;
+    public const int TicketedPlaceBonusXp = 20;
     public const int UniversityTopMembers = 10;
     public const int UniversityMinimumActive = 3;
     public const int GroupBonusMinimumMembers = 3;

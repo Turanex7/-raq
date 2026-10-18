@@ -98,7 +98,11 @@ public static class DbSeeder
             if (demoUsers.Count > 0) await db.SaveChangesAsync();
             var currentTime = DateTimeOffset.UtcNow;
             var activeSeason = await db.Seasons.Where(x => x.StartsAtUtc <= currentTime && x.EndsAtUtc >= currentTime).OrderByDescending(x => x.StartsAtUtc).FirstOrDefaultAsync();
-            if (activeSeason is not null) await EnsureDemoTerritorySeedsAsync(db, activeSeason.Id);
+            if (activeSeason is not null)
+            {
+                await EnsureSeedTicketedBonusEventsAsync(db, activeSeason.Id);
+                await EnsureDemoTerritorySeedsAsync(db, activeSeason.Id);
+            }
             return;
         }
 
@@ -172,8 +176,44 @@ public static class DbSeeder
             }
         }
         await db.SaveChangesAsync();
+        await EnsureSeedTicketedBonusEventsAsync(db, season.Id);
         await EnsureDemoTerritorySeedsAsync(db, season.Id);
         await tx.CommitAsync();
+    }
+
+    private static async Task EnsureSeedTicketedBonusEventsAsync(AppDbContext db, string seasonId)
+    {
+        var seedUserIds = await db.Users.Where(x => x.PasswordHash == "!seed-only!").Select(x => x.Id).ToListAsync();
+        if (seedUserIds.Count == 0) return;
+
+        var ticketedPlaces = await db.Places.Where(x => GameRules.TicketedPlaceSlugs.Contains(x.Slug)).ToListAsync();
+        var placeById = ticketedPlaces.ToDictionary(x => x.Id);
+        if (placeById.Count == 0) return;
+        var placeIds = placeById.Keys.ToArray();
+        var ticketedTasks = await db.Tasks.Where(x => placeIds.Contains(x.PlaceId)).ToListAsync();
+        var taskById = ticketedTasks.ToDictionary(x => x.Id);
+        var taskIds = taskById.Keys.ToArray();
+        var completions = await db.TaskCompletions.Where(x => x.SeasonId == seasonId && seedUserIds.Contains(x.UserId) && taskIds.Contains(x.TaskId)).ToListAsync();
+        var oldBonusEvents = await db.XpEvents.Where(x => x.SeasonId == seasonId && seedUserIds.Contains(x.UserId) && x.Kind == "ticketed_place_bonus").ToListAsync();
+        db.XpEvents.RemoveRange(oldBonusEvents);
+
+        foreach (var completion in completions)
+        {
+            var task = taskById[completion.TaskId];
+            var place = placeById[task.PlaceId];
+            db.XpEvents.Add(new XpEvent
+            {
+                UserId = completion.UserId,
+                SeasonId = seasonId,
+                PlaceId = place.Id,
+                TaskId = task.Id,
+                Kind = "ticketed_place_bonus",
+                Amount = GameRules.TicketedPlaceBonus(place.Slug),
+                CreatedAtUtc = completion.CompletedAtUtc,
+            });
+        }
+
+        await db.SaveChangesAsync();
     }
 
     private static async Task EnsureDemoTerritorySeedsAsync(AppDbContext db, string seasonId)

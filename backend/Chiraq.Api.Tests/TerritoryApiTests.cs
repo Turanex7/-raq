@@ -32,10 +32,10 @@ public sealed class TerritoryApiTests
         using var beforeJson = JsonDocument.Parse(await beforeResponse.Content.ReadAsStringAsync());
         var before = beforeJson.RootElement.GetProperty("territory");
         Assert.Equal("adnsu", before.GetProperty("university_id").GetString());
-        Assert.Equal(11, before.GetProperty("score").GetInt32());
+        Assert.Equal(28, before.GetProperty("score").GetInt32());
         Assert.True(beforeJson.RootElement.GetProperty("is_ticketed").GetBoolean());
-        Assert.Equal(3, beforeJson.RootElement.GetProperty("ticketed_place_bonus_xp").GetInt32());
-        Assert.Equal(3, beforeJson.RootElement.GetProperty("tasks").EnumerateArray().First().GetProperty("ticketed_place_bonus_xp").GetInt32());
+        Assert.Equal(20, beforeJson.RootElement.GetProperty("ticketed_place_bonus_xp").GetInt32());
+        Assert.Equal(20, beforeJson.RootElement.GetProperty("tasks").EnumerateArray().First().GetProperty("ticketed_place_bonus_xp").GetInt32());
 
         var accessToken = await RegisterAsync(client, "Aylin Əliyeva", "territory-flip-test@example.test", "ada", true);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -47,8 +47,8 @@ public sealed class TerritoryApiTests
         completeResponse.EnsureSuccessStatusCode();
         using var completeJson = JsonDocument.Parse(await completeResponse.Content.ReadAsStringAsync());
         var result = completeJson.RootElement;
-        Assert.Equal(13, result.GetProperty("xp_awarded").GetInt32());
-        Assert.Equal(3, result.GetProperty("breakdown").GetProperty("ticketed_place_bonus").GetInt32());
+        Assert.Equal(30, result.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(20, result.GetProperty("breakdown").GetProperty("ticketed_place_bonus").GetInt32());
         Assert.Equal(0, result.GetProperty("breakdown").GetProperty("first_visit").GetInt32());
         Assert.Equal("Xalça Muzeyini ADNSU-dan fəth etdin!", result.GetProperty("territory_change").GetProperty("message").GetString());
 
@@ -56,13 +56,13 @@ public sealed class TerritoryApiTests
         afterResponse.EnsureSuccessStatusCode();
         using var afterJson = JsonDocument.Parse(await afterResponse.Content.ReadAsStringAsync());
         Assert.Equal("ada", afterJson.RootElement.GetProperty("territory").GetProperty("university_id").GetString());
-        Assert.Equal(13, afterJson.RootElement.GetProperty("territory").GetProperty("score").GetInt32());
+        Assert.Equal(30, afterJson.RootElement.GetProperty("territory").GetProperty("score").GetInt32());
 
         using var meResponse = await client.GetAsync("/api/me");
         meResponse.EnsureSuccessStatusCode();
         using var meJson = JsonDocument.Parse(await meResponse.Content.ReadAsStringAsync());
-        Assert.Equal(13, meJson.RootElement.GetProperty("lifetimeXp").GetInt32());
-        Assert.Equal(13, meJson.RootElement.GetProperty("weeklyXp").GetInt32());
+        Assert.Equal(30, meJson.RootElement.GetProperty("lifetimeXp").GetInt32());
+        Assert.Equal(30, meJson.RootElement.GetProperty("weeklyXp").GetInt32());
 
         client.DefaultRequestHeaders.Add("X-Admin-Token", AdminToken);
         using var metricsResponse = await client.GetAsync("/api/admin/metrics");
@@ -90,8 +90,8 @@ public sealed class TerritoryApiTests
         completeResponse.EnsureSuccessStatusCode();
         using var completeJson = JsonDocument.Parse(await completeResponse.Content.ReadAsStringAsync());
         Assert.Equal(20, completeJson.RootElement.GetProperty("breakdown").GetProperty("first_visit").GetInt32());
-        Assert.Equal(33, completeJson.RootElement.GetProperty("xp_awarded").GetInt32());
-        Assert.Equal(3, completeJson.RootElement.GetProperty("breakdown").GetProperty("ticketed_place_bonus").GetInt32());
+        Assert.Equal(50, completeJson.RootElement.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(20, completeJson.RootElement.GetProperty("breakdown").GetProperty("ticketed_place_bonus").GetInt32());
 
         api.Client.DefaultRequestHeaders.Add("X-Admin-Token", AdminToken);
         using var metricsResponse = await api.Client.GetAsync("/api/admin/metrics");
@@ -120,8 +120,8 @@ public sealed class TerritoryApiTests
         completeResponse.EnsureSuccessStatusCode();
         using var completeJson = JsonDocument.Parse(await completeResponse.Content.ReadAsStringAsync());
         var result = completeJson.RootElement;
-        Assert.Equal(13, result.GetProperty("xp_awarded").GetInt32());
-        Assert.Equal(13, result.GetProperty("new_total").GetInt32());
+        Assert.Equal(30, result.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(30, result.GetProperty("new_total").GetInt32());
         var rareDrop = result.GetProperty("rare_flame_drop");
         Assert.Equal("Çıraq alovu", rareDrop.GetProperty("name").GetString());
         Assert.Equal("nadir", rareDrop.GetProperty("rarity").GetString());
@@ -361,8 +361,8 @@ public sealed class TerritoryApiTests
         finalResponse.EnsureSuccessStatusCode();
         using var finalJson = JsonDocument.Parse(await finalResponse.Content.ReadAsStringAsync());
         Assert.True(finalJson.RootElement.GetProperty("completed").GetBoolean());
-        Assert.Equal(27, finalJson.RootElement.GetProperty("xp_awarded").GetInt32());
-        Assert.Equal(3, finalJson.RootElement.GetProperty("breakdown").GetProperty("ticketed_place_bonus").GetInt32());
+        Assert.Equal(44, finalJson.RootElement.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(20, finalJson.RootElement.GetProperty("breakdown").GetProperty("ticketed_place_bonus").GetInt32());
         Assert.Equal(4, finalJson.RootElement.GetProperty("breakdown").GetProperty("group_bonus").GetInt32());
 
         foreach (var token in tokens)
@@ -371,7 +371,7 @@ public sealed class TerritoryApiTests
             using var meResponse = await client.GetAsync("/api/me");
             meResponse.EnsureSuccessStatusCode();
             using var meJson = JsonDocument.Parse(await meResponse.Content.ReadAsStringAsync());
-            Assert.Equal(27, meJson.RootElement.GetProperty("lifetimeXp").GetInt32());
+            Assert.Equal(44, meJson.RootElement.GetProperty("lifetimeXp").GetInt32());
         }
     }
 
