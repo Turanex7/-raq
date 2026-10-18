@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "./WeeklyResetCountdown.module.scss";
+import { translate as t } from "../../../i18n/i18n";
 
 export default function WeeklyResetCountdown({ secondsRemaining, className = "" }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -12,7 +13,7 @@ export default function WeeklyResetCountdown({ secondsRemaining, className = "" 
   const days = Math.floor(remaining / 86_400);
   const hours = Math.floor(remaining % 86_400 / 3_600);
   return <div className={`${styles.wrap} ${className}`}>
-    <small>Həftə sıfırlanmasına</small>
-    <b>{days} gün {hours} saat</b>
+    <small>{t("Həftə sıfırlanmasına")}</small>
+    <b>{days} {t("gün")} {hours} {t("saat")}</b>
   </div>;
 }

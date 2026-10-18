@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./MiniGameVisuals.module.scss";
 import shell from "../MiniGameShell.module.scss";
+import { translate as t } from "../../../../i18n/i18n";
 
 const COLORS = ["#f5b942", "#a0e4c9", "#be8cff", "#f07a72", "#75b8ff"];
 
@@ -36,17 +37,17 @@ export default function CarpetGame({ durationSeconds, targetIntervalMs = 780, on
   }
 
   return <div className={`${shell.gameStage} ${styles.carpetStage}`}>
-    <div className={styles.scoreLine}><span>Toxunan sıra</span><b>{hits}</b><span>{remaining} san.</span></div>
-    <div className={styles.pattern} aria-label={`${hits} sıra xalça toxunub`}>
+    <div className={styles.scoreLine}><span>{t("Toxunan sıra")}</span><b>{hits}</b><span>{remaining} {t("san.")}</span></div>
+    <div className={styles.pattern} aria-label={t("{count} sıra xalça toxunub", { count: hits })}>
       {rows.map((row, index) => <div className={styles.patternRow} key={`${index}-${row.join("")}`}>{row.map((colorIndex, column) => <i key={column} className={styles.patternCell} style={{ background: COLORS[colorIndex] }} />)}</div>)}
       {rows.length === 0 && <span className={styles.patternRow} aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <i className={styles.patternCell} key={index} />)}</span>}
     </div>
-    <div className={styles.columns} aria-label="İp sütunları">
-      {COLORS.map((color, index) => <button key={color} type="button" onClick={() => hitColumn(index)} className={`${styles.column} ${targetColumn === index ? styles.columnActive : ""}`} aria-label={`${index + 1}-ci ip sütunu${targetColumn === index ? ", toxun" : ""}`}>
+    <div className={styles.columns} aria-label={t("İp sütunları")}>
+      {COLORS.map((color, index) => <button key={color} type="button" onClick={() => hitColumn(index)} className={`${styles.column} ${targetColumn === index ? styles.columnActive : ""}`} aria-label={`${index + 1} ${t("İp sütunu")}${targetColumn === index ? `, ${t("toxun")}` : ""}`}>
         <i className={styles.thread} style={{ "--thread-color": color }} />
         <span className={styles.columnLabel}>{index + 1}</span>
       </button>)}
     </div>
-    <p className={shell.resultText}>Parlayan ipi vaxtında toxuyaraq naxışı tamamla.</p>
+    <p className={shell.resultText}>{t("Parlayan ipi vaxtında toxuyaraq naxışı tamamla.")}</p>
   </div>;
 }

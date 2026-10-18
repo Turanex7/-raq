@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./MiniGameVisuals.module.scss";
 import shell from "../MiniGameShell.module.scss";
+import { translate as t } from "../../../../i18n/i18n";
 
 const MAX_BLOCKS = 12;
 const BLOCK_HEIGHT = 21;
@@ -100,7 +101,7 @@ export default function TowerGame({ durationSeconds, speedBase = 0.38, speedRamp
     setMovingX(0);
   }
 
-  const speedLabel = SPEED_LABELS[blocks.length % SPEED_LABELS.length];
+  const speedLabel = t(SPEED_LABELS[blocks.length % SPEED_LABELS.length]);
   const retainedWidth = areaWidth ? Math.round(blockWidth / (areaWidth * 0.72) * 100) : 100;
 
   return <div className={`${shell.gameStage} ${styles.towerStage}`}>
@@ -108,8 +109,8 @@ export default function TowerGame({ durationSeconds, speedBase = 0.38, speedRamp
       <div className={styles.towerBase} style={{ width: `${blockWidth ? blockWidth / Math.max(areaWidth, 1) * 100 : 72}%` }} />
       {blocks.map((block, index) => <i key={index} className={styles.towerBlock} style={{ left: `${block.center / Math.max(areaWidth, 1) * 100}%`, width: `${block.width / Math.max(areaWidth, 1) * 100}%`, bottom: `${(index + 1) * BLOCK_HEIGHT}px`, transform: "translateX(-50%)" }} />)}
       <i className={`${styles.towerBlock} ${styles.movingBlock}`} style={{ left: `${movingX / Math.max(areaWidth, 1) * 100}%`, width: `${blockWidth / Math.max(areaWidth, 1) * 100}%`, bottom: `${(blocks.length + 1) * BLOCK_HEIGHT}px` }} />
-      <button className={styles.dropButton} type="button" onPointerDown={(event) => { event.preventDefault(); dropBlock(); }}>Daşı yerləşdir</button>
+      <button className={styles.dropButton} type="button" onPointerDown={(event) => { event.preventDefault(); dropBlock(); }}>{t("Daşı yerləşdir")}</button>
     </div>
-    <span className={styles.brushHint}>{remaining} san. · Qüllə: {blocks.length}/{MAX_BLOCKS} · En: {retainedWidth}% · Sürət: {speedLabel}</span>
+    <span className={styles.brushHint}>{remaining} {t("san.")} · {t("Qüllə:")} {blocks.length}/{MAX_BLOCKS} · {t("En:")} {retainedWidth}% · {t("Sürət:")} {speedLabel}</span>
   </div>;
 }

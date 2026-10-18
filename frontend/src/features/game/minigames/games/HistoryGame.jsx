@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Archive } from "lucide-react";
 import styles from "./MiniGameVisuals.module.scss";
 import shell from "../MiniGameShell.module.scss";
+import { translate as t } from "../../../../i18n/i18n";
 
 const FRAGILE_CELLS = new Set([12, 27, 39, 52, 68]);
 const SOIL_COUNT = 80;
@@ -81,11 +82,11 @@ export default function HistoryGame({ durationSeconds, scoreBaseMs = 60_000, onF
   }
 
   return <div className={`${shell.gameStage} ${styles.historyStage}`}>
-    <p className={styles.digHint}>Nida işarəli sahələrə toxunmadan bütün torpağı təmizlə. 13 saniyəyədək: 3 ulduz · 13 saniyədən çox, 16 saniyəyədək: 2 ulduz · daha çox: 1 ulduz.</p>
+    <p className={styles.digHint}>{t("Nida işarəli sahələrə toxunmadan bütün torpağı təmizlə. 13 saniyəyədək: 3 ulduz · 13 saniyədən çox, 16 saniyəyədək: 2 ulduz · daha çox: 1 ulduz.")}</p>
     <div className={styles.artifact} aria-hidden="true"><Archive size="42%" /></div>
-    <div className={styles.soilGrid} onPointerDown={(event) => { setPressed(true); lastCellRef.current = null; event.currentTarget.setPointerCapture(event.pointerId); brush(event); }} onPointerMove={brush} onPointerUp={() => { setPressed(false); lastCellRef.current = null; }} onPointerCancel={() => { setPressed(false); lastCellRef.current = null; }} aria-label="Nida işarəli sahələrə toxunmadan torpağı sil">
+    <div className={styles.soilGrid} onPointerDown={(event) => { setPressed(true); lastCellRef.current = null; event.currentTarget.setPointerCapture(event.pointerId); brush(event); }} onPointerMove={brush} onPointerUp={() => { setPressed(false); lastCellRef.current = null; }} onPointerCancel={() => { setPressed(false); lastCellRef.current = null; }} aria-label={t("Nida işarəli sahələrə toxunmadan torpağı sil")}>
       {Array.from({ length: SOIL_COUNT }, (_, index) => <i key={index} className={`${styles.soil} ${FRAGILE_CELLS.has(index) ? styles.fragile : ""} ${cleared.has(index) ? styles.cleared : ""} ${FRAGILE_CELLS.has(index) && cleared.has(index) ? styles.cracked : ""}`} />)}
     </div>
-    <span className={styles.brushHint}>{remaining} san. · Təmizlənib: {cleared.size}/{SAFE_CELL_COUNT}</span>
+    <span className={styles.brushHint}>{remaining} {t("san.")} · {t("Təmizlənib: {cleared}/{total}", { cleared: cleared.size, total: SAFE_CELL_COUNT })}</span>
   </div>;
 }

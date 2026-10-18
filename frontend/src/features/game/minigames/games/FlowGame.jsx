@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./MiniGameVisuals.module.scss";
 import shell from "../MiniGameShell.module.scss";
+import { translate as t } from "../../../../i18n/i18n";
 
 const centerAt = (progress, pathTurns) => 160 + 68 * Math.sin(progress * Math.PI * pathTurns);
 
@@ -65,7 +66,7 @@ export default function FlowGame({ durationSeconds, pathTurns = 4.5, edgeToleran
 
   const ballY = 400 - progress * 340;
   return <div className={`${shell.gameStage} ${styles.flowStage}`}>
-    <svg className={styles.flowSvg} viewBox="0 0 320 420" role="img" aria-label="Əyri cığırda işıqlı kürəni idarə et" onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); moveBall(event); }} onPointerMove={(event) => { if (event.buttons || event.pointerType === "touch") moveBall(event); }}>
+    <svg className={styles.flowSvg} viewBox="0 0 320 420" role="img" aria-label={t("Əyri cığırda işıqlı kürəni idarə et")} onPointerDown={(event) => { event.currentTarget.setPointerCapture(event.pointerId); moveBall(event); }} onPointerMove={(event) => { if (event.buttons || event.pointerType === "touch") moveBall(event); }}>
       <path d={gamePath} fill="none" stroke="#17223d" strokeWidth="94" strokeLinecap="round" />
       <path d={gamePath} fill="none" stroke="#344765" strokeWidth="78" strokeLinecap="round" />
       <path d={boundaryLeft} fill="none" stroke="#a0e4c9" strokeOpacity=".72" strokeWidth="3" />
@@ -75,10 +76,10 @@ export default function FlowGame({ durationSeconds, pathTurns = 4.5, edgeToleran
       <circle cx={playerX} cy={ballY} r="7" fill="#c9ffe9" stroke="#a0e4c9" strokeWidth="2" />
       <circle cx={playerX - 2} cy={ballY - 2} r="2" fill="#fff" />
     </svg>
-    <div className={styles.flowControls} aria-label="Kürə idarəetməsi">
-      <button type="button" onPointerDown={(event) => { event.preventDefault(); nudge(-1); }} aria-label="Sola yönəlt">←</button>
-      <button type="button" onPointerDown={(event) => { event.preventDefault(); nudge(1); }} aria-label="Sağa yönəlt">→</button>
+    <div className={styles.flowControls} aria-label={t("Kürə idarəetməsi")}>
+      <button type="button" onPointerDown={(event) => { event.preventDefault(); nudge(-1); }} aria-label={t("Sola yönəlt")}>←</button>
+      <button type="button" onPointerDown={(event) => { event.preventDefault(); nudge(1); }} aria-label={t("Sağa yönəlt")}>→</button>
     </div>
-    <span className={styles.brushHint}>{remaining} san. · Cığırda: {Math.round(progress * 100)}% · Qalan fürsət: {lives}</span>
+    <span className={styles.brushHint}>{remaining} {t("san.")} · {t("Cığırda:")} {Math.round(progress * 100)}% · {t("Qalan fürsət:")} {lives}</span>
   </div>;
 }

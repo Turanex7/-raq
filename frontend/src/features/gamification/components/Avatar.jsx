@@ -6,6 +6,7 @@ import uzeyir from "../../../assets/avatars/uzeyir.jpg";
 import nasimi from "../../../assets/avatars/nasimi.jpg";
 import natavan from "../../../assets/avatars/natavan.jpg";
 import babek from "../../../assets/avatars/babek.jpg";
+import { translate as t } from "../../../i18n/i18n";
 
 const images = { nizami, uzeyir, nesimi: nasimi, natavan, babek };
 const names = {
@@ -19,7 +20,7 @@ const names = {
 export default function Avatar({ avatarId, avatarName, fallbackName, size = 40, locked = false, className = "" }) {
   const [failedImage, setFailedImage] = useState("");
   const image = images[avatarId];
-  const name = avatarName || names[avatarId] || fallbackName || "Avatar";
+  const name = t(avatarName || names[avatarId] || fallbackName || "Avatar");
   const firstLetter = name.trim().slice(0, 1).toLocaleUpperCase("az-AZ") || "Ç";
   const classNames = [styles.avatar, locked && styles.locked, className].filter(Boolean).join(" ");
 

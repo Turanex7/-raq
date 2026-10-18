@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import styles from "./RewardsPage.module.scss";
 import useApiResource from "../../services/useApiResource";
 import Avatar from "./components/Avatar";
+import { translate as t } from "../../i18n/i18n";
 
 export default function RewardsPage() {
   return <ApiCollection />;
@@ -10,15 +11,15 @@ export default function RewardsPage() {
 
 function ApiCollection() {
   const { data, loading, error, retry } = useApiResource("/me/collection");
-  if (loading) return <section className={styles.page}><p role="status">Kolleksiya yüklənir…</p></section>;
-  if (error) return <section className={styles.page}><p role="alert">{error}</p><button type="button" onClick={retry}>Yenidən yoxla</button><Link to="/login" className={styles.link}>Daxil ol</Link></section>;
+  if (loading) return <section className={styles.page}><p role="status">{t("Kolleksiya yüklənir…")}</p></section>;
+  if (error) return <section className={styles.page}><p role="alert">{t(error)}</p><button type="button" onClick={retry}>{t("Yenidən yoxla")}</button><Link to="/login" className={styles.link}>{t("Daxil ol")}</Link></section>;
   const items = Array.isArray(data?.rows) ? data.rows : [];
   const unlockedAvatars = Array.isArray(data?.avatars) ? data.avatars.filter((avatar) => avatar.unlocked) : [];
-  return <section className={styles.page}><header className={styles.header}><h1>Şəxsi Virtual Muzey</h1><p>Suvenirlər yalnız aid olduqları həftədə qazanılır. Burada qazanılmış və qaçırılmış xatirələri görə bilərsən.</p></header>
-    <div className={styles.avatarProgress}><span className={styles.avatarArt} aria-hidden="true">✦</span><div><b>Tarixi avatarlar</b><small>Səviyyə artdıqca yeni avatarlar açılır.</small><div className={styles.avatarCollection}>{unlockedAvatars.map((avatar) => <span className={styles.avatarName} key={avatar.id}><Avatar avatarId={avatar.id} avatarName={avatar.name} size={30}/>{avatar.name}</span>)}</div></div></div>
-    {items.length === 0 && <p className={styles.empty}>Hələ suvenir yoxdur. Xəritədən bir tapşırıq seç və ilk kəşfini et.</p>}
-    <ul className={styles.grid}>{items.map((card) => <li key={card.id} className={`${styles.card} ${styles[rarityClass(card.rarity)]}`}><span className={styles.cardArt} aria-hidden="true"><SouvenirMark rarity={card.rarity}/></span><span className={styles.rarity}>{rarityLabel(card.rarity)}</span><h3>{card.name}</h3><p>{card.status === "earned" ? "Qazanılıb" : card.status === "missed" ? "Həmin həftə qaçırılıb" : card.status === "upcoming" ? "Həmin həftə hələ başlamayıb" : "Bu həftə qazana bilərsən"}</p><small>{[card.place, card.season_theme].filter(Boolean).join(" · ")}{card.limited ? " · Məhdud buraxılış" : " · Kolleksiya kartı"}</small></li>)}</ul>
-    <Link to="/map" className={styles.link}>Xəritəyə qayıt →</Link>
+  return <section className={styles.page}><header className={styles.header}><h1>{t("Şəxsi Virtual Muzey")}</h1><p>{t("Suvenirlər yalnız aid olduqları həftədə qazanılır. Burada qazanılmış və qaçırılmış xatirələri görə bilərsən.")}</p></header>
+    <div className={styles.avatarProgress}><span className={styles.avatarArt} aria-hidden="true">✦</span><div><b>{t("Tarixi avatarlar")}</b><small>{t("Səviyyə artdıqca yeni avatarlar açılır.")}</small><div className={styles.avatarCollection}>{unlockedAvatars.map((avatar) => <span className={styles.avatarName} key={avatar.id}><Avatar avatarId={avatar.id} avatarName={avatar.name} size={30}/>{avatar.name}</span>)}</div></div></div>
+    {items.length === 0 && <p className={styles.empty}>{t("Hələ suvenir yoxdur. Xəritədən bir tapşırıq seç və ilk kəşfini et.")}</p>}
+    <ul className={styles.grid}>{items.map((card) => <li key={card.id} className={`${styles.card} ${styles[rarityClass(card.rarity)]}`}><span className={styles.cardArt} aria-hidden="true"><SouvenirMark rarity={card.rarity}/></span><span className={styles.rarity}>{t(rarityLabel(card.rarity))}</span><h3>{t(card.name)}</h3><p>{t(card.status === "earned" ? "Qazanılıb" : card.status === "missed" ? "Həmin həftə qaçırılıb" : card.status === "upcoming" ? "Həmin həftə hələ başlamayıb" : "Bu həftə qazana bilərsən")}</p><small>{[t(card.place), t(card.season_theme)].filter(Boolean).join(" · ")}{card.limited ? ` · ${t("Məhdud buraxılış")}` : ` · ${t("Kolleksiya kartı")}`}</small></li>)}</ul>
+    <Link to="/map" className={styles.link}>{t("Xəritəyə qayıt")} →</Link>
   </section>;
 }
 

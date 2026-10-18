@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiPost, apiRequest } from "../../services/api";
 import { celebrateLantern } from "../home/lanternEffects";
 import styles from "./ContentPages.module.scss";
+import { translate as t } from "../../i18n/i18n";
 
 export default function ScannerPage() {
   const [search] = useSearchParams();
@@ -112,15 +113,15 @@ export default function ScannerPage() {
   }
 
   return <section className={styles.page}>
-    <Link to={placeSlug ? `/museums/${encodeURIComponent(placeSlug)}` : "/map"} className={styles.back}><ArrowLeft size={16}/>Geri qayıt</Link>
-    <article className={styles.hero}><p className={styles.kicker}><QrCode size={14}/>QR skaner</p><h1>Muzey kodunu oxut</h1><p>Kameranı eksponatın yanındakı QR koduna yönəlt. Kamera işləməsə, kodu əl ilə əlavə et.</p>
-      {permissionMessage && <p role="status">{permissionMessage}</p>}
+    <Link to={placeSlug ? `/museums/${encodeURIComponent(placeSlug)}` : "/map"} className={styles.back}><ArrowLeft size={16}/>{t("Geri qayıt")}</Link>
+    <article className={styles.hero}><p className={styles.kicker}><QrCode size={14}/>{t("QR skaner")}</p><h1>{t("Muzey kodunu oxut")}</h1><p>{t("Kameranı eksponatın yanındakı QR koduna yönəlt. Kamera işləməsə, kodu əl ilə əlavə et.")}</p>
+      {permissionMessage && <p role="status">{t(permissionMessage)}</p>}
       {!checkin && <div id="standalone-qr-reader" style={{ minHeight: 240, overflow: "hidden", borderRadius: 12, background: "#080d29" }}/>} 
-      {checkin && <button className={styles.action} type="button" onClick={checkinNow} disabled={busy}>{busy ? "GPS yoxlanılır…" : "GPS mövqeyini təsdiqlə"}</button>}
-      {!checkin && <form onSubmit={(event) => { event.preventDefault(); setResult(manual.trim()); }}><label className={styles.answerLabel}>Kodu əl ilə daxil et<input value={manual} onChange={(event) => setManual(event.target.value)} maxLength={500} placeholder="/q/məkan/kod/versiya.imza"/></label><button className={styles.action} type="submit" disabled={!manual.trim() || busy}>{busy ? "Yoxlanılır…" : "Kodu yoxla"}</button></form>}
-      {demoEnabled && taskId && <button type="button" className={styles.secondary} onClick={demoScan} disabled={busy}>Demo skan</button>}
-      {error && <p role="alert" className={styles.error}>{error}</p>}
-      {result && !error && <p className={styles.reward}><Check size={16}/>{unavailable ? "Kod daxil edildi" : "QR kod oxundu"}</p>}
+      {checkin && <button className={styles.action} type="button" onClick={checkinNow} disabled={busy}>{busy ? t("GPS yoxlanılır…") : t("GPS mövqeyini təsdiqlə")}</button>}
+      {!checkin && <form onSubmit={(event) => { event.preventDefault(); setResult(manual.trim()); }}><label className={styles.answerLabel}>{t("Kodu əl ilə daxil et")}<input value={manual} onChange={(event) => setManual(event.target.value)} maxLength={500} placeholder="/q/məkan/kod/versiya.imza"/></label><button className={styles.action} type="submit" disabled={!manual.trim() || busy}>{busy ? t("Yoxlanılır…") : t("Kodu yoxla")}</button></form>}
+      {demoEnabled && taskId && <button type="button" className={styles.secondary} onClick={demoScan} disabled={busy}>{t("Demo skan")}</button>}
+      {error && <p role="alert" className={styles.error}>{t(error)}</p>}
+      {result && !error && <p className={styles.reward}><Check size={16}/>{t(unavailable ? "Kod daxil edildi" : "QR kod oxundu")}</p>}
     </article>
   </section>;
 }

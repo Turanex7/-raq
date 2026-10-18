@@ -3,6 +3,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import styles from "../levels/LevelSelect.module.scss";
+import { translate as t } from "../../../i18n/i18n";
 
 const LANDMARK_POSITIONS = {
   icherisheher: [-4.5, 0.25, -1.1],
@@ -35,7 +36,7 @@ function DestinationMarker({ level, position, selected, locked, onSelect }) {
       <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.58, selected || hovered ? 0.72 : 0.63, 40]} /><meshBasicMaterial color={accent} transparent opacity={selected || hovered ? 0.78 : 0.32} /></mesh>
       <mesh position={[0, 0.27, 0]}><cylinderGeometry args={[0.11, 0.16, 0.42, 8]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={selected || hovered ? 1.7 : 0.45} roughness={0.34} metalness={0.28} /></mesh>
       <mesh position={[0, 0.57, 0]}><sphereGeometry args={[0.14, 12, 8]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={selected || hovered ? 2 : 0.65} /></mesh>
-      <Html position={[0, 0.9, 0]} center distanceFactor={8} style={{ pointerEvents: "none" }}><div className={`${styles.mapLabel} ${selected ? styles.mapLabelActive : ""} ${locked ? styles.mapLabelLocked : ""}`}><span>{level.title}</span>{locked && <small>Bağlıdır</small>}</div></Html>
+      <Html position={[0, 0.9, 0]} center distanceFactor={8} style={{ pointerEvents: "none" }}><div className={`${styles.mapLabel} ${selected ? styles.mapLabelActive : ""} ${locked ? styles.mapLabelLocked : ""}`}><span>{t(level.title)}</span>{locked && <small>{t("Bağlıdır")}</small>}</div></Html>
       <pointLight color={accent} intensity={selected || hovered ? 1.1 : 0.18} distance={2.1} />
     </group>
   );
@@ -125,5 +126,5 @@ function WorldScene({ levels, selectedId, onSelect }) {
 }
 
 export default function WorldMap({ levels, selectedId, onSelect }) {
-  return <div className={styles.scene} aria-label="Azərbaycanın 3D kəşf xəritəsi"><Canvas shadows dpr={[1, 1.5]} camera={{ position: [9, 8.5, 10], fov: 42 }} gl={{ antialias: true, powerPreference: "high-performance" }} onPointerMissed={() => onSelect(null)}><WorldScene levels={levels} selectedId={selectedId} onSelect={onSelect} /></Canvas></div>;
+  return <div className={styles.scene} aria-label={t("Azərbaycanın 3D kəşf xəritəsi")}><Canvas shadows dpr={[1, 1.5]} camera={{ position: [9, 8.5, 10], fov: 42 }} gl={{ antialias: true, powerPreference: "high-performance" }} onPointerMissed={() => onSelect(null)}><WorldScene levels={levels} selectedId={selectedId} onSelect={onSelect} /></Canvas></div>;
 }

@@ -9,6 +9,7 @@ import LevelSelect from "./levels/LevelSelect";
 import { getLevel, LEVEL_IDS } from "./levels/levelRegistry";
 import { completeLevel } from "./state/gameStore";
 import styles from "./GamePage.module.scss";
+import { translate as t } from "../../i18n/i18n";
 
 const GameWorld = lazy(() => import("./components/GameWorld"));
 
@@ -40,13 +41,13 @@ function QuizPanel({ onComplete }) {
   return (
     <div className={styles.quizBackdrop}>
       <section className={styles.quizPanel} aria-labelledby="quiz-title">
-        <div className={styles.quizTop}><span>Qədim işıq · Sınaq</span><span>{questionIndex + 1} / {questions.length}</span></div>
+        <div className={styles.quizTop}><span>{t("Qədim işıq · Sınaq")}</span><span>{questionIndex + 1} / {questions.length}</span></div>
         <div className={styles.quizProgress}><i style={{ width: (((questionIndex + 1) / questions.length) * 100) + "%" }} /></div>
-        <p className={styles.kicker}>Tarixçi izinin sualı</p>
-        <h1 id="quiz-title">{question.question}</h1>
-        <div className={styles.answerGrid}>{question.options.map((option, index) => <button type="button" key={option} className={selected === index ? (feedback === "correct" ? styles.correct : styles.wrong) : ""} onClick={() => answer(index)}><span>{String.fromCharCode(65 + index)}</span>{option}{selected === index && feedback === "correct" && <Check size={17} />}{selected === index && feedback === "wrong" && <X size={17} />}</button>)}</div>
-        {feedback && <p className={feedback === "correct" ? styles.feedbackCorrect : styles.feedbackWrong}>{feedback === "correct" ? "Düz cavab! Növbəti izi açdın." : "Bu cavab doğru deyil. Sınağı yenidən başla."}</p>}
-        {feedback && <button type="button" className={styles.quizNext} onClick={next}>{feedback === "correct" && questionIndex === questions.length - 1 ? "Mükafatı al" : feedback === "correct" ? "Növbəti sual" : "Yenidən cəhd et"}<span>→</span></button>}
+        <p className={styles.kicker}>{t("Tarixçi izinin sualı")}</p>
+        <h1 id="quiz-title">{t(question.question)}</h1>
+        <div className={styles.answerGrid}>{question.options.map((option, index) => <button type="button" key={option} className={selected === index ? (feedback === "correct" ? styles.correct : styles.wrong) : ""} onClick={() => answer(index)}><span>{String.fromCharCode(65 + index)}</span>{t(option)}{selected === index && feedback === "correct" && <Check size={17} />}{selected === index && feedback === "wrong" && <X size={17} />}</button>)}</div>
+        {feedback && <p className={feedback === "correct" ? styles.feedbackCorrect : styles.feedbackWrong}>{feedback === "correct" ? t("Düz cavab! Növbəti izi açdın.") : t("Bu cavab doğru deyil. Sınağı yenidən başla.")}</p>}
+        {feedback && <button type="button" className={styles.quizNext} onClick={next}>{t(feedback === "correct" && questionIndex === questions.length - 1 ? "Mükafatı al" : feedback === "correct" ? "Növbəti sual" : "Yenidən cəhd et")}<span>→</span></button>}
       </section>
     </div>
   );
@@ -54,14 +55,14 @@ function QuizPanel({ onComplete }) {
 
 function ControlsHelp({ onClose }) {
   return (
-    <div className={styles.helpBackdrop}><section className={styles.helpPanel}><button type="button" onClick={onClose} aria-label="Köməyi bağla"><X size={17} /></button><p className={styles.kicker}><HelpCircle size={14} />İdarəetmə</p><h2>İçərişəhərdə hərəkət et</h2><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Hərəkət</span></div><div><kbd>E</kbd><span>Yaxınlıqdakı artefaktla əlaqə</span></div><p className={styles.muted}>Mobil cihazda ekrandakı idarəetmə düymələrindən istifadə et. Kameranı fırlatmaq üçün səhnəni sürüşdür.</p></section></div>
+    <div className={styles.helpBackdrop}><section className={styles.helpPanel}><button type="button" onClick={onClose} aria-label={t("Köməyi bağla")}><X size={17} /></button><p className={styles.kicker}><HelpCircle size={14} />{t("İdarəetmə")}</p><h2>{t("İçərişəhərdə hərəkət et")}</h2><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>{t("Hərəkət")}</span></div><div><kbd>E</kbd><span>{t("Yaxınlıqdakı artefaktla əlaqə")}</span></div><p className={styles.muted}>{t("Mobil cihazda ekrandakı idarəetmə düymələrindən istifadə et. Kameranı fırlatmaq üçün səhnəni sürüşdür.")}</p></section></div>
   );
 }
 
 function MobileControls({ onChange }) {
   const hold = (key, value) => (event) => { event.preventDefault(); onChange(key, value); };
   return (
-    <div className={styles.mobileControls} aria-label="Mobil hərəkət idarəetməsi">
+    <div className={styles.mobileControls} aria-label={t("Mobil hərəkət idarəetməsi")}>
       <button type="button" onPointerDown={hold("forward", true)} onPointerUp={hold("forward", false)} onPointerLeave={hold("forward", false)}>↑</button>
       <div><button type="button" onPointerDown={hold("left", true)} onPointerUp={hold("left", false)} onPointerLeave={hold("left", false)}>←</button><button type="button" onPointerDown={hold("backward", true)} onPointerUp={hold("backward", false)} onPointerLeave={hold("backward", false)}>↓</button><button type="button" onPointerDown={hold("right", true)} onPointerUp={hold("right", false)} onPointerLeave={hold("right", false)}>→</button></div>
     </div>
@@ -91,7 +92,7 @@ function supportsWebGL() {
 }
 
 function SceneFallback() {
-  return <div className={styles.webglFallback} role="alert"><Sparkles size={25}/><h2>3D səhnə açıla bilmədi</h2><p>WebGL dəstəyini yoxla və səhifəni yenilə. Xəritə bu brauzerdə işləməyə bilər.</p><button type="button" onClick={() => window.location.reload()}>Yenidən yüklə</button></div>;
+  return <div className={styles.webglFallback} role="alert"><Sparkles size={25}/><h2>{t("3D səhnə açıla bilmədi")}</h2><p>{t("WebGL dəstəyini yoxla və səhifəni yenilə. Xəritə bu brauzerdə işləməyə bilər.")}</p><button type="button" onClick={() => window.location.reload()}>{t("Yenidən yüklə")}</button></div>;
 }
 
 export default function GamePage() {
@@ -130,15 +131,15 @@ function PlayableIcherisheher() {
   return (
     <section className={styles.gameShell}>
       <div className={styles.worldViewport}>
-        {!webglAvailable ? <SceneFallback/> : <SceneErrorBoundary fallback={<SceneFallback/>}><Suspense fallback={<div className={styles.gameLoading}>İçərişəhər səviyyəsi yüklənir...</div>}><GameWorld playerRef={playerRef} controlsRef={controlsRef} playerPosition={playerPosition} mobileInput={mobileInput} artifactCollected={artifactCollected} canInteract={canInteract} onNearby={setCanInteract} onPositionChange={setPlayerPosition} onCollect={collectArtifact} isPaused={paused} reducedMotion={reducedMotion} /></Suspense></SceneErrorBoundary>}
+        {!webglAvailable ? <SceneFallback/> : <SceneErrorBoundary fallback={<SceneFallback/>}><Suspense fallback={<div className={styles.gameLoading}>{t("İçərişəhər səviyyəsi yüklənir...")}</div>}><GameWorld playerRef={playerRef} controlsRef={controlsRef} playerPosition={playerPosition} mobileInput={mobileInput} artifactCollected={artifactCollected} canInteract={canInteract} onNearby={setCanInteract} onPositionChange={setPlayerPosition} onCollect={collectArtifact} isPaused={paused} reducedMotion={reducedMotion} /></Suspense></SceneErrorBoundary>}
         <div className={styles.gameOverlay}>
-          <Link to="/game" className={styles.exitGame}><ArrowLeft size={16} />Səviyyələr</Link>
+          <Link to="/game" className={styles.exitGame}><ArrowLeft size={16} />{t("Səviyyələr")}</Link>
           <QuestHUD level={level} artifactCollected={artifactCollected} canInteract={canInteract} paused={paused} onPause={() => setPaused((current) => !current)} onHelp={() => setShowHelp(true)} />
           <Inventory artifactCollected={artifactCollected} />
           <MobileControls onChange={(key, value) => setMobileInput((current) => ({ ...current, [key]: value }))} />
         </div>
       </div>
-      {paused && <div className={styles.pauseOverlay}><div><p className={styles.kicker}>Macəra dayandırıldı</p><h1>Hazırsan?</h1><button type="button" className={styles.resumeButton} onClick={() => setPaused(false)}>Davam et</button></div></div>}
+      {paused && <div className={styles.pauseOverlay}><div><p className={styles.kicker}>{t("Macəra dayandırıldı")}</p><h1>{t("Hazırsan?")}</h1><button type="button" className={styles.resumeButton} onClick={() => setPaused(false)}>{t("Davam et")}</button></div></div>}
       {showHelp && <ControlsHelp onClose={() => setShowHelp(false)} />}
     </section>
   );

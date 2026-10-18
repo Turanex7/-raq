@@ -7,6 +7,7 @@ import useApiResource from "../../services/useApiResource";
 import XpExplainer from "./components/XpExplainer";
 import WeeklyResetCountdown from "./components/WeeklyResetCountdown";
 import Avatar from "./components/Avatar";
+import { translate as t } from "../../i18n/i18n";
 
 export default function ProfilePage() {
   return <ApiProfile />;
@@ -21,9 +22,9 @@ function ApiProfile() {
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [saveError, setSaveError] = useState("");
-  if (loading) return <section className={styles.page}><p role="status">Profil yüklənir…</p></section>;
-  if (error) return <section className={styles.page}><p role="alert">{error}</p><Link to="/login" className={styles.rewardsLink}>Daxil ol</Link><button type="button" onClick={retry}>Yenidən yoxla</button></section>;
-  if (!user) return <section className={styles.page}><p role="status">Profil məlumatı mövcud deyil.</p><Link to="/login" className={styles.rewardsLink}>Daxil ol</Link></section>;
+  if (loading) return <section className={styles.page}><p role="status">{t("Profil yüklənir…")}</p></section>;
+  if (error) return <section className={styles.page}><p role="alert">{t(error)}</p><Link to="/login" className={styles.rewardsLink}>{t("Daxil ol")}</Link><button type="button" onClick={retry}>{t("Yenidən yoxla")}</button></section>;
+  if (!user) return <section className={styles.page}><p role="status">{t("Profil məlumatı mövcud deyil.")}</p><Link to="/login" className={styles.rewardsLink}>{t("Daxil ol")}</Link></section>;
   const currentAvatar = avatarList.find((item) => item.id === user.avatarId);
   const lanternTarget = user.lantern?.streak_target ?? config?.daily_lantern?.streak_days ?? 0;
   const lanternReward = user.lantern?.milestone_xp ?? config?.daily_lantern?.milestone_xp;
@@ -35,23 +36,23 @@ function ApiProfile() {
     event.preventDefault(); setMessage(""); setSaveError("");
     const trimmedName = name.trim();
     if (trimmedName.length < 2) return;
-    try { const updatedUser = await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ name: trimmedName }) }); setData(updatedUser); setName(""); setMessage("Profil yeniləndi."); window.dispatchEvent(new Event("chiraq:profile-updated")); }
-    catch (requestError) { setSaveError(requestError.message); }
+    try { const updatedUser = await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ name: trimmedName }) }); setData(updatedUser); setName(""); setMessage(t("Profil yeniləndi.")); window.dispatchEvent(new Event("chiraq:profile-updated")); }
+    catch (requestError) { setSaveError(t(requestError.message)); }
   }
   async function selectAvatar(avatarId) {
     setMessage(""); setSaveError("");
-    try { const updatedUser = await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ avatarId }) }); setData(updatedUser); setMessage("Avatar dəyişdirildi."); window.dispatchEvent(new Event("chiraq:profile-updated")); }
-    catch (requestError) { setSaveError(requestError.message); }
+    try { const updatedUser = await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ avatarId }) }); setData(updatedUser); setMessage(t("Avatar dəyişdirildi.")); window.dispatchEvent(new Event("chiraq:profile-updated")); }
+    catch (requestError) { setSaveError(t(requestError.message)); }
   }
   return <section className={styles.page}>
-    <header className={styles.hero}><Avatar avatarId={user.avatarId} avatarName={currentAvatar?.name} size={112} className={styles.avatarHero}/><div><p className={styles.kicker}>Profil</p><h1 className={styles.name}>{user.name}</h1><p className={styles.university}><GraduationCap size={16}/>{user.university}</p></div></header>
-    <div className={styles.stats}><article className={styles.stat}><span className={styles.statLabel}>Səviyyə</span><strong>{user.level}</strong></article><article className={styles.stat}><span className={styles.statLabel}><Zap size={14}/>Ümumi XP</span><strong>{user.lifetimeXp}</strong></article><article className={styles.stat}><span className={styles.statLabel}><Zap size={14}/>Həftəlik XP</span><strong>{user.weeklyXp ?? "—"}</strong></article><article className={styles.stat}><span className={styles.statLabel}><Gift size={14}/>Avatar</span><strong>{currentAvatar?.name || "—"}</strong></article></div>
-    <section className={styles.lanternCard} aria-label="Gündəlik çıraq seriyası"><div className={styles.lanternHeading}><span aria-hidden="true">✦</span><div><b>Gündəlik çıraq seriyası</b><small>{lanternTarget && lanternReward != null ? `Hər gün alovu yandır; ${lanternTarget} gün ardıcıl olarsa +${lanternReward} XP.` : "Gündəlik seriya qaydası yüklənir…"}</small></div><strong>{user.lantern?.progress_day ?? 0}/{lanternTarget}</strong></div><div className={styles.lanternFlames}>{Array.from({ length: lanternTarget }, (_, index) => <i key={index} className={index < (user.lantern?.progress_day ?? 0) ? styles.litFlame : undefined} aria-hidden="true">✦</i>)}</div>{user.lantern?.missed_day && !user.lantern?.today_lit && <small className={styles.lanternReset}>Bir günü buraxdığın üçün əvvəlki seriya sönüb.</small>}</section>
+    <header className={styles.hero}><Avatar avatarId={user.avatarId} avatarName={currentAvatar?.name} size={112} className={styles.avatarHero}/><div><p className={styles.kicker}>{t("Profil")}</p><h1 className={styles.name}>{user.name}</h1><p className={styles.university}><GraduationCap size={16}/>{user.university}</p></div></header>
+    <div className={styles.stats}><article className={styles.stat}><span className={styles.statLabel}>{t("Səviyyə")}</span><strong>{user.level}</strong></article><article className={styles.stat}><span className={styles.statLabel}><Zap size={14}/>{t("Ümumi XP")}</span><strong>{user.lifetimeXp}</strong></article><article className={styles.stat}><span className={styles.statLabel}><Zap size={14}/>{t("Həftəlik XP")}</span><strong>{user.weeklyXp ?? "—"}</strong></article><article className={styles.stat}><span className={styles.statLabel}><Gift size={14}/>{t("Avatar")}</span><strong>{t(currentAvatar?.name || "—")}</strong></article></div>
+    <section className={styles.lanternCard} aria-label={t("Gündəlik çıraq seriyası")}><div className={styles.lanternHeading}><span aria-hidden="true">✦</span><div><b>{t("Gündəlik çıraq seriyası")}</b><small>{lanternTarget && lanternReward != null ? t("Hər gün alovu yandır; {days} gün ardıcıl olarsa +{xp} XP.", { days: lanternTarget, xp: lanternReward }) : t("Gündəlik seriya qaydası yüklənir…")}</small></div><strong>{user.lantern?.progress_day ?? 0}/{lanternTarget}</strong></div><div className={styles.lanternFlames}>{Array.from({ length: lanternTarget }, (_, index) => <i key={index} className={index < (user.lantern?.progress_day ?? 0) ? styles.litFlame : undefined} aria-hidden="true">✦</i>)}</div>{user.lantern?.missed_day && !user.lantern?.today_lit && <small className={styles.lanternReset}>{t("Bir günü buraxdığın üçün əvvəlki seriya sönüb.")}</small>}</section>
     <XpExplainer />
     {season && <div className={styles.card}><WeeklyResetCountdown secondsRemaining={season.seconds_remaining}/></div>}
-    <div className={styles.card}><div className={styles.progressHead}><b>Növbəti səviyyəyə irəliləyiş</b><span>{levelXp ? `${progress}/${levelXp} XP` : "Qayda yüklənir…"}</span></div>{levelXp ? <progress value={progress} max={levelXp} aria-label={`Səviyyə ${user.level} irəliləyişi`} /> : <p role="status">Səviyyə qaydası yüklənir…</p>}{next && <p>Növbəti avatar: {next.name}, {avatarXpRemaining ?? "—"} XP qalıb</p>}</div>
-    <div className={styles.card}><h2>Avatar kolleksiyası</h2><div className={styles.avatarChoices}>{avatarList.map((avatar) => { const unlocked = avatar.unlock_level <= user.level; return <button key={avatar.id} type="button" disabled={!unlocked} aria-pressed={avatar.id === user.avatarId} onClick={() => selectAvatar(avatar.id)}><Avatar avatarId={avatar.id} avatarName={avatar.name} size={72} locked={!unlocked}/><span className={styles.avatarChoiceText}><strong>{avatar.name}</strong><small>{unlocked ? avatar.id === user.avatarId ? "Açıqdır · Seçilib" : "Açıqdır" : `Bağlıdır · ${avatar.unlock_level}-ci səviyyədə açılır`}</small></span></button>; })}</div></div>
-    <form className={styles.card} onSubmit={saveProfile}><label>Adını yenilə<input value={name} onChange={(event) => { setName(event.target.value); setMessage(""); setSaveError(""); }} maxLength={50} minLength={2} placeholder={user.name}/></label><button className={`${styles.rewardsLink} ${styles.saveButton}`} type="submit" disabled={name.trim().length < 2 || name.trim() === user.name}>Yadda saxla</button>{message && <p role="status">{message}</p>}{saveError && <p role="alert">{saveError}</p>}</form>
-    <Link to="/museum" className={styles.rewardsLink}>Şəxsi Virtual Muzeyə bax</Link>
+    <div className={styles.card}><div className={styles.progressHead}><b>{t("Növbəti səviyyəyə irəliləyiş")}</b><span>{levelXp ? `${progress}/${levelXp} XP` : t("Qayda yüklənir…")}</span></div>{levelXp ? <progress value={progress} max={levelXp} aria-label={t("Səviyyə {level} irəliləyişi", { level: user.level })} /> : <p role="status">{t("Səviyyə qaydası yüklənir…")}</p>}{next && <p>{t("Növbəti avatar: {name}, {xp} XP qalıb", { name: t(next.name), xp: avatarXpRemaining ?? "—" })}</p>}</div>
+    <div className={styles.card}><h2>{t("Avatar kolleksiyası")}</h2><div className={styles.avatarChoices}>{avatarList.map((avatar) => { const unlocked = avatar.unlock_level <= user.level; return <button key={avatar.id} type="button" disabled={!unlocked} aria-pressed={avatar.id === user.avatarId} onClick={() => selectAvatar(avatar.id)}><Avatar avatarId={avatar.id} avatarName={avatar.name} size={72} locked={!unlocked}/><span className={styles.avatarChoiceText}><strong>{t(avatar.name)}</strong><small>{unlocked ? avatar.id === user.avatarId ? t("Açıqdır · Seçilib") : t("Açıqdır") : t("Bağlıdır · {level}-ci səviyyədə açılır", { level: avatar.unlock_level })}</small></span></button>; })}</div></div>
+    <form className={styles.card} onSubmit={saveProfile}><label>{t("Adını yenilə")}<input value={name} onChange={(event) => { setName(event.target.value); setMessage(""); setSaveError(""); }} maxLength={50} minLength={2} placeholder={user.name}/></label><button className={`${styles.rewardsLink} ${styles.saveButton}`} type="submit" disabled={name.trim().length < 2 || name.trim() === user.name}>{t("Yadda saxla")}</button>{message && <p role="status">{message}</p>}{saveError && <p role="alert">{saveError}</p>}</form>
+    <Link to="/museum" className={styles.rewardsLink}>{t("Şəxsi Virtual Muzeyə bax")}</Link>
   </section>;
 }

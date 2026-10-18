@@ -7,6 +7,7 @@ import GameHUD from "./components/GameHUD";
 import LandmarkPanel from "./components/LandmarkPanel";
 import LanternJourney from "./LanternJourney";
 import styles from "./HomePage.module.scss";
+import { translate as t } from "../../i18n/i18n";
 
 const AdventureWorld = lazy(() => import("./components/AdventureWorld"));
 
@@ -14,7 +15,7 @@ function MascotTip() {
   return (
     <div className={styles.mascotTip}>
       <span className={styles.mascotMini} aria-hidden="true">✦</span>
-      <span><b>Çıraq deyir:</b> Qız Qalasına kliklə, ilk izi birlikdə izləyək!</span>
+      <span><b>{t("Çıraq deyir:")}</b> {t("Qız Qalasına kliklə, ilk izi birlikdə izləyək!")}</span>
     </div>
   );
 }
@@ -22,22 +23,22 @@ function MascotTip() {
 function MissionCards({ apiPlaces, loading, error }) {
   const featured = (Array.isArray(apiPlaces) ? apiPlaces : []).filter((place) => place.type === "museum").slice(0, 3).map((place, index) => ({
     id: place.slug,
-    title: place.name,
-    meta: `${place.district} · ${place.task_count} tapşırıq`,
+    title: t(place.name),
+    meta: `${t(place.district)} · ${place.task_count} ${t("tapşırıq")}`,
     accent: "mint",
-    status: place.status === "open" ? "Açıqdır" : "Bağlıdır",
+    status: t(place.status === "open" ? "Açıq" : "Bağlıdır"),
     glyph: ["✦", "◈", "◇"][index],
   }));
   return (
     <section className={styles.missionSection} aria-labelledby="missions-title">
       <div className={styles.sectionHeading}>
-        <div><p className={styles.sectionEyebrow}>Kəşf ediləsi yerlər</p><h2 id="missions-title">Növbəti missiyanı seç</h2></div>
-        <span className={styles.sectionCount}><Gem size={14} />{apiPlaces ? `${apiPlaces.length} məkan` : "Məkanlar yüklənir…"}</span>
+        <div><p className={styles.sectionEyebrow}>{t("Kəşf ediləsi yerlər")}</p><h2 id="missions-title">{t("Növbəti missiyanı seç")}</h2></div>
+        <span className={styles.sectionCount}><Gem size={14} />{apiPlaces ? `${apiPlaces.length} ${t("məkan")}` : t("Məkanlar yüklənir…")}</span>
       </div>
       <div className={styles.missionCards}>
-        {error && <p role="alert">Məkanlar yüklənmədi.</p>}
-        {loading && <p role="status">Məkanlar yüklənir…</p>}
-        {!loading && !error && featured.length === 0 && <p>Hazırda göstəriləcək məkan yoxdur.</p>}
+        {error && <p role="alert">{t("Məkanlar yüklənmədi.")}</p>}
+        {loading && <p role="status">{t("Məkanlar yüklənir…")}</p>}
+        {!loading && !error && featured.length === 0 && <p>{t("Hazırda göstəriləcək məkan yoxdur.")}</p>}
         {featured.map((mission) => (
           <Link to={`/museums/${mission.id}`} className={styles.missionCard} key={mission.title}>
             <div className={styles.missionVisual + " " + styles[mission.accent]}><span>{mission.glyph}</span><MapPin size={15} /></div>
@@ -71,21 +72,21 @@ export default function HomePage() {
     <div className={styles.page}>
       <section className={styles.worldHero}>
         <div className={styles.worldCanvas}>
-          <img className={styles.sceneBackdrop} src={heroBackdrop} alt="İçərişəhər və Qız Qalasından ilhamlanan bədii macəra səhnəsi" />
+          <img className={styles.sceneBackdrop} src={heroBackdrop} alt={t("İçərişəhər və Qız Qalasından ilhamlanan bədii macəra səhnəsi")} />
           {webglAvailable ? (
-            <Suspense fallback={<div className={styles.worldLoading}>Macəra dünyası yüklənir...</div>}>
+            <Suspense fallback={<div className={styles.worldLoading}>{t("Macəra dünyası yüklənir...")}</div>}>
               <AdventureWorld selected={selected} onSelect={setSelected} places={apiPlaces || []} reducedMotion={reducedMotion} />
             </Suspense>
           ) : (
-            <div className={styles.webglFallback}><Sparkles size={25} /><h2>Macəra dünyası hazır deyil</h2><p>Bu cihazda WebGL dəstəyi yoxdur. Xəritədən kəşfə davam edə bilərsən.</p></div>
+            <div className={styles.webglFallback}><Sparkles size={25} /><h2>{t("Macəra dünyası hazır deyil")}</h2><p>{t("Bu cihazda WebGL dəstəyi yoxdur. Xəritədən kəşfə davam edə bilərsən.")}</p></div>
           )}
         </div>
         <div className={styles.heroOverlay}>
           <div className={styles.heroTitle}>
-            <p className={styles.eyebrow}><Sparkles size={14} />Azərbaycanın macəra dünyası</p>
-            <h1>Azərbaycanı kəşf et.<span>Əfsanəni yaşa.</span></h1>
-            <p>Muzeyləri kəşf et, tarixin sirlərini aç və macəranın qəhrəmanına çevril!</p>
-            <Link to="/game" className={styles.startAdventure}>Oyuna başla <ArrowRight size={17} /></Link>
+            <p className={styles.eyebrow}><Sparkles size={14} />{t("Azərbaycanın macəra dünyası")}</p>
+            <h1>{t("Azərbaycanı kəşf et.")}<span>{t("Əfsanəni yaşa.")}</span></h1>
+            <p>{t("Muzeyləri kəşf et, tarixin sirlərini aç və macəranın qəhrəmanına çevril!")}</p>
+            <Link to="/game" className={styles.startAdventure}>{t("Oyuna başla")} <ArrowRight size={17} /></Link>
           </div>
           <GameHUD />
           {selectedPlace && <LandmarkPanel place={selectedPlace} onClose={() => setSelected(null)} />}
@@ -94,7 +95,7 @@ export default function HomePage() {
       </section>
       <LanternJourney />
       <MissionCards apiPlaces={apiPlaces} loading={placesLoading} error={placesError} />
-      <p className={styles.illustrationNote}>3D səhnə tarixi məkanlardan ilhamlanan stilizə edilmiş oyun dünyasıdır; tarixi rekonstruksiya deyil.</p>
+      <p className={styles.illustrationNote}>{t("3D səhnə tarixi məkanlardan ilhamlanan stilizə edilmiş oyun dünyasıdır; tarixi rekonstruksiya deyil.")}</p>
     </div>
   );
 }
