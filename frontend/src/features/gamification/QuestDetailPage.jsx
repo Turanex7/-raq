@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, Clock3, Flame, QrCode, Sparkles, Users, Zap } from "lucide-react";
+import { ArrowLeft, Check, Clock3, Flame, QrCode, Sparkles, Users, Volume2, VolumeX, Zap } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest, apiPost } from "../../services/api";
 import ShareCardButton from "./ShareCardButton";
 import styles from "./ContentPages.module.scss";
 import useApiResource from "../../services/useApiResource";
+import { celebrateLantern, getLanternSoundEnabled, playLanternChime, setLanternSoundEnabled } from "../home/lanternEffects";
 
 export default function QuestDetailPage() {
   return <ApiTaskPlayer />;
@@ -27,6 +28,7 @@ function ApiTaskPlayer() {
   const [result, setResult] = useState(location.state?.completion || null);
   const [session, setSession] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(getLanternSoundEnabled);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +68,7 @@ function ApiTaskPlayer() {
     try {
       const response = await apiPost(`/tasks/${encodeURIComponent(task.id)}/complete`, { answer: value });
       setResult(response);
+      celebrateLantern();
       window.dispatchEvent(new Event("chiraq:xp-updated"));
       const refreshed = await apiRequest(`/places/${encodeURIComponent(place.slug)}`);
       setTask(refreshed.tasks.find((item) => item.id === task.id));
@@ -75,6 +78,13 @@ function ApiTaskPlayer() {
 
   async function joinCoop() {
     navigate(`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}&coop=1`);
+  }
+
+  function toggleSound() {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    setLanternSoundEnabled(next);
+    if (next) playLanternChime();
   }
 
   if (loading) return <section className={styles.page}><p role="status">Tapşırıq yüklənir…</p></section>;
@@ -107,7 +117,7 @@ function ApiTaskPlayer() {
       {result.avatar_unlocked?.length > 0 && <p className={styles.levelMoment}>Açılan avatar: <b>{result.avatar_unlocked.map((avatar) => avatar.name).join(", ")}</b></p>}
       {result.souvenir_drop && <p>Suvenir kolleksiyaya əlavə olundu: <b>{result.souvenir_drop.name}</b> · {rarityName(result.souvenir_drop.rarity)}</p>}
       {result.territory_change && <p>{result.territory_change.message}</p>}
-      {lanternChapter && <div className={styles.flameMoment} role="status"><span className={styles.flameIcon}><Flame size={24} fill="currentColor"/></span><div><b>{result.lantern?.lit ?? "—"}/{result.lantern?.total ?? "—"} alov işıqlanıb</b><p>{gameConfig?.story_chapter?.flame_lit || "Bir alov parçası işıqlandı."}</p><p className={styles.cliffhanger}>{gameConfig?.story_chapter?.cliffhanger || "Növbəti alov başqa yerdədir..."}</p></div></div>}
+      {lanternChapter && <div className={styles.flameMoment} role="status"><span className={styles.flameIcon}><Flame size={24} fill="currentColor"/></span><div><b>{result.lantern?.lit ?? "—"}/{result.lantern?.total ?? "—"} alov işıqlanıb</b><p>{gameConfig?.story_chapter?.flame_lit || "Bir alov parçası işıqlandı."}</p><p className={styles.cliffhanger}>{gameConfig?.story_chapter?.cliffhanger || "Növbəti alov başqa yerdədir..."}</p><button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>}Səs {soundEnabled ? "açıqdır" : "bağlıdır"}</button></div></div>}
       {lanternChapter && place.type === "museum" && <div className={styles.nextChapter}><b>İndi eksponata bax</b><p>Yaxınlıqda tamamlanmamış asan və orta tapşırıqlar:</p>{(place.tasks || []).filter((candidate) => !candidate.completed && ["easy", "medium"].includes(candidate.difficulty) && candidate.type !== "qr_scan" && candidate.type !== "coop").slice(0, 2).map((candidate) => <Link key={candidate.id} to={`/quests/${candidate.id}?place=${encodeURIComponent(place.slug)}&chapter=lantern`}>{candidate.title} →</Link>)}</div>}
       <ShareCardButton placeId={place.slug}/><Link className={styles.secondary} to={`/museums/${place.slug}`}>Başqa tapşırıq seç</Link>
     </div>}

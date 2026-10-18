@@ -3,6 +3,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { ArrowLeft, Check, QrCode } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { apiPost, apiRequest } from "../../services/api";
+import { celebrateLantern } from "../home/lanternEffects";
 import styles from "./ContentPages.module.scss";
 
 export default function ScannerPage() {
@@ -71,6 +72,7 @@ export default function ScannerPage() {
         response = await apiPost(`/tasks/${encodeURIComponent(targetTaskId)}/complete`, { qrToken: raw });
       }
       if (!coop) window.dispatchEvent(new Event("chiraq:xp-updated"));
+      if (!coop || response.completed) celebrateLantern();
       if (coop) navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}&sessionId=${encodeURIComponent(response.session_id)}`);
       else navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}${chapter}`, { state: { completion: response, lanternChapter: Boolean(chapter) } });
     } catch (cause) {
@@ -102,6 +104,7 @@ export default function ScannerPage() {
     setBusy(true); setError("");
     try {
       const response = await validateLocation(placeSlug, taskId);
+      celebrateLantern();
       window.dispatchEvent(new Event("chiraq:xp-updated"));
       navigate(`/quests/${encodeURIComponent(taskId)}?place=${encodeURIComponent(placeSlug)}${chapter}`, { state: { completion: response, lanternChapter: Boolean(chapter) } });
     } catch (cause) {

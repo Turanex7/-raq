@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Flame, LockKeyhole, Sparkles } from "lucide-react";
+import { Flame, LockKeyhole, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { Link } from "react-router-dom";
 import useApiResource from "../../services/useApiResource";
+import { celebrateLantern, getLanternSoundEnabled, setLanternSoundEnabled } from "./lanternEffects";
 import styles from "./LanternJourney.module.scss";
 
 const answerPattern = [1, 3, 2];
@@ -15,6 +16,7 @@ export default function LanternJourney({ places }) {
   const [step, setStep] = useState(0);
   const [unlocked, setUnlocked] = useState(false);
   const [notice, setNotice] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(getLanternSoundEnabled);
   const target = useMemo(() => places?.find((place) => place.type === "museum" && place.status === "open"), [places]);
 
   useEffect(() => {
@@ -35,6 +37,13 @@ export default function LanternJourney({ places }) {
     setNotice("");
     setUnlocked(false);
     setStarted(true);
+  }
+
+  function toggleSound() {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    setLanternSoundEnabled(next);
+    if (next) celebrateLantern();
   }
 
   function tapPoint(value) {
@@ -59,6 +68,7 @@ export default function LanternJourney({ places }) {
     <div className={styles.lanternIntro}>
       <span className={styles.lanternIcon} aria-hidden="true"><Flame size={22}/></span>
       <div><p className={styles.sectionEyebrow}>Çırağı yandır · {config?.story_chapter?.title || "Hekayə bölməsi"}</p><h2 id="lantern-title">Bir ipucu qazan</h2><p>Qısa tapmacanı tamamla, sonra eksponata baxmaq üçün muzeyə yollan.</p></div>
+      <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>}Səs {soundEnabled ? "açıqdır" : "bağlıdır"}</button>
     </div>
     {!hasToken ? <div className={styles.lanternState}><p>İpucu açmaq və çıraq irəliləyişini görmək üçün hesaba daxil ol.</p><Link to="/login" className={styles.lanternAction}>Daxil ol</Link></div>
       : userLoading ? <p role="status" className={styles.lanternState}>Çıraq yüklənir…</p>
