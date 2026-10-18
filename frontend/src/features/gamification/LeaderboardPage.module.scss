@@ -131,6 +131,8 @@
     font-size: 12px;
   }
 }
+.lampIndicator { display: flex; justify-content: flex-end; margin-bottom: 3px; color: $gold; }
+.lampIndicator svg { filter: drop-shadow(0 0 9px currentColor); }
 
 @media (max-width: $mobile) {
   .header h1 {
