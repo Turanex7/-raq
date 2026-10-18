@@ -7,3 +7,5 @@ backend/Chiraq.Api/.vs/
 backend/Chiraq.Api/.env
 backend/Chiraq.Api.Tests/bin/
 backend/Chiraq.Api.Tests/obj/
+backend/Chiraq.Api.Reset/bin/
+backend/Chiraq.Api.Reset/obj/

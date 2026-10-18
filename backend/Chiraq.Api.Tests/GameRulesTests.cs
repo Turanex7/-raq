@@ -103,6 +103,25 @@ public sealed class GameRulesTests
     }
 
     [Fact]
+    public void TerritoryUsesFirstArrivalToBreakScoreTiesAndMarksOnlySimultaneousTies()
+    {
+        var first = DateTimeOffset.Parse("2026-10-17T10:00:00Z");
+        var later = first.AddMinutes(1);
+        var earlierWins = TerritoryRules.Rank([
+            new TerritoryLedgerEntry("ada", "ada-1", 10, later),
+            new TerritoryLedgerEntry("bdu", "bdu-1", 10, first),
+        ]);
+        Assert.Equal("bdu", earlierWins[0].UniversityId);
+        Assert.False(earlierWins[0].Tied);
+
+        var simultaneous = TerritoryRules.Rank([
+            new TerritoryLedgerEntry("ada", "ada-1", 10, first),
+            new TerritoryLedgerEntry("bdu", "bdu-1", 10, first),
+        ]);
+        Assert.All(simultaneous, row => Assert.True(row.Tied));
+    }
+
+    [Fact]
     public void VelocityCheckFlagsOnlyImpossibleTravel()
     {
         Assert.True(GameRules.IsImpossibleTravel(20_000, 0.1));
@@ -164,24 +183,52 @@ public sealed class GameRulesTests
         var seedUsers = await db.Users.Where(x => x.Id.StartsWith("seed-")).ToListAsync();
 
         Assert.Equal(40, seedUsers.Select(x => x.Name).Distinct().Count());
+        Assert.All(seedUsers, user => Assert.True(user.IsDemo));
+        var universityCounts = seedUsers.GroupBy(x => x.UniversityId).Select(group => group.Count()).ToArray();
+        Assert.Contains("bdu", seedUsers.Select(x => x.UniversityId));
+        Assert.Contains("ada", seedUsers.Select(x => x.UniversityId));
+        Assert.Contains("unec", seedUsers.Select(x => x.UniversityId));
+        Assert.Contains("aztu", seedUsers.Select(x => x.UniversityId));
+        Assert.Contains("adnsu", seedUsers.Select(x => x.UniversityId));
+        Assert.Contains("khazar", seedUsers.Select(x => x.UniversityId));
+        Assert.NotEqual(universityCounts[0], universityCounts[^1]);
         foreach (var user in seedUsers)
         {
             var xp = await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == season.Id).SumAsync(x => x.Amount);
             Assert.InRange(xp, 0, achievableCeiling);
         }
 
-        var territoryScores = await db.XpEvents.Where(x => x.SeasonId == season.Id && (x.PlaceId == "place-carpet-museum" || x.PlaceId == "place-national-history"))
-            .Join(db.Users, xp => xp.UserId, user => user.Id, (xp, user) => new { user.UniversityId, xp.PlaceId, xp.UserId, xp.Amount })
+        var museums = await db.Places.Where(x => x.Type == "museum").ToListAsync();
+        Assert.True(museums.Count >= 6);
+        var owners = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var museum in museums)
+        {
+            var ledger = await db.XpEvents.Where(x => x.SeasonId == season.Id && x.PlaceId == museum.Id)
+                .Join(db.Users, xp => xp.UserId, user => user.Id, (xp, user) => new TerritoryLedgerEntry(user.UniversityId, xp.UserId, xp.Amount, xp.CreatedAtUtc))
+                .ToListAsync();
+            var ranking = TerritoryRules.Rank(ledger);
+            Assert.True(ranking.Count >= 2);
+            Assert.True(ranking[0].Score > ranking[1].Score, $"{museum.Name} should have a nonzero territory gap.");
+            owners.Add(ranking[0].UniversityId);
+            if (museum.Slug == "carpet-museum")
+            {
+                Assert.Equal("adnsu", ranking[0].UniversityId);
+                Assert.Equal(15, ranking[0].Score);
+                Assert.Equal("ada", ranking[1].UniversityId);
+                Assert.Equal(10, ranking[1].Score);
+            }
+        }
+        Assert.True(owners.Count >= 4);
+
+        var weeklyRows = await db.XpEvents.Where(x => x.SeasonId == season.Id)
+            .Join(db.Users, xp => xp.UserId, user => user.Id, (xp, user) => new { user.UniversityId, xp.UserId, xp.Amount })
             .ToListAsync();
-        var carpetScores = territoryScores.Where(x => x.PlaceId == "place-carpet-museum")
-            .GroupBy(x => x.UniversityId).Select(group => new { University = group.Key, Score = (int)Math.Round(group.Sum(x => x.Amount) / (double)group.Select(x => x.UserId).Distinct().Count()) })
-            .OrderByDescending(x => x.Score).ToList();
-        var historyScores = territoryScores.Where(x => x.PlaceId == "place-national-history")
-            .GroupBy(x => x.UniversityId).Select(group => new { University = group.Key, Score = (int)Math.Round(group.Sum(x => x.Amount) / (double)group.Select(x => x.UserId).Distinct().Count()) })
-            .OrderByDescending(x => x.Score).ToList();
-        Assert.Equal("adnsu", carpetScores[0].University);
-        Assert.Equal(5, carpetScores[0].Score - carpetScores[1].Score);
-        Assert.Equal("ada", historyScores[0].University);
-        Assert.Equal(10, historyScores[0].Score - historyScores[1].Score);
+        var leagueRows = weeklyRows.GroupBy(x => x.UniversityId).Select(university =>
+        {
+            var members = university.GroupBy(x => x.UserId).Select(member => member.Sum(x => x.Amount)).ToArray();
+            return GameRules.UniversityFairScore(members);
+        }).ToArray();
+        Assert.True(leagueRows.Count(x => x.Eligible) >= 4);
+        Assert.All(leagueRows.Where(x => x.Eligible), row => Assert.True(row.Participants >= GameRules.UniversityMinimumActive));
     }
 }

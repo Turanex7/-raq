@@ -266,18 +266,13 @@ public static class ApiRoutes
     private static async Task<object?> TerritoryOwner(AppDbContext db, string seasonId, string placeId)
     {
         var events = await db.XpEvents.Where(x => x.SeasonId == seasonId && x.PlaceId == placeId)
-            .Join(db.Users, x => x.UserId, u => u.Id, (x, u) => new { u.UniversityId, x.UserId, x.Amount }).ToListAsync();
-        var scores = events.GroupBy(x => x.UniversityId).Select(group => new
-        {
-            UniversityId = group.Key,
-            Score = (int)Math.Round(group.Sum(row => row.Amount) / (double)group.Select(row => row.UserId).Distinct().Count()),
-            Visitors = group.Select(row => row.UserId).Distinct().Count(),
-        }).OrderByDescending(x => x.Score).ThenBy(x => x.UniversityId, StringComparer.Ordinal).ToList();
+            .Join(db.Users, x => x.UserId, u => u.Id, (x, u) => new TerritoryLedgerEntry(u.UniversityId, x.UserId, x.Amount, x.CreatedAtUtc)).ToListAsync();
+        var scores = TerritoryRules.Rank(events);
         if (scores.Count == 0) return null;
         var universites = await db.Universities.ToDictionaryAsync(x => x.Id, x => x.ShortName);
         var top = scores[0];
         var gap = scores.Count > 1 ? Math.Max(0, top.Score - scores[1].Score) : top.Score;
-        return new { university_id = top.UniversityId, university = universites.GetValueOrDefault(top.UniversityId, ""), score = top.Score, runner_up_id = scores.Count > 1 ? scores[1].UniversityId : null, runner_up = scores.Count > 1 ? universites.GetValueOrDefault(scores[1].UniversityId, "") : null, runner_up_score = scores.Count > 1 ? scores[1].Score : 0, gap, participant_count = top.Visitors, final = false };
+        return new { university_id = top.UniversityId, university = universites.GetValueOrDefault(top.UniversityId, ""), score = top.Score, runner_up_id = scores.Count > 1 ? scores[1].UniversityId : null, runner_up = scores.Count > 1 ? universites.GetValueOrDefault(scores[1].UniversityId, "") : null, runner_up_score = scores.Count > 1 ? scores[1].Score : 0, gap, participant_count = top.Participants, tied = top.Tied, reached_at_utc = top.ReachedAtUtc, final = false };
     }
 
     private static double DistanceMeters(double lat1, double lon1, double lat2, double lon2)

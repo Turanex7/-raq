@@ -28,6 +28,7 @@ public sealed class AppUser
     public bool? VisitedMuseumLast12Months { get; set; }
     public bool FirstMuseumVisitCompleted { get; set; }
     public bool PrizeEligible { get; set; } = true;
+    public bool IsDemo { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 

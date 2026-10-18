@@ -4,7 +4,10 @@ export default function TerritorySummary({ owner, universityId, compact = false 
   if (!owner) return null;
 
   let gapMessage = owner.runner_up ? `${owner.runner_up}-dan ${owner.gap} xal fərq var` : "Hazırda rəqib universitet yoxdur";
-  if (owner.runner_up && owner.gap === 0) gapMessage = "Universitetlər hazırda bərabər xaldadır";
+  if (owner.tied) gapMessage = "Bərabərlik";
+  else if (owner.runner_up && owner.gap === 0 && universityId === owner.university_id) gapMessage = "Xallar eynidir; üstünlük xala əvvəl çatmağınla qorunur";
+  else if (owner.runner_up && owner.gap === 0 && universityId === owner.runner_up_id) gapMessage = "Xallar eynidir; lider xala daha tez çatıb";
+  else if (owner.runner_up && owner.gap === 0) gapMessage = "Xallar eynidir; lider xala daha tez çatıb";
   else if (universityId && universityId === owner.university_id && owner.runner_up) gapMessage = `${owner.runner_up}-dan ${owner.gap} xal öndəsən`;
   else if (universityId && universityId === owner.runner_up_id) gapMessage = `${owner.university}-dan ${owner.gap} xal geridəsən`;
 

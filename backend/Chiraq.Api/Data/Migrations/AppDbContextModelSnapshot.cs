@@ -56,6 +56,9 @@ namespace Chiraq.Api.Data.Migrations
                     b.Property<bool>("FirstMuseumVisitCompleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsDemo")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");

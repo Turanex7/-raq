@@ -57,6 +57,7 @@ public static class DbSeeder
         ("heydar-aliyev", "Heydər Əliyev Mərkəzi", "Nərimanov", "museum", 40.3953, 49.8671, "Memarlıq və mədəniyyət sərgilərini kəşf et.", "nadir"),
         ("modern-art", "Müasir İncəsənət Muzeyi", "Yusif Səfərov küçəsi", "museum", 40.3805, 49.8545, "Azərbaycan müasir incəsənətinin seçilmiş nümunələrinə bax.", "adi"),
         ("literature-museum", "Nizami Gəncəvi adına Ədəbiyyat Muzeyi", "Fəvvarələr Meydanı", "museum", 40.3692, 49.8357, "Azərbaycan ədəbiyyatının irsini və klassik müəllifləri tanı.", "nadir"),
+        ("miniature-book-museum", "Miniatür Kitab Muzeyi", "İçərişəhər", "museum", 40.3667, 49.8346, "İçərişəhərdəki miniatür kitab kolleksiyasını kəşf et.", "nadir"),
         ("28-may", "28 May meydanı", "Mərkəz", "outdoor", 40.3792, 49.8467, "Şəhərin gündəlik ritmini açıq meydandan müşahidə et.", "adi"),
         ("bulvar", "Dənizkənarı Bulvar", "Sahil", "outdoor", 40.3659, 49.8401, "Xəzər sahilində şəhərin tarixini və gündəlik həyatını kəşf et.", "adi"),
         ("icherisheher", "İçərişəhər", "İçərişəhər", "outdoor", 40.3661, 49.8374, "Qala divarları və tarixi küçələri araşdır.", "epik"),
@@ -91,6 +92,10 @@ public static class DbSeeder
         }
         if (await db.Seasons.AnyAsync())
         {
+            await EnsureMissingCatalogDataAsync(db);
+            var demoUsers = await db.Users.Where(x => x.PasswordHash == "!seed-only!" && !x.IsDemo).ToListAsync();
+            foreach (var demoUser in demoUsers) demoUser.IsDemo = true;
+            if (demoUsers.Count > 0) await db.SaveChangesAsync();
             var currentTime = DateTimeOffset.UtcNow;
             var activeSeason = await db.Seasons.Where(x => x.StartsAtUtc <= currentTime && x.EndsAtUtc >= currentTime).OrderByDescending(x => x.StartsAtUtc).FirstOrDefaultAsync();
             if (activeSeason is not null) await EnsureDemoTerritorySeedsAsync(db, activeSeason.Id);
@@ -110,38 +115,7 @@ public static class DbSeeder
         var tasks = new List<GameTask>();
         foreach (var place in places)
         {
-            var outdoor = place.Type == "outdoor";
-            tasks.Add(new GameTask
-            {
-                Id = $"{place.Slug}-visit", PlaceId = place.Id, Code = "visit", Title = outdoor ? "Məkanı kəşf et" : "Eksponatı kəşf et",
-                Description = "Məkanın hekayəsini oxu və ilk izi tamamla.", Type = outdoor ? "find" : "qr_scan", Difficulty = "easy",
-                Xp = outdoor ? GameRules.OutdoorPinXp : GameRules.DifficultyXp[0], CoopSize = 0, NeedsReview = true,
-                Payload = JsonSerializer.Serialize(new { qrToken = "", answer = "", fact = "Bu tapşırığın məlumatı insan tərəfindən yoxlanmalıdır." }),
-            });
-            tasks.Add(new GameTask
-            {
-                Id = $"{place.Slug}-quiz", PlaceId = place.Id, Code = "quiz", Title = "Qısa bilik sualı",
-                Description = place.Description, Type = "quiz", Difficulty = "medium", Xp = GameRules.DifficultyXp[1], NeedsReview = true,
-                Payload = JsonSerializer.Serialize(new { question = $"{place.Name} hansı şəhərdə yerləşir?", answer = "bakı", fact = "Bakı Azərbaycanın paytaxtıdır." }),
-            });
-            tasks.Add(new GameTask
-            {
-                Id = $"{place.Slug}-vote", PlaceId = place.Id, Code = "vote", Title = "Sənin seçimin",
-                Description = "Məkanda ən çox diqqətini çəkən detalı seç.", Type = "vote", Difficulty = "easy", Xp = GameRules.DifficultyXp[0], NeedsReview = true,
-                Payload = JsonSerializer.Serialize(new { question = "Bu məkanda ən çox nə diqqətini çəkdi?", choices = new[] { "Memarlıq", "Tarix", "İncəsənət" } }),
-            });
-            tasks.Add(new GameTask
-            {
-                Id = $"{place.Slug}-challenge", PlaceId = place.Id, Code = "challenge", Title = "Usta kəşfiyyatçının izi",
-                Description = "Məkanı diqqətlə araşdır və tarixçədən bir detal tap.", Type = "find", Difficulty = "hard", Xp = GameRules.DifficultyXp[2], NeedsReview = true,
-                Payload = JsonSerializer.Serialize(new { question = "Məkanla bağlı bir memarlıq və ya tarix detalını təsvir et." }),
-            });
-            tasks.Add(new GameTask
-            {
-                Id = $"{place.Slug}-coop", PlaceId = place.Id, Code = "coop", Title = "Dostlarınla birlikdə kəşf et",
-                Description = "Eyni məkanda QR kodunu iki dəqiqə ərzində skan edin.", Type = "coop", Difficulty = "medium", Xp = GameRules.DifficultyXp[1], CoopSize = 3, NeedsReview = true,
-                Payload = JsonSerializer.Serialize(new { question = "Komanda ilə məkanda bir detal tap." }),
-            });
+            tasks.AddRange(CreateTasksForPlace(place));
         }
 
         var avatars = new[]
@@ -155,8 +129,8 @@ public static class DbSeeder
         var users = Names.Select((name, i) => new AppUser
         {
             Id = $"seed-{i + 1:D2}", Name = name, Email = $"student{i + 1:D2}@example.invalid",
-            PasswordHash = "!seed-only!", UniversityId = Universities[i / 5].Id, AvatarId = avatars[i % 5].Id,
-            VisitedMuseumLast12Months = i % 3 == 0, CreatedAtUtc = now.AddDays(-40 - i),
+            PasswordHash = "!seed-only!", UniversityId = SeedUniversityId(i), AvatarId = avatars[i % 5].Id,
+            VisitedMuseumLast12Months = i % 3 == 0, IsDemo = true, CreatedAtUtc = now.AddDays(-40 - i),
         }).ToList();
         var souvenirs = places.Select((place, i) => new Souvenir { Id = $"souvenir-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = place.Name, Rarity = place.Rarity }).ToList();
 
@@ -171,7 +145,7 @@ public static class DbSeeder
 
         // Each seeded score comes from distinct task completions, never from an arbitrary XP total.
         var placeById = places.ToDictionary(x => x.Id);
-        var territoryDemoPlaces = new HashSet<string>(StringComparer.Ordinal) { "carpet-museum", "national-history" };
+        var territoryDemoPlaces = Places.Where(x => x.Type == "museum").Select(x => x.Slug).ToHashSet(StringComparer.Ordinal);
         var leaderboardTasks = tasks.Where(x => x.Type != "coop" && !territoryDemoPlaces.Contains(placeById[x.PlaceId].Slug)).ToList();
         foreach (var user in users)
         {
@@ -192,10 +166,11 @@ public static class DbSeeder
     private static async Task EnsureDemoTerritorySeedsAsync(AppDbContext db, string seasonId)
     {
         var seedUsers = await db.Users.Where(x => x.PasswordHash == "!seed-only!").ToDictionaryAsync(x => x.Id);
-        if (!seedUsers.ContainsKey("seed-06") || !seedUsers.ContainsKey("seed-21") || !seedUsers.ContainsKey("seed-22")) return;
+        if (!seedUsers.ContainsKey("seed-01") || !seedUsers.ContainsKey("seed-06") || !seedUsers.ContainsKey("seed-11") || !seedUsers.ContainsKey("seed-16") || !seedUsers.ContainsKey("seed-21") || !seedUsers.ContainsKey("seed-22") || !seedUsers.ContainsKey("seed-30") || !seedUsers.ContainsKey("seed-34") || !seedUsers.ContainsKey("seed-38")) return;
 
-        var places = await db.Places.Where(x => x.Slug == "carpet-museum" || x.Slug == "national-history").ToListAsync();
-        if (places.Count != 2) return;
+        var placeSlugs = Places.Where(x => x.Type == "museum").Select(x => x.Slug).ToArray();
+        var places = await db.Places.Where(x => placeSlugs.Contains(x.Slug)).ToListAsync();
+        if (places.Count != placeSlugs.Length) return;
         var placeIds = places.Select(x => x.Id).ToArray();
         var tasks = await db.Tasks.Where(x => placeIds.Contains(x.PlaceId) && x.Type != "coop").ToListAsync();
         var taskById = tasks.ToDictionary(x => x.Id);
@@ -206,6 +181,14 @@ public static class DbSeeder
             new DemoTerritoryTask("seed-06", "carpet-museum-visit", false),
             new DemoTerritoryTask("seed-21", "national-history-visit", false),
             new DemoTerritoryTask("seed-06", "national-history-quiz", true),
+            new DemoTerritoryTask("seed-11", "heydar-aliyev-quiz", true),
+            new DemoTerritoryTask("seed-16", "heydar-aliyev-visit", false),
+            new DemoTerritoryTask("seed-01", "modern-art-quiz", true),
+            new DemoTerritoryTask("seed-11", "modern-art-visit", false),
+            new DemoTerritoryTask("seed-30", "literature-museum-quiz", true),
+            new DemoTerritoryTask("seed-34", "literature-museum-visit", false),
+            new DemoTerritoryTask("seed-34", "miniature-book-museum-quiz", true),
+            new DemoTerritoryTask("seed-38", "miniature-book-museum-visit", false),
         };
         if (expected.Any(x => !taskById.ContainsKey(x.TaskId))) return;
 
@@ -231,6 +214,78 @@ public static class DbSeeder
             db.XpEvents.Add(new XpEvent { UserId = item.UserId, SeasonId = seasonId, PlaceId = task.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = completedAt });
             if (places.First(x => x.Id == task.PlaceId).Type == "museum") seedUsers[item.UserId].FirstMuseumVisitCompleted = true;
         }
+        await db.SaveChangesAsync();
+    }
+
+    private static string SeedUniversityId(int index) => index switch
+    {
+        < 5 => "bdu",
+        < 10 => "ada",
+        < 15 => "unec",
+        < 20 => "aztu",
+        < 28 => "adnsu",
+        < 32 => "atmu",
+        < 36 => "khazar",
+        _ => "atu",
+    };
+
+    private static List<GameTask> CreateTasksForPlace(Place place)
+    {
+        var outdoor = place.Type == "outdoor";
+        return
+        [
+            new GameTask
+            {
+                Id = $"{place.Slug}-visit", PlaceId = place.Id, Code = "visit", Title = outdoor ? "Məkanı kəşf et" : "Eksponatı kəşf et",
+                Description = "Məkanın hekayəsini oxu və ilk izi tamamla.", Type = outdoor ? "find" : "qr_scan", Difficulty = "easy",
+                Xp = outdoor ? GameRules.OutdoorPinXp : GameRules.DifficultyXp[0], CoopSize = 0, NeedsReview = true,
+                Payload = JsonSerializer.Serialize(new { qrToken = "", answer = "", fact = "Bu tapşırığın məlumatı insan tərəfindən yoxlanmalıdır." }),
+            },
+            new GameTask
+            {
+                Id = $"{place.Slug}-quiz", PlaceId = place.Id, Code = "quiz", Title = "Qısa bilik sualı",
+                Description = place.Description, Type = "quiz", Difficulty = "medium", Xp = GameRules.DifficultyXp[1], NeedsReview = true,
+                Payload = JsonSerializer.Serialize(new { question = $"{place.Name} hansı şəhərdə yerləşir?", answer = "bakı", fact = "Bakı Azərbaycanın paytaxtıdır." }),
+            },
+            new GameTask
+            {
+                Id = $"{place.Slug}-vote", PlaceId = place.Id, Code = "vote", Title = "Sənin seçimin",
+                Description = "Məkanda ən çox diqqətini çəkən detalı seç.", Type = "vote", Difficulty = "easy", Xp = GameRules.DifficultyXp[0], NeedsReview = true,
+                Payload = JsonSerializer.Serialize(new { question = "Bu məkanda ən çox nə diqqətini çəkdi?", choices = new[] { "Memarlıq", "Tarix", "İncəsənət" } }),
+            },
+            new GameTask
+            {
+                Id = $"{place.Slug}-challenge", PlaceId = place.Id, Code = "challenge", Title = "Usta kəşfiyyatçının izi",
+                Description = "Məkanı diqqətlə araşdır və tarixçədən bir detal tap.", Type = "find", Difficulty = "hard", Xp = GameRules.DifficultyXp[2], NeedsReview = true,
+                Payload = JsonSerializer.Serialize(new { question = "Məkanla bağlı bir memarlıq və ya tarix detalını təsvir et." }),
+            },
+            new GameTask
+            {
+                Id = $"{place.Slug}-coop", PlaceId = place.Id, Code = "coop", Title = "Dostlarınla birlikdə kəşf et",
+                Description = "Eyni məkanda QR kodunu iki dəqiqə ərzində skan edin.", Type = "coop", Difficulty = "medium", Xp = GameRules.DifficultyXp[1], CoopSize = 3, NeedsReview = true,
+                Payload = JsonSerializer.Serialize(new { question = "Komanda ilə məkanda bir detal tap." }),
+            },
+        ];
+    }
+
+    private static async Task EnsureMissingCatalogDataAsync(AppDbContext db)
+    {
+        var existingSlugs = await db.Places.Select(x => x.Slug).ToListAsync();
+        var missing = Places.Where(x => !existingSlugs.Contains(x.Slug)).Select((x, index) => new Place
+        {
+            Id = $"place-{x.Slug}", Slug = x.Slug, Name = x.Name, District = x.District, Type = x.Type,
+            Latitude = x.Lat, Longitude = x.Lng, RadiusMeters = x.Type == "museum" ? 60 : 50,
+            Description = x.Description, Rarity = x.Rarity, IsOpen = Array.IndexOf(Places.Select(p => p.Slug).ToArray(), x.Slug) < 8,
+        }).ToList();
+        if (missing.Count == 0) return;
+
+        db.Places.AddRange(missing);
+        await db.SaveChangesAsync();
+        db.Tasks.AddRange(missing.SelectMany(CreateTasksForPlace));
+        var seasons = await db.Seasons.ToListAsync();
+        db.Souvenirs.AddRange(from place in missing
+                              from season in seasons
+                              select new Souvenir { Id = $"souvenir-{season.Id}-{place.Slug}", PlaceId = place.Id, SeasonId = season.Id, Name = place.Name, Rarity = place.Rarity });
         await db.SaveChangesAsync();
     }
 
