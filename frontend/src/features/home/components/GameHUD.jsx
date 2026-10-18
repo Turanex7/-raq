@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import useApiResource from "../../../services/useApiResource";
 import { Compass, Map, Trophy, Zap } from "lucide-react";
+import Avatar from "../../gamification/components/Avatar";
 import styles from "../HomePage.module.scss";
 
 export default function GameHUD() {
@@ -11,7 +12,7 @@ export default function GameHUD() {
       <div className={styles.hudTop}>
         <span className={styles.hudStatus}><span className={styles.liveDot} />Kəşf rejimi</span>
         <div className={styles.hudPlayer}>
-          <span className={styles.hudAvatar}>{apiUser?.name?.slice(0, 1) || "Ç"}</span>
+          <Avatar avatarId={apiUser?.avatarId} avatarName={apiUser?.avatarId ? undefined : "Çıraq"} size={29} className={styles.hudAvatar}/>
           <span><b>{apiUser ? `Səviyyə ${apiUser.level}` : <Link to="/login">Daxil ol</Link>}</b>{apiUser && <small><Zap size={10} /> Ümumi XP · {apiUser.lifetimeXp}</small>}</span>
         </div>
       </div>

@@ -11,7 +11,7 @@
 .worldTitle h1 { margin: 10px 0 8px; color: $text; font-size: clamp(28px, 4vw, 52px); letter-spacing: -.07em; line-height: .94; }
 .worldTitle p { margin: 0; color: rgba($text, .65); font-size: 12px; }
 .progressHud { display: flex; align-items: center; gap: 10px; min-width: 190px; padding: 10px 13px; color: $text; border: 1px solid rgba($mint, .18); border-radius: 12px; background: rgba($navy, .72); box-shadow: 0 14px 35px rgba(#000, .2); backdrop-filter: blur(14px); }
-.avatar { display: grid; place-items: center; width: 30px; height: 30px; color: $navy; border-radius: 50%; background: $mint; font-weight: 900; }
+.avatar { border-color: rgba($mint, .55); }
 .progressHud b { display: block; margin-bottom: 6px; font-size: 11px; }
 .xpLine { display: flex; align-items: center; gap: 5px; color: $gold; font-size: 10px; }
 .xpLine i { display: block; width: 64px; height: 4px; overflow: hidden; border-radius: 20px; background: rgba($text, .16); }

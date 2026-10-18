@@ -1,0 +1,48 @@
+@use "../../../styles/variables" as *;
+
+.avatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--avatar-size, 40px);
+  height: var(--avatar-size, 40px);
+  flex: 0 0 var(--avatar-size, 40px);
+  overflow: hidden;
+  border: 1px solid rgba($mint, .28);
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba($mint, .2), rgba($purple, .7));
+  color: $mint;
+  vertical-align: middle;
+
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+  }
+}
+
+.fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  font-size: calc(var(--avatar-size, 40px) * .42);
+  font-weight: 850;
+}
+
+.locked img {
+  filter: grayscale(1);
+  opacity: .42;
+}
+
+.lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: $text;
+  background: rgba($navy, .38);
+}

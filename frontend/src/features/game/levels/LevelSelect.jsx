@@ -4,6 +4,7 @@ import { useState } from "react";
 import WorldMap from "../components/WorldMap";
 import useApiResource from "../../../services/useApiResource";
 import { levelRegistry } from "./levelRegistry";
+import Avatar from "../../gamification/components/Avatar";
 import styles from "./LevelSelect.module.scss";
 
 export default function LevelSelect() {
@@ -31,7 +32,7 @@ export default function LevelSelect() {
             <p>Şəhərlərin hekayəsini aç, növbəti səviyyəyə yol sal.</p>
           </div>
           {user ? <div className={styles.progressHud}>
-            <span className={styles.avatar}>{user.name?.slice(0, 1) || "Ç"}</span>
+            <Avatar avatarId={user.avatarId} size={30} className={styles.avatar}/>
             <div><b>{user.name} · Səviyyə {user.level}</b><span className={styles.xpLine}>Ümumi XP · {user.lifetimeXp}</span></div>
           </div> : <Link to="/login" className={styles.progressHud}>Daxil ol</Link>}
         </header>

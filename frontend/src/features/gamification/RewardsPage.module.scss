@@ -5,7 +5,7 @@
   margin: 0 auto;
   padding: 28px 0 42px;
 }
-.adi{border-color:rgba($text-secondary,.2)}.nadir{border-color:rgba($mint,.45)}.epik{border-color:rgba($gold,.55)}.empty{padding:18px;border:1px dashed rgba($mint,.25);border-radius:12px;color:$text-secondary}.avatarName{display:inline-block;margin:6px 7px 0 0;padding:5px 8px;border-radius:8px;color:$mint;background:rgba($mint,.08);font-size:11px}
+.adi{border-color:rgba($text-secondary,.2)}.nadir{border-color:rgba($mint,.45)}.epik{border-color:rgba($gold,.55)}.empty{padding:18px;border:1px dashed rgba($mint,.25);border-radius:12px;color:$text-secondary}.avatarCollection{display:flex;flex-wrap:wrap;gap:7px}.avatarName{display:inline-flex;align-items:center;gap:7px;margin:6px 7px 0 0;padding:5px 8px;border-radius:99px;color:$mint;background:rgba($mint,.08);font-size:11px}
 
 .header {
   margin-bottom: 24px;

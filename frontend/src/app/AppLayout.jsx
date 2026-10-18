@@ -3,6 +3,7 @@ import { Compass, Crown, Map, UserRound, Zap, GalleryVerticalEnd, LogOut } from 
 import { NavLink, Outlet, Link, useLocation } from "react-router-dom";
 import useApiResource from "../services/useApiResource";
 import XpExplainer from "../features/gamification/components/XpExplainer";
+import Avatar from "../features/gamification/components/Avatar";
 import styles from "./AppLayout.module.scss";
 
 const navigation = [
@@ -63,7 +64,7 @@ export default function AppLayout() {
           {navigation.map((item) => <NavigationLink key={item.to} item={item} pathname={location.pathname} />)}
         </nav>
         <Link to={isAuthenticated ? "/profile" : "/login"} className={styles.profilePill} aria-label={isAuthenticated ? "Profilə keç" : "Daxil ol"}>
-          <span className={styles.profileAvatar}>{apiUser?.name?.slice(0, 1) || "Ç"}</span>
+          <Avatar avatarId={apiUser?.avatarId} avatarName={apiUser?.avatarId ? undefined : "Çıraq"} size={28} className={styles.profileAvatar}/>
           <span><b>{isAuthenticated ? `Səviyyə ${level}` : "Daxil ol"}</b></span>
         </Link>
         {isAuthenticated && <XpExplainer className={styles.xpHelp}>

@@ -59,13 +59,15 @@
 
 .row {
   display: grid;
-  grid-template-columns: 44px 1fr auto;
+  grid-template-columns: 44px 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   background: $surface;
   border-radius: $radius-card;
   padding: 14px 16px;
 }
+.rowAvatar { border-color: rgba($mint, .38); }
+.avatarSpacer { display: block; width: 40px; height: 40px; }
 
 .me {
   outline: 1px solid $primary;
@@ -140,7 +142,7 @@
   }
   .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
   .tabs button { min-width: 0; font-size: 11px; }
-  .row { grid-template-columns: 36px minmax(0, 1fr) auto; gap: 8px; padding: 11px 10px; }.me { top: 68px; }
+  .row { grid-template-columns: 32px 40px minmax(0, 1fr) auto; gap: 8px; padding: 11px 10px; }.avatarSpacer { width: 40px; height: 40px; }.me { top: 68px; }
   .rank { width: 32px; height: 32px; }
   .info span { font-size: 11px; }
   .xp b { font-size: 13px; }

@@ -3,6 +3,7 @@ import { GraduationCap, LockKeyhole, UserRoundPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiPost, apiRequest } from "../../services/api";
 import styles from "./LoginPage.module.scss";
+import Avatar from "./components/Avatar";
 
 export default function LoginPage() {
   const [mode, setMode] = useState("register");
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [optionsAttempt, setOptionsAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
+  const selectedAvatar = avatars.find((item) => item.id === avatarId);
 
   useEffect(() => {
     let active = true;
@@ -64,6 +66,7 @@ export default function LoginPage() {
           {universities.map((uni) => <option key={uni.id} value={uni.id}>{uni.name}</option>)}
         </select></label>
         <label>Avatar<select value={avatarId} onChange={(event) => setAvatarId(event.target.value)} disabled={optionsLoading || !avatars.length}>{avatars.map((avatar) => <option key={avatar.id} value={avatar.id} disabled={avatar.unlock_level > 1}>{avatar.name}{avatar.unlock_level > 1 ? ` · ${avatar.unlock_level}-ci səviyyədə açılır` : ""}</option>)}</select></label>
+        {selectedAvatar && <div className={styles.avatarPreview}><Avatar avatarId={selectedAvatar.id} avatarName={selectedAvatar.name} size={48}/><span>{selectedAvatar.name}</span></div>}
         <label>Son 12 ayda muzeyə getmisən?<select value={visited} onChange={(event) => setVisited(event.target.value)}><option value="">Cavab vermək istəmirəm</option><option value="yes">Bəli</option><option value="no">Xeyr</option></select></label>
       </>}
       <label>Universitet e-poçtu<input type="email" placeholder="ad@universitet.edu.az" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email"/></label>
