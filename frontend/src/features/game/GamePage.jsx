@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { ArrowLeft, Check, HelpCircle, X } from "lucide-react";
+import { Component, lazy, Suspense, useEffect, useRef, useState } from "react";
+import { ArrowLeft, Check, HelpCircle, Sparkles, X } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import Inventory from "./components/Inventory";
 import LevelComplete from "./components/LevelComplete";
@@ -7,9 +7,7 @@ import QuestHUD from "./components/QuestHUD";
 import CarpetMuseumLevel from "./levels/CarpetMuseumLevel";
 import LevelSelect from "./levels/LevelSelect";
 import { getLevel, LEVEL_IDS } from "./levels/levelRegistry";
-import { completeLevel, getGameProgress } from "./state/gameStore";
-import { GAME_CONFIG } from "../gamification/gameConfig";
-import { addLifetimeXp, useGame } from "../gamification/gameStore";
+import { completeLevel } from "./state/gameStore";
 import styles from "./GamePage.module.scss";
 
 const GameWorld = lazy(() => import("./components/GameWorld"));
@@ -70,17 +68,43 @@ function MobileControls({ onChange }) {
   );
 }
 
+class SceneErrorBoundary extends Component {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+function supportsWebGL() {
+  try {
+    if (typeof document === "undefined") return false;
+    const canvas = document.createElement("canvas");
+    return Boolean(canvas.getContext("webgl2") || canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+  } catch {
+    return false;
+  }
+}
+
+function SceneFallback() {
+  return <div className={styles.webglFallback} role="alert"><Sparkles size={25}/><h2>3D səhnə açıla bilmədi</h2><p>WebGL dəstəyini yoxla və səhifəni yenilə. Xəritə bu brauzerdə işləməyə bilər.</p><button type="button" onClick={() => window.location.reload()}>Yenidən yüklə</button></div>;
+}
+
 export default function GamePage() {
   const { levelId } = useParams();
   if (!levelId) return <LevelSelect />;
-  if (levelId !== LEVEL_IDS.ICHERISHEHER) return <CarpetMuseumLevel />;
+  if (levelId !== LEVEL_IDS.ICHERISHEHER) return <CarpetMuseumLevel levelId={levelId} />;
   return <PlayableIcherisheher />;
 }
 
 function PlayableIcherisheher() {
-  const game = useGame();
-  const player = game.users.find((user) => user.id === game.currentUserId);
   const level = getLevel(LEVEL_IDS.ICHERISHEHER);
+  const playerRef = useRef(null);
+  const controlsRef = useRef(null);
   const [phase, setPhase] = useState("world");
   const [artifactCollected, setArtifactCollected] = useState(false);
   const [canInteract, setCanInteract] = useState(false);
@@ -88,8 +112,7 @@ function PlayableIcherisheher() {
   const [mobileInput, setMobileInput] = useState({ forward: false, backward: false, left: false, right: false });
   const [paused, setPaused] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const xp = player.xp;
-  const [completeXp, setCompleteXp] = useState(GAME_CONFIG.levelRewards.icherisheher);
+  const [webglAvailable] = useState(supportsWebGL);
   const [reducedMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
   useEffect(() => {
@@ -99,18 +122,18 @@ function PlayableIcherisheher() {
   }, []);
 
   const collectArtifact = () => { if (!canInteract || artifactCollected || paused) return; setArtifactCollected(true); setPhase("quiz"); };
-  const finishQuiz = (score) => { const alreadyCompleted = getGameProgress().completedLevels.includes(LEVEL_IDS.ICHERISHEHER); const reward = score === questions.length ? GAME_CONFIG.levelRewards.icherisheher : 0; setCompleteXp(reward); completeLevel(LEVEL_IDS.ICHERISHEHER, reward, "maiden-tower-light"); if (!alreadyCompleted) addLifetimeXp(reward); setPhase("complete"); };
+  const finishQuiz = () => { completeLevel(LEVEL_IDS.ICHERISHEHER, "maiden-tower-light"); setPhase("complete"); };
 
   if (phase === "quiz") return <QuizPanel onComplete={finishQuiz} />;
-  if (phase === "complete") return <LevelComplete xp={completeXp} artifactName="Qız Qalasının işığı" nextLevelUnlocked />;
+  if (phase === "complete") return <LevelComplete artifactName="Qız Qalasının işığı" nextLevelUnlocked />;
 
   return (
     <section className={styles.gameShell}>
       <div className={styles.worldViewport}>
-        <Suspense fallback={<div className={styles.gameLoading}>İçərişəhər səviyyəsi yüklənir...</div>}><GameWorld playerPosition={playerPosition} mobileInput={mobileInput} artifactCollected={artifactCollected} canInteract={canInteract} onNearby={setCanInteract} onPositionChange={setPlayerPosition} onCollect={collectArtifact} isPaused={paused} reducedMotion={reducedMotion} /></Suspense>
+        {!webglAvailable ? <SceneFallback/> : <SceneErrorBoundary fallback={<SceneFallback/>}><Suspense fallback={<div className={styles.gameLoading}>İçərişəhər səviyyəsi yüklənir...</div>}><GameWorld playerRef={playerRef} controlsRef={controlsRef} playerPosition={playerPosition} mobileInput={mobileInput} artifactCollected={artifactCollected} canInteract={canInteract} onNearby={setCanInteract} onPositionChange={setPlayerPosition} onCollect={collectArtifact} isPaused={paused} reducedMotion={reducedMotion} /></Suspense></SceneErrorBoundary>}
         <div className={styles.gameOverlay}>
           <Link to="/game" className={styles.exitGame}><ArrowLeft size={16} />Səviyyələr</Link>
-          <QuestHUD level={level} xp={xp} artifactCollected={artifactCollected} canInteract={canInteract} paused={paused} onPause={() => setPaused((current) => !current)} onHelp={() => setShowHelp(true)} />
+          <QuestHUD level={level} artifactCollected={artifactCollected} canInteract={canInteract} paused={paused} onPause={() => setPaused((current) => !current)} onHelp={() => setShowHelp(true)} />
           <Inventory artifactCollected={artifactCollected} />
           <MobileControls onChange={(key, value) => setMobileInput((current) => ({ ...current, [key]: value }))} />
         </div>

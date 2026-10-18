@@ -59,7 +59,9 @@ function CameraFocus({ target }) {
   return null;
 }
 
-function WorldContents({ selected, onSelect }) {
+function WorldContents({ selected, onSelect, places }) {
+  const mainPlace = places.find((place) => place.slug === "icherisheher") || places[0];
+  const markerPlaces = places.filter((place) => place.slug !== mainPlace?.slug).slice(0, 2);
   return (
     <>
       <ambientLight intensity={0.7} color="#a79dcc" />
@@ -67,9 +69,8 @@ function WorldContents({ selected, onSelect }) {
       <pointLight position={[0, 3, 1]} intensity={1.5} color="#6c4bd6" distance={9} />
       <Stars radius={14} depth={10} count={380} factor={1.7} saturation={0.2} fade speed={0.4} />
       <Sparkles count={80} scale={[10, 3, 9]} size={1.6} speed={0.25} color="#a0e4c9" />
-      <MaidenTower selected={selected === "maiden-tower"} onSelect={() => onSelect("maiden-tower")} />
-      <QuestMarker position={[-2.35, 1.75, -1.25]} label="Xalça Muzeyi" onClick={() => onSelect("carpet-museum")} />
-      <QuestMarker position={[2.9, 1.2, 0.65]} label="Yeni iz" onClick={() => onSelect("history")} />
+      {mainPlace && <MaidenTower selected={selected === mainPlace.slug} onSelect={() => onSelect(mainPlace.slug)} />}
+      {markerPlaces.map((place, index) => <QuestMarker key={place.id} position={index === 0 ? [-2.35, 1.75, -1.25] : [2.9, 1.2, 0.65]} label={place.name} onClick={() => onSelect(place.slug)} />)}
       <Lantern position={[-2.3, 0, 0.6]} />
       <Lantern position={[2.2, 0, -1.5]} />
       <Tree position={[-3.3, 0, -0.4]} />
@@ -79,7 +80,7 @@ function WorldContents({ selected, onSelect }) {
   );
 }
 
-export default function AdventureWorld({ selected, onSelect, reducedMotion = false }) {
+export default function AdventureWorld({ selected, onSelect, places = [], reducedMotion = false }) {
   return (
     <Canvas
       shadows={reducedMotion ? false : "basic"}
@@ -89,8 +90,8 @@ export default function AdventureWorld({ selected, onSelect, reducedMotion = fal
       onPointerMissed={() => onSelect(null)}
     >
       <Suspense fallback={null}>
-        <WorldContents selected={selected} onSelect={onSelect} />
-        <CameraFocus target={selected === "maiden-tower"} />
+        <WorldContents selected={selected} onSelect={onSelect} places={places} />
+        <CameraFocus target={selected === "icherisheher"} />
         <OrbitControls
           makeDefault
           enablePan={false}

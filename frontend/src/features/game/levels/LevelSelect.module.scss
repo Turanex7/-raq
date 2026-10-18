@@ -37,6 +37,7 @@
 .controlHint b { padding: 4px 6px; color: $navy; border-radius: 5px; background: rgba($text, .74); font-size: 8px; letter-spacing: .08em; }
 .worldStatus { display: flex; align-items: center; gap: 7px; }
 .worldStatus i { width: 7px; height: 7px; border-radius: 50%; background: $mint; box-shadow: 0 0 11px rgba($mint, .8); }
+.loadError { position: absolute; right: 24px; bottom: 55px; margin: 0; padding: 10px 12px; color: $text; border: 1px solid rgba($gold, .35); border-radius: 9px; background: rgba($navy, .88); font-size: 11px; }
 .mapLabel { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 94px; padding: 6px 8px; color: rgba($text, .66); border: 1px solid transparent; border-radius: 7px; background: rgba($navy, .52); box-shadow: 0 5px 15px rgba(#000, .18); font-size: 9px; font-weight: 800; white-space: nowrap; transform: translateY(-3px); transition: .2s ease; }
 .mapLabelActive { color: $text; border-color: rgba($mint, .4); background: rgba($navy, .84); transform: translateY(-6px) scale(1.04); }
 .mapLabelLocked { color: rgba($text, .4); }
@@ -49,7 +50,7 @@
   .worldTitle h1 { max-width: 270px; margin-top: 7px; font-size: 30px; }
   .worldTitle p { max-width: 250px; font-size: 10px; }
   .progressHud { position: absolute; top: 0; right: 0; min-width: 0; padding: 7px; }
-  .progressHud > div { display: none; }
+  .progressHud > div { display: block; }
   .missionPanel { top: auto; right: 12px; bottom: 55px; left: 12px; width: auto; padding: 14px 15px; transform: none; }
   .missionNumber { position: absolute; top: 15px; right: 40px; margin: 0; }
   .panelKicker { margin-bottom: 7px; font-size: 9px; }
@@ -59,6 +60,7 @@
   .bottomHud { right: 14px; bottom: 13px; left: 14px; }
   .controlHint { display: none; }
   .worldStatus { margin-left: auto; }
+  .loadError { right: 14px; bottom: 82px; left: 14px; }
   .mapLabel { min-width: 76px; font-size: 8px; }
 }
 

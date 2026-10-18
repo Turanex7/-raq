@@ -1,23 +1,18 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Clock3, QrCode, Sparkles, Users, Zap } from "lucide-react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { apiRequest, apiPost, useMocks } from "../../services/api";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { apiRequest, apiPost } from "../../services/api";
 import ShareCardButton from "./ShareCardButton";
 import styles from "./ContentPages.module.scss";
 
 export default function QuestDetailPage() {
-  if (!useMocks) return <ApiTaskPlayer/>;
-  return <MockQuestDetail/>;
-}
-
-function MockQuestDetail() {
-  const { id } = useParams();
-  return <section className={styles.page}><h1>Tapşırıq: {id}</h1><p>Demo rejimində həftəlik xəritədən tapşırığı seç.</p><Link to="/map" className={styles.action}>Xəritəyə qayıt</Link></section>;
+  return <ApiTaskPlayer />;
 }
 
 function ApiTaskPlayer() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [search] = useSearchParams();
   const slug = search.get("place");
   const returnedSessionId = search.get("sessionId");
@@ -26,9 +21,7 @@ function ApiTaskPlayer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [answer, setAnswer] = useState("");
-  const [result, setResult] = useState(() => {
-    try { const saved = JSON.parse(sessionStorage.getItem("chiraq_last_completion") || "null"); return saved?.taskId === id ? saved.data : null; } catch { return null; }
-  });
+  const [result, setResult] = useState(location.state?.completion || null);
   const [session, setSession] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -70,7 +63,6 @@ function ApiTaskPlayer() {
     try {
       const response = await apiPost(`/tasks/${encodeURIComponent(task.id)}/complete`, { answer: value });
       setResult(response);
-      sessionStorage.setItem("chiraq_last_completion", JSON.stringify({ taskId: task.id, data: response }));
       window.dispatchEvent(new Event("chiraq:xp-updated"));
       const refreshed = await apiRequest(`/places/${encodeURIComponent(place.slug)}`);
       setTask(refreshed.tasks.find((item) => item.id === task.id));

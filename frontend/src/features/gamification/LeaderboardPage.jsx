@@ -1,38 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Info, Trophy } from "lucide-react";
-import { applyTieBreak, rankUniversities } from "./gameLogic";
-import { GAME_CONFIG } from "./gameConfig";
-import { useGame } from "./gameStore";
 import styles from "./LeaderboardPage.module.scss";
-import { useMocks, apiPost, apiRequest } from "../../services/api";
-import { useEffect } from "react";
+import { apiPost, apiRequest } from "../../services/api";
 import useApiResource from "../../services/useApiResource";
 import { Link, useSearchParams } from "react-router-dom";
 
 const tabs = [["overall", "Ümumi"], ["mine", "Universitetim"], ["universities", "Universitet Liqası"], ["open", "Açıq liqa"]];
 export default function LeaderboardPage() {
-  if (!useMocks) return <ApiLeaderboard/>;
-  return <MockLeaderboard/>;
-}
-
-function MockLeaderboard() {
-  const [search] = useSearchParams();
-  const [type, setType] = useState(search.get("tab") === "open" ? "open" : "overall"); const [info, setInfo] = useState(false); const game = useGame();
-  const me = game.users.find((user) => user.id === game.currentUserId);
-  const people = useMemo(() => applyTieBreak(game.users.filter((user) => type === "mine" ? user.university === me.university : type === "open" ? user.university === "Açıq liqa" : true)), [game.users, me.university, type]);
-  const universities = useMemo(() => rankUniversities(game.users), [game.users]);
-  const rows = type === "universities" ? universities : people;
-  const visibleRows = rows.slice(0, 20);
-  const currentRow = type === "universities" ? null : rows.find((row) => row.id === me.id);
-  if (currentRow && !visibleRows.some((row) => row.id === currentRow.id)) visibleRows.push(currentRow);
-  return <section className={styles.page}><header className={styles.header}><h1>Liderlər</h1><p>{type === "universities" ? "Xal = ən aktiv üzvlərin orta həftəlik XP-si, ona görə kiçik universitet də qalib ola bilər." : "Bu həftənin kəşfçiləri və universitetləri"}</p></header>
-    <div className={styles.tabs} role="tablist">{tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={type === id} className={type === id ? styles.active : ""} onClick={() => setType(id)}>{label}</button>)}</div>
-    {type === "universities" && <div className={styles.infoNote}><Info size={16}/>Bal ən aktiv {GAME_CONFIG.universityRanking.topMembers} iştirakçının həftəlik XP ortalamasıdır. Liqaya düşmək üçün ən azı {GAME_CONFIG.universityRanking.minimumActive} aktiv iştirakçı lazımdır.<button type="button" onClick={() => setInfo(!info)}>Ətraflı</button></div>}
-    {info && <div className={styles.infoNote}>Bərabərlikdə əvvəl düzgün viktorina cavablarının sayı, sonra xala daha tez çatma vaxtı nəzərə alınır. Universitet liderinə kubok və tələbə şurası tədbiri təqdim olunur.</div>}
-    {type === "universities" && <div className={styles.collective}><Trophy size={20}/> Lider universitet üçün kubok + tələbə şurası tədbiri</div>}
-    {rows.length === 0 ? <BoardEmpty type={type} openLeagueControls={false} /> : <ol className={styles.list}>{visibleRows.map((row) => { const i = rows.indexOf(row); const isUniversity = type === "universities"; const isMe = !isUniversity && row.id === me.id; const title = isUniversity ? row.university : publicName(row.name); const change = rankChange(row.changeVsLastWeek); const territoryText = row.territoryCount == null ? "Ərazi sayı: məlumat yoxdur" : `${row.territoryCount} ərazi`; const subtitle = isUniversity ? row.eligible ? `${row.memberCount} iştirakçı · ${territoryText} · ${change}` : `${row.memberCount} iştirakçı · Reytinq üçün kifayət qədər iştirakçı yoxdur` : row.university; const score = isUniversity ? row.xp : row.weeklyXp ?? row.xp; return <li key={isUniversity ? row.university : row.id} className={`${styles.row} ${isMe ? styles.me : ""} ${isUniversity && !row.eligible ? styles.inactive : ""}`}><span className={`${styles.rank} ${styles[`rank${i + 1}`] || ""}`}>{row.eligible === false ? "—" : i + 1}</span><div className={styles.info}><strong>{title}{isMe ? " (sən)" : ""}</strong><span>{subtitle}</span></div><div className={styles.xp}><b>{score.toLocaleString("az-AZ")}</b><span>{isUniversity ? "orta həftəlik XP" : "həftəlik XP"}</span></div></li>; })}</ol>}
-    <p className={styles.tie}>Bərabərlik: düzgün cavablar, sonra xala daha tez çatan iştirakçı.</p>
-  </section>;
+  return <ApiLeaderboard />;
 }
 
 function ApiLeaderboard() {
@@ -79,7 +54,7 @@ function ApiLeaderboard() {
   if (currentRow && !visibleRows.some((row) => row.current)) visibleRows.push(currentRow);
   return <section className={styles.page}><header className={styles.header}><h1>Liderlər</h1><p>{type === "universities" ? "Xal = ən aktiv üzvlərin orta həftəlik XP-si, ona görə kiçik universitet də qalib ola bilər." : "Həftəlik mövsümün fərdi və komanda nəticələri"}</p></header>
     <div className={styles.tabs} role="tablist">{tabs.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={type === id} className={type === id ? styles.active : ""} onClick={() => setType(id)}>{label}</button>)}</div>
-    {type === "universities" && <div className={styles.infoNote}><Info size={16}/>Bal ən aktiv {config?.university_ranking?.top_members ?? GAME_CONFIG.universityRanking.topMembers} iştirakçının orta həftəlik XP-sidir. Reytinq üçün minimum {config?.university_ranking?.minimum_active ?? GAME_CONFIG.universityRanking.minimumActive} aktiv iştirakçı lazımdır.</div>}
+    {type === "universities" && (config?.university_ranking ? <div className={styles.infoNote}><Info size={16}/>Bal ən aktiv {config.university_ranking.top_members} iştirakçının orta həftəlik XP-sidir. Reytinq üçün minimum {config.university_ranking.minimum_active} aktiv iştirakçı lazımdır.</div> : <p className={styles.infoNote} role="status">Liqanın qaydaları yüklənir…</p>)}
     {data?.my_message && <p className={styles.infoNote} role="status">{data.my_message}</p>}
     {loading && <p role="status" className={styles.infoNote}>Reytinq yüklənir…</p>}
     {error && <div className={styles.infoNote} role="alert">{error}<button type="button" onClick={retry}>Yenidən yoxla</button></div>}
@@ -104,7 +79,7 @@ function BoardEmpty({ type, message = "Bu həftə üçün nəticə yoxdur.", ope
   return <div className={styles.empty}>
     <b>{type === "mine" ? message : isOpenLeague ? "Açıq liqada hələ nəticə yoxdur." : message}</b>
     <p>{isOpenLeague ? "Dostlarınla qrup yaradıb dəvət kodunu paylaş." : "Xəritədə tapşırıq tamamla, həftəlik XP qazan və cədvələ qoşul."}</p>
-    {isOpenLeague && openLeagueControls ? <a className={styles.emptyAction} href="#group-forms">Qrup yarat və ya qoşul</a> : <Link className={styles.emptyAction} to={isOpenLeague ? "/login" : "/map"}>{isOpenLeague ? "Hesaba daxil ol" : "Xəritədə tapşırıq seç"}</Link>}
+    {isOpenLeague && openLeagueControls ? <a className={styles.emptyAction} href="#group-forms">Qrup yarat və ya qoşul</a> : <Link className={styles.emptyAction} to={isOpenLeague ? "/login" : "/map"}>{isOpenLeague ? "Daxil ol" : "Xəritədə tapşırıq seç"}</Link>}
   </div>;
 }
 

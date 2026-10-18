@@ -1,27 +1,12 @@
-import { useMemo } from "react";
 import { Gift, Trophy } from "lucide-react";
-import { assignPrizes } from "./gameLogic";
-import { useGame } from "./gameStore";
+import { Link } from "react-router-dom";
 import styles from "./PrizesPage.module.scss";
 import { useState } from "react";
-import { useMocks, apiPost } from "../../services/api";
+import { apiPost } from "../../services/api";
 import useApiResource from "../../services/useApiResource";
 
 export default function PrizesPage() {
-  if (!useMocks) return <ApiPrizes/>;
-  return <MockPrizes/>;
-}
-
-function MockPrizes() {
-  const game = useGame(); const me = game.users.find((user) => user.id === game.currentUserId);
-  const sorted = useMemo(() => [...game.users].sort((a, b) => (b.weeklyXp ?? b.xp) - (a.weeklyXp ?? a.xp) || b.correctAnswers - a.correctAnswers || a.reachedAt - b.reachedAt), [game.users]);
-  const prize = game.weekTheme === "Şəhər həftəsi" ? "Kino və ya oyun vauçeri" : "Xalça Muzeyi bileti";
-  const livePrizes = assignPrizes(sorted, prize, game.weekTheme === "Şəhər həftəsi" ? "Kiçik şəhər təcrübəsi" : "Muzey dostu üçün hədiyyə kartı");
-  const prizes = game.lastWeekPrizes || livePrizes;
-  const weekLabel = game.lastWeekPrizes?.weekLabel || game.weekLabel;
-  const weekTheme = game.lastWeekPrizes?.weekTheme || game.weekTheme;
-  const meRank = sorted.findIndex((user) => user.id === me.id && (user.weeklyXp ?? user.xp) > 0);
-  return <section className={styles.page}><header><p className={styles.kicker}>{weekLabel} · {weekTheme}</p><h1>Mükafatlar</h1><p>{game.lastWeekPrizes ? "Keçən həftənin yekun qalibləri" : "Həftənin mövzusuna uyğun hədiyyələr"}</p></header><article className={styles.big}><Trophy/><span>{game.lastWeekPrizes ? "Qalib" : "Hazırda öndə"}</span><h2>{prizes.overall?.name || "Hələ qalib müəyyən edilməyib"}</h2>{prizes.overall && <><b>{prizes.overall.prize}</b><small>{prizes.overall.weeklyXp ?? prizes.overall.xp} XP · {prizes.overall.university}</small></>}</article><article className={styles.uni}><Gift/><span>{game.lastWeekPrizes ? "Qalib" : "Hazırda öndə"}</span><h2>{prizes.university?.name || "Hələ qalib müəyyən edilməyib"}</h2>{prizes.university && <><b>{prizes.university.prize}</b><small>{prizes.university.university} · Ümumi qalibdən ayrı iştirakçı</small></>}</article><div className={styles.theme}><b>Həftəlik mövzu</b><p>“Muzey həftəsi” — muzey bileti. “Şəhər həftəsi” — kino və ya oyun vauçeri. “Sponsor həftəsi” — sponsor hədiyyəsi. Mükafatlar pilot mərhələdə tərəfdaşlarla razılaşdırılır, əl ilə təsdiq olunur.</p></div><div className={styles.collective}>🏆 Universitet Liqasının lideri: kubok və tələbə şurası üçün xüsusi tədbir.</div><p className={styles.note}>{meRank < 0 ? "Hələ reytinqdə deyilsən" : `Sənin hazırkı mövqeyin: ${meRank + 1}`}</p></section>;
+  return <ApiPrizes />;
 }
 
 function ApiPrizes() {
@@ -54,6 +39,6 @@ function ApiPrizes() {
     <div className={styles.theme}><b>Mükafat uyğunluğu</b><p>Mükafatlar pilot mərhələdə tərəfdaşlarla razılaşdırılır, əl ilə təsdiq olunur.</p></div>
     {canClaim && <form className={styles.claim} onSubmit={claim}><label>Tələbə e-poçtu və ya ID<input value={verification} onChange={(event) => setVerification(event.target.value)} required minLength={4} maxLength={80} placeholder="Yoxlama üçün məlumat"/></label><button type="submit" disabled={busy}>{busy ? "Göndərilir…" : "Mükafatı tələb et"}</button>{notice && <p role="status">{notice}</p>}{claimError && <p role="alert">{claimError}</p>}</form>}
     {data?.previous_final?.length > 0 && <div className={styles.theme}><b>Keçən həftənin yekun ilk üçlüyü</b>{data.previous_final.slice(0, 3).map((winner) => <p key={winner.id}>#{winner.rank} · {winner.winner ? "Qalib · " : ""}{winner.name} · {winner.weeklyXp} XP</p>)}</div>}
-    <p className={styles.note}>{myRank ? `Sənin mövqeyin: ${myRank}` : "Hələ reytinqdə deyilsən"}</p>
+    <p className={styles.note}>{!me ? <Link to="/login">Daxil ol</Link> : myRank ? `Sənin mövqeyin: ${myRank}` : "Hələ reytinqdə deyilsən"}</p>
   </section>;
 }

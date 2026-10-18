@@ -1,19 +1,14 @@
-import { ArrowLeft, ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { useState } from "react";
+import { ArrowLeft, ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import useApiResource from "../../services/useApiResource";
-import { useMocks } from "../../services/api";
-import { MUSEUM_DETAILS } from "./contentData";
 import TerritorySummary from "./components/TerritorySummary";
 import GroupBonusInfo from "./components/GroupBonusInfo";
 import styles from "./ContentPages.module.scss";
 
 export default function MuseumDetailPage() {
   const { id } = useParams();
-  if (!useMocks) return <ApiMuseumDetail slug={id} />;
-  const museum = MUSEUM_DETAILS[id];
-  if (!museum) return <section className={styles.page}><h1>Məkan tapılmadı</h1><p>Bu məkan kataloqda yoxdur.</p><Link to="/map" className={styles.action}><ArrowLeft size={16}/>Xəritəyə qayıt</Link></section>;
-  return <section className={styles.page}><Link to="/" className={styles.back}><ArrowLeft size={16}/>Ana səhifə</Link><article className={styles.hero}><span>{museum.art}</span><p className={styles.kicker}><Sparkles size={14}/>Muzey bələdçisi</p><h1>{museum.name}</h1><p className={styles.location}><MapPin size={15}/>{museum.area} · Bakı</p><p>{museum.description}</p></article><div className={styles.contentCard}><h2>Kəşf ediləcək tapşırıqlar</h2><ul>{museum.quests.map((quest) => <li key={quest}>{quest}</li>)}</ul>{museum.pinId && <Link to={`/quests/${museum.pinId}`} className={styles.action}>Həftəlik tapşırığa başla<ArrowRight size={16}/></Link>}{museum.pinId && <Link to="/scanner" className={styles.secondary}>QR kodu skan et</Link>}<Link to="/map" className={styles.secondary}>Həftəlik xəritəyə bax</Link></div></section>;
+  return <ApiMuseumDetail slug={id} />;
 }
 
 function ApiMuseumDetail({ slug }) {

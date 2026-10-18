@@ -18,7 +18,7 @@ const ROAD_POINTS = [
   LANDMARK_POSITIONS["heydar-aliyev"],
 ].map(([x, y, z]) => [x, y + 0.17, z]);
 
-function DestinationMarker({ level, position, selected, unlocked, complete, onSelect }) {
+function DestinationMarker({ level, position, selected, locked, onSelect }) {
   const [hovered, setHovered] = useState(false);
   const group = useRef();
   const accent = level.accent === "mint" ? "#a0e4c9" : level.accent === "purple" ? "#b796ff" : level.accent === "blue" ? "#91c7ff" : "#f5b942";
@@ -34,8 +34,7 @@ function DestinationMarker({ level, position, selected, unlocked, complete, onSe
       <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.58, selected || hovered ? 0.72 : 0.63, 40]} /><meshBasicMaterial color={accent} transparent opacity={selected || hovered ? 0.78 : 0.32} /></mesh>
       <mesh position={[0, 0.27, 0]}><cylinderGeometry args={[0.11, 0.16, 0.42, 8]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={selected || hovered ? 1.7 : 0.45} roughness={0.34} metalness={0.28} /></mesh>
       <mesh position={[0, 0.57, 0]}><sphereGeometry args={[0.14, 12, 8]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={selected || hovered ? 2 : 0.65} /></mesh>
-      {complete && <mesh position={[0.22, 0.58, 0.04]}><torusGeometry args={[0.1, 0.025, 6, 18]} /><meshBasicMaterial color="#f8f7ff" /></mesh>}
-      <Html position={[0, 0.9, 0]} center distanceFactor={8} style={{ pointerEvents: "none" }}><div className={`${styles.mapLabel} ${selected ? styles.mapLabelActive : ""} ${!unlocked ? styles.mapLabelLocked : ""}`}><span>{level.title}</span>{!unlocked && <small>kilidli</small>}</div></Html>
+      <Html position={[0, 0.9, 0]} center distanceFactor={8} style={{ pointerEvents: "none" }}><div className={`${styles.mapLabel} ${selected ? styles.mapLabelActive : ""} ${locked ? styles.mapLabelLocked : ""}`}><span>{level.title}</span>{locked && <small>Bağlıdır</small>}</div></Html>
       <pointLight color={accent} intensity={selected || hovered ? 1.1 : 0.18} distance={2.1} />
     </group>
   );
@@ -83,7 +82,7 @@ function Landmark({ level }) {
   return <HeydarLandmark />;
 }
 
-function WorldScene({ levels, progress, selectedId, onSelect }) {
+function WorldScene({ levels, selectedId, onSelect }) {
   const controls = useRef();
   const focus = useRef(new THREE.Vector3(...LANDMARK_POSITIONS.icherisheher));
   const cameraTarget = useRef(new THREE.Vector3(0, 0, 0));
@@ -111,12 +110,12 @@ function WorldScene({ levels, progress, selectedId, onSelect }) {
     <Line points={route} color="#f5b942" transparent opacity={0.48} lineWidth={1.3} />
     <Line points={route.map(([x, y, z]) => [x, y + 0.02, z + 0.06])} color="#a0e4c9" transparent opacity={0.16} lineWidth={4} />
     {levels.map((level) => {
-      const unlocked = !level.requires || progress.completedLevels.includes(level.requires);
-      const complete = progress.completedLevels.includes(level.id);
+      const unlocked = level.place?.status === "open";
+      const locked = level.place?.status === "locked";
       return <group key={level.id} position={LANDMARK_POSITIONS[level.id]}>
-        <mesh receiveShadow position={[0, -0.06, 0]}><cylinderGeometry args={[1.35, 1.5, 0.22, 8]} /><meshStandardMaterial color={unlocked ? "#354b57" : "#252842"} roughness={0.9} /></mesh>
+        <mesh receiveShadow position={[0, -0.06, 0]}><cylinderGeometry args={[1.35, 1.5, 0.22, 8]} /><meshStandardMaterial color={unlocked ? "#354b57" : locked ? "#252842" : "#303047"} roughness={0.9} /></mesh>
         <Landmark level={level} />
-        <DestinationMarker level={level} position={[0, 0.15, 0]} selected={selectedId === level.id} unlocked={unlocked} complete={complete} onSelect={onSelect} />
+        <DestinationMarker level={level} position={[0, 0.15, 0]} selected={selectedId === level.id} locked={locked} onSelect={onSelect} />
       </group>;
     })}
     {[-5.8, -3.1, 0.8, 4.2].map((x) => <group key={x} position={[x, 0, 4.6]}><mesh castShadow position={[0, 0.7, 0]}><cylinderGeometry args={[0.16, 0.24, 1.25, 8]} /><meshStandardMaterial color="#664659" roughness={0.9} /></mesh><mesh castShadow position={[0, 1.5, 0]}><sphereGeometry args={[0.5, 10, 8]} /><meshStandardMaterial color="#1d675f" roughness={0.98} /></mesh></group>)}
@@ -124,6 +123,6 @@ function WorldScene({ levels, progress, selectedId, onSelect }) {
   </>;
 }
 
-export default function WorldMap({ levels, progress, selectedId, onSelect }) {
-  return <div className={styles.scene} aria-label="Azərbaycanın 3D kəşf xəritəsi"><Canvas shadows dpr={[1, 1.5]} camera={{ position: [9, 8.5, 10], fov: 42 }} gl={{ antialias: true, powerPreference: "high-performance" }} onPointerMissed={() => onSelect(null)}><WorldScene levels={levels} progress={progress} selectedId={selectedId} onSelect={onSelect} /></Canvas></div>;
+export default function WorldMap({ levels, selectedId, onSelect }) {
+  return <div className={styles.scene} aria-label="Azərbaycanın 3D kəşf xəritəsi"><Canvas shadows dpr={[1, 1.5]} camera={{ position: [9, 8.5, 10], fov: 42 }} gl={{ antialias: true, powerPreference: "high-performance" }} onPointerMissed={() => onSelect(null)}><WorldScene levels={levels} selectedId={selectedId} onSelect={onSelect} /></Canvas></div>;
 }

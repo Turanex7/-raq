@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test src/features/gamification/gameLogic.test.js",
+    "test": "node --test src/features/game/state/gameStore.test.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -69,11 +69,9 @@ export default function ScannerPage() {
       } else {
         response = await apiPost(`/tasks/${encodeURIComponent(targetTaskId)}/complete`, { qrToken: raw });
       }
-      sessionStorage.setItem(coop ? "chiraq_coop_session" : "chiraq_last_completion", JSON.stringify(coop ? response : { taskId: targetTaskId, data: response }));
       if (!coop) window.dispatchEvent(new Event("chiraq:xp-updated"));
       if (coop) navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}&sessionId=${encodeURIComponent(response.session_id)}`);
-      else if (checkin) navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}`);
-      else navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}&completed=1`);
+      else navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}`, { state: { completion: response } });
     } catch (cause) {
       setError(cause.message || "QR kod təsdiqlənmədi.");
       setBusy(false);
@@ -103,9 +101,8 @@ export default function ScannerPage() {
     setBusy(true); setError("");
     try {
       const response = await validateLocation(placeSlug, taskId);
-      sessionStorage.setItem("chiraq_last_completion", JSON.stringify({ taskId, data: response }));
       window.dispatchEvent(new Event("chiraq:xp-updated"));
-      navigate(`/quests/${encodeURIComponent(taskId)}?place=${encodeURIComponent(placeSlug)}&completed=1`);
+      navigate(`/quests/${encodeURIComponent(taskId)}?place=${encodeURIComponent(placeSlug)}`, { state: { completion: response } });
     } catch (cause) {
       const message = cause.code === 1 ? "Məkan icazəsi verilmədi. GPS yoxlaması üçün brauzer icazəsini aç." : cause.message;
       setError(message || "GPS yoxlaması baş tutmadı.");

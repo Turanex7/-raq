@@ -1,5 +1,3 @@
-import { GAME_CONFIG } from "../../gamification/gameConfig";
-
 export const LEVEL_IDS = {
   ICHERISHEHER: "icherisheher",
   CARPET_MUSEUM: "carpet-museum",
@@ -10,22 +8,22 @@ export const LEVEL_IDS = {
 export const levelRegistry = [
   {
     id: LEVEL_IDS.ICHERISHEHER,
+    placeSlug: "icherisheher",
     title: "İçərişəhər",
     subtitle: "Qız Qalasının izi",
     location: "Bakı",
     description: "Qədim şəhərin daş küçələrində ilk artefaktını tap.",
-    xp: GAME_CONFIG.levelRewards.icherisheher,
     difficulty: "Başlanğıc",
     playable: true,
     accent: "gold",
   },
   {
     id: LEVEL_IDS.CARPET_MUSEUM,
+    placeSlug: "carpet-museum",
     title: "Xalça Muzeyi",
     subtitle: "Naxışların sirri",
     location: "Bakı bulvarı",
     description: "Rənglərdə gizlənən hekayəni aç.",
-    xp: GAME_CONFIG.levelRewards.carpetMuseum,
     difficulty: "Orta",
     playable: false,
     requires: LEVEL_IDS.ICHERISHEHER,
@@ -33,11 +31,11 @@ export const levelRegistry = [
   },
   {
     id: LEVEL_IDS.NATIONAL_HISTORY,
+    placeSlug: "national-history",
     title: "Milli Tarix Muzeyi",
     subtitle: "Zamanın izləri",
     location: "Bakı",
     description: "Azərbaycan tarixinin böyük xəritəsini tamamla.",
-    xp: GAME_CONFIG.levelRewards.nationalHistory,
     difficulty: "Orta",
     playable: false,
     requires: LEVEL_IDS.CARPET_MUSEUM,
@@ -45,11 +43,11 @@ export const levelRegistry = [
   },
   {
     id: LEVEL_IDS.HEYDAR_ALIYEV,
+    placeSlug: "heydar-aliyev",
     title: "Heydər Əliyev Mərkəzi",
     subtitle: "Gələcəyə baxış",
     location: "Nərimanov",
     description: "Müasir memarlığın axıcı dünyasına daxil ol.",
-    xp: GAME_CONFIG.levelRewards.heydarAliyev,
     difficulty: "Çətin",
     playable: false,
     requires: LEVEL_IDS.NATIONAL_HISTORY,

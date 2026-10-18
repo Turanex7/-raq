@@ -1,9 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Compass, Crown, Map, UserRound, Zap, GalleryVerticalEnd, LogOut } from "lucide-react";
 import { NavLink, Outlet, Link, useLocation } from "react-router-dom";
-import { useGame } from "../features/gamification/gameStore";
-import { GAME_CONFIG } from "../features/gamification/gameConfig";
-import { useMocks } from "../services/api";
 import useApiResource from "../services/useApiResource";
 import XpExplainer from "../features/gamification/components/XpExplainer";
 import styles from "./AppLayout.module.scss";
@@ -35,14 +32,11 @@ function NavigationLink({ item, mobile = false, pathname }) {
 
 export default function AppLayout() {
   const pressTimer = useRef(null);
-  const game = useGame();
   const location = useLocation();
   const hasToken = typeof window !== "undefined" && Boolean(window.localStorage.getItem("chiraq_token"));
-  const { data: apiUser, retry: refreshApiUser } = useApiResource("/me", !useMocks && hasToken);
-  const currentUser = game.users.find((user) => user.id === game.currentUserId);
-  const isAuthenticated = useMocks ? Boolean(currentUser) : Boolean(apiUser);
-  const level = useMocks ? Math.floor(currentUser.xp / GAME_CONFIG.levelXp) + 1 : apiUser?.level || 1;
-  const lifetimeXp = useMocks ? currentUser.xp : apiUser?.lifetimeXp ?? 0;
+  const { data: apiUser, retry: refreshApiUser } = useApiResource("/me", hasToken);
+  const isAuthenticated = Boolean(apiUser);
+  const level = apiUser?.level;
   const title = pageTitle(location.pathname);
   useEffect(() => { document.title = `${title} · Çıraq`; }, [title]);
   useEffect(() => {
@@ -69,12 +63,12 @@ export default function AppLayout() {
           {navigation.map((item) => <NavigationLink key={item.to} item={item} pathname={location.pathname} />)}
         </nav>
         <Link to={isAuthenticated ? "/profile" : "/login"} className={styles.profilePill} aria-label={isAuthenticated ? "Profilə keç" : "Daxil ol"}>
-          <span className={styles.profileAvatar}>{(apiUser?.name || (useMocks ? currentUser.name : "Ç")).slice(0, 1)}</span>
+          <span className={styles.profileAvatar}>{apiUser?.name?.slice(0, 1) || "Ç"}</span>
           <span><b>{isAuthenticated ? `Səviyyə ${level}` : "Daxil ol"}</b></span>
         </Link>
-        <XpExplainer className={styles.xpHelp}>
-          <Zap size={14} aria-hidden="true"/><span>Ümumi XP · {lifetimeXp}</span>
-        </XpExplainer>
+        {isAuthenticated && <XpExplainer className={styles.xpHelp}>
+          <Zap size={14} aria-hidden="true"/><span>Ümumi XP · {apiUser.lifetimeXp}</span>
+        </XpExplainer>}
         {isAuthenticated && <button type="button" className={styles.logout} onClick={logOut}><LogOut size={16} aria-hidden="true"/><span>Çıxış</span></button>}
       </header>
       <main className={styles.main}><Outlet /></main>

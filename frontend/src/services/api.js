@@ -2,7 +2,6 @@
 /** @typedef {Error & { status?: number, code?: string }} ApiError */
 
 const apiBase = import.meta.env.VITE_API_BASE_URL || "/api";
-export const useMocks = import.meta.env.VITE_USE_MOCKS === "true";
 
 /** @template T @param {string} path @param {RequestInit} [init] @returns {Promise<T>} */
 export async function apiRequest(path, init = {}) {

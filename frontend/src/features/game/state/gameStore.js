@@ -1,16 +1,25 @@
 const STORAGE_KEY = "ciraq-demo-progress";
 
 const defaultProgress = {
-  xp: 0,
   completedLevels: [],
   inventory: [],
 };
+
+function sanitizeProgress(value) {
+  return {
+    completedLevels: Array.isArray(value?.completedLevels) ? value.completedLevels.filter((item) => typeof item === "string") : [],
+    inventory: Array.isArray(value?.inventory) ? value.inventory.filter((item) => typeof item === "string") : [],
+  };
+}
 
 function readStoredProgress() {
   if (typeof window === "undefined") return defaultProgress;
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return stored ? { ...defaultProgress, ...JSON.parse(stored) } : defaultProgress;
+    if (!stored) return defaultProgress;
+    const progress = sanitizeProgress(JSON.parse(stored));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    return progress;
   } catch {
     return defaultProgress;
   }
@@ -21,14 +30,14 @@ export function getGameProgress() {
 }
 
 export function saveGameProgress(progress) {
-  const next = { ...defaultProgress, ...progress };
+  const next = sanitizeProgress(progress);
   if (typeof window !== "undefined") {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
   return next;
 }
 
-export function completeLevel(levelId, xp, artifactId) {
+export function completeLevel(levelId, artifactId) {
   const current = readStoredProgress();
   const completedLevels = current.completedLevels.includes(levelId)
     ? current.completedLevels
@@ -37,7 +46,6 @@ export function completeLevel(levelId, xp, artifactId) {
     ? [...current.inventory, artifactId]
     : current.inventory;
   return saveGameProgress({
-    xp: current.xp + (current.completedLevels.includes(levelId) ? 0 : xp),
     completedLevels,
     inventory,
   });
