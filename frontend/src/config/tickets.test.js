@@ -70,12 +70,26 @@ test("regular resolution keeps multiple providers and never marks them sponsored
   assert.ok(result.every((link) => link.sponsored === false));
 });
 
-test("every game-map landmark links to iTicket", () => {
-  for (const place of levelRegistry) {
-    const placeId = `place-${place.placeSlug}`;
+test("every seeded map location links to iTicket", () => {
+  const mapPlaceIds = [
+    "place-carpet-museum",
+    "place-national-history",
+    "place-heydar-aliyev",
+    "place-modern-art",
+    "place-literature-museum",
+    "place-miniature-book-museum",
+    "place-28-may",
+    "place-bulvar",
+    "place-icherisheher",
+    "place-fountains",
+    "place-ateshgah",
+  ];
+
+  assert.ok(levelRegistry.every((place) => mapPlaceIds.includes(`place-${place.placeSlug}`)));
+  for (const placeId of mapPlaceIds) {
     const result = resolveTicketLinks(placeId, TICKET_CONFIG, now);
 
-    assert.equal(result.length, 1, `${place.title} should have one ticket link`);
+    assert.equal(result.length, 1, `${placeId} should have one ticket link`);
     assert.equal(result[0].provider, "iTicket");
     assert.equal(result[0].sponsored, false);
     assert.equal(new URL(result[0].url).hostname, "iticket.az");

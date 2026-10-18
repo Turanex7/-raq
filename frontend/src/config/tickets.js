@@ -15,6 +15,24 @@ export const TICKET_CONFIG = {
     "place-heydar-aliyev": [
       { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
     ],
+    "place-modern-art": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
+    "place-literature-museum": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
+    "place-28-may": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
+    "place-bulvar": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
+    "place-fountains": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
+    "place-ateshgah": [
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+    ],
   },
   sponsor: {
     // To switch sponsors without code changes, set active/name, add a URL template or placeUrls,
