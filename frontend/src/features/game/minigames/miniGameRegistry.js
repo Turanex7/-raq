@@ -23,7 +23,7 @@ export const miniGameRegistry = {
   "place-icherisheher": {
     title: "Qüllə qur",
     ...MINI_GAME_CONFIG.tower,
-    instructions: "Hərəkət edən daş cığırın üstünə gələndə toxun. Mümkün qədər enli qüllə qur.",
+    instructions: "Hərəkət edən daşı qüllə ilə düz gələndə yerləşdir düyməsinə toxun. Hər daş fərqli sürətlə gəlir, yerləşdirdiyin daş yerində sabit qalır.",
     Component: lazy(() => import("./games/TowerGame")),
   },
 };

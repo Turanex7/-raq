@@ -4,8 +4,17 @@ import shell from "../MiniGameShell.module.scss";
 
 const MAX_BLOCKS = 12;
 const BLOCK_HEIGHT = 21;
+const DEFAULT_SPEED_PATTERN = Object.freeze([1.8, 0.55, 1]);
+const SPEED_LABELS = ["Çox sürətli", "Yavaş", "Normal"];
 
-export default function TowerGame({ durationSeconds, perfectTolerance = 3, speedBase = 0.38, speedRamp = 0.02, onFinish }) {
+function scoreTower(blockCount, width, baseWidth) {
+  if (blockCount === 0 || baseWidth <= 0) return 0;
+  const widthRatio = Math.max(0, Math.min(1, width / baseWidth));
+  const heightFactor = Math.min(1, blockCount / 3);
+  return Math.max(1, Math.round(widthRatio * heightFactor * 100));
+}
+
+export default function TowerGame({ durationSeconds, speedBase = 0.38, speedRamp = 0.02, speedPattern = DEFAULT_SPEED_PATTERN, onFinish }) {
   const areaRef = useRef(null);
   const [areaWidth, setAreaWidth] = useState(0);
   const [blockWidth, setBlockWidth] = useState(0);
@@ -33,20 +42,24 @@ export default function TowerGame({ durationSeconds, perfectTolerance = 3, speed
   useEffect(() => {
     const timer = window.setInterval(() => setRemaining((value) => {
       if (value <= 1) {
-        if (!finishedRef.current) { finishedRef.current = true; finishRef.current(blocksRef.current.length); }
+        if (!finishedRef.current) {
+          finishedRef.current = true;
+          finishRef.current(scoreTower(blocksRef.current.length, widthRef.current, areaWidth * 0.72));
+        }
         return 0;
       }
       return value - 1;
     }), 1000);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [areaWidth]);
 
   useEffect(() => {
     if (!areaWidth) return undefined;
     const tick = window.setInterval(() => {
       if (finishedRef.current) return;
       const maxX = Math.max(0, areaWidth - widthRef.current);
-      const speed = Math.max(1.6, areaWidth * (speedBase + blocksRef.current.length * speedRamp) / 60);
+      const speedMultiplier = speedPattern[blocksRef.current.length % speedPattern.length] || 1;
+      const speed = Math.max(1.6, areaWidth * (speedBase + blocksRef.current.length * speedRamp) * speedMultiplier / 60);
       let next = movingXRef.current + speed * directionRef.current;
       if (next >= maxX) { next = maxX; directionRef.current = -1; }
       if (next <= 0) { next = 0; directionRef.current = 1; }
@@ -54,24 +67,23 @@ export default function TowerGame({ durationSeconds, perfectTolerance = 3, speed
       setMovingX(next);
     }, 16);
     return () => window.clearInterval(tick);
-  }, [areaWidth, speedBase, speedRamp]);
+  }, [areaWidth, speedBase, speedRamp, speedPattern]);
 
   function dropBlock() {
     if (finishedRef.current || !areaWidth) return;
     const previousWidth = widthRef.current || areaWidth * 0.72;
     const previousCenter = centerRef.current || areaWidth / 2;
-    const left = Math.max(movingXRef.current, previousCenter - previousWidth / 2);
-    const right = Math.min(movingXRef.current + previousWidth, previousCenter + previousWidth / 2);
+    const dropX = movingXRef.current;
+    const left = Math.max(dropX, previousCenter - previousWidth / 2);
+    const right = Math.min(dropX + previousWidth, previousCenter + previousWidth / 2);
     const overlap = right - left;
     if (overlap <= 0) {
       finishedRef.current = true;
-      finishRef.current(blocksRef.current.length);
+      finishRef.current(scoreTower(blocksRef.current.length, widthRef.current, areaWidth * 0.72));
       return;
     }
-    const movingCenter = movingXRef.current + previousWidth / 2;
-    const perfect = Math.abs(movingCenter - previousCenter) <= perfectTolerance;
-    const nextWidth = perfect ? previousWidth : overlap;
-    const nextCenter = perfect ? previousCenter : (left + right) / 2;
+    const nextWidth = overlap;
+    const nextCenter = (left + right) / 2;
     const nextBlocks = [...blocksRef.current, { center: nextCenter, width: nextWidth }];
     blocksRef.current = nextBlocks;
     widthRef.current = nextWidth;
@@ -80,13 +92,16 @@ export default function TowerGame({ durationSeconds, perfectTolerance = 3, speed
     setBlocks(nextBlocks);
     if (nextWidth < 34 || nextBlocks.length >= MAX_BLOCKS) {
       finishedRef.current = true;
-      finishRef.current(nextBlocks.length);
+      finishRef.current(scoreTower(nextBlocks.length, nextWidth, areaWidth * 0.72));
       return;
     }
     movingXRef.current = 0;
     directionRef.current = 1;
     setMovingX(0);
   }
+
+  const speedLabel = SPEED_LABELS[blocks.length % SPEED_LABELS.length];
+  const retainedWidth = areaWidth ? Math.round(blockWidth / (areaWidth * 0.72) * 100) : 100;
 
   return <div className={`${shell.gameStage} ${styles.towerStage}`}>
     <div className={styles.towerArea} ref={areaRef}>
@@ -95,6 +110,6 @@ export default function TowerGame({ durationSeconds, perfectTolerance = 3, speed
       <i className={`${styles.towerBlock} ${styles.movingBlock}`} style={{ left: `${movingX / Math.max(areaWidth, 1) * 100}%`, width: `${blockWidth / Math.max(areaWidth, 1) * 100}%`, bottom: `${(blocks.length + 1) * BLOCK_HEIGHT}px` }} />
       <button className={styles.dropButton} type="button" onPointerDown={(event) => { event.preventDefault(); dropBlock(); }}>Daşı yerləşdir</button>
     </div>
-    <span className={styles.brushHint}>{remaining} san. · Qüllə: {blocks.length}/{MAX_BLOCKS}</span>
+    <span className={styles.brushHint}>{remaining} san. · Qüllə: {blocks.length}/{MAX_BLOCKS} · En: {retainedWidth}% · Sürət: {speedLabel}</span>
   </div>;
 }
