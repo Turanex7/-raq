@@ -20,7 +20,7 @@ function MascotTip() {
 }
 
 function MissionCards({ apiPlaces, loading, error }) {
-  const featured = (apiPlaces || []).filter((place) => place.type === "museum").slice(0, 3).map((place, index) => ({
+  const featured = (Array.isArray(apiPlaces) ? apiPlaces : []).filter((place) => place.type === "museum").slice(0, 3).map((place, index) => ({
     id: place.slug,
     title: place.name,
     meta: `${place.district} · ${place.task_count} tapşırıq`,
@@ -65,7 +65,7 @@ export default function HomePage() {
   const [reducedMotion] = useState(() =>
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
-  const selectedPlace = apiPlaces?.find((place) => place.slug === selected);
+  const selectedPlace = Array.isArray(apiPlaces) ? apiPlaces.find((place) => place.slug === selected) : null;
 
   return (
     <div className={styles.page}>

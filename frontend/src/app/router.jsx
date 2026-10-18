@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- route configuration exports a router, not UI components. */
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Link, useRouteError } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import AppLayout from "./AppLayout";
 import PlaceholderPage from "./PlaceholderPage";
@@ -23,10 +23,25 @@ function page(Component) {
   return <Suspense fallback={<div role="status" style={{ maxWidth: 720, margin: "32px auto", color: "#a9a5c2" }}>Səhifə yüklənir…</div>}><Component /></Suspense>;
 }
 
+function RouteError() {
+  const error = useRouteError();
+  const message = error?.status === 404 ? "Axtardığın səhifə tapılmadı." : "Səhifə yüklənərkən xəta baş verdi.";
+  return <main role="alert" style={{ maxWidth: 720, margin: "64px auto", padding: 24, color: "#f4f0ff", background: "#17132f", borderRadius: 20 }}>
+    <p style={{ color: "#a0e4c9" }}>Çıraq</p>
+    <h1>Səhifə açıla bilmədi</h1>
+    <p>{message}</p>
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <Link to="/" style={{ color: "#11102c", background: "#a0e4c9", padding: "12px 16px", borderRadius: 12, textDecoration: "none" }}>Ana səhifəyə qayıt</Link>
+      <button type="button" onClick={() => window.location.reload()} style={{ color: "#a0e4c9", background: "transparent", padding: "12px 16px", borderRadius: 12, border: "1px solid #3e385e" }}>Yenidən yüklə</button>
+    </div>
+  </main>;
+}
+
 export const router = createBrowserRouter([
   {
     path: "/",
     element: <AppLayout />,
+    errorElement: <RouteError />,
     children: [
       { index: true, element: page(HomePage) },
       { path: "map", element: page(WeeklyPage) },

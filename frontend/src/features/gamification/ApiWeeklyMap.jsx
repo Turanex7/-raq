@@ -56,15 +56,15 @@ export default function ApiWeeklyMap() {
   const leagueResult = useApiResource("/leaderboard?scope=league", hasToken);
   const { data: me } = useApiResource("/me", hasToken);
   const [tilesFailed, setTilesFailed] = useState(false);
-  const places = placesResult.data || [];
-  const leagueRows = leagueResult.data?.rows || [];
+  const places = Array.isArray(placesResult.data) ? placesResult.data : [];
+  const leagueRows = Array.isArray(leagueResult.data?.rows) ? leagueResult.data.rows : [];
   const maxFairScore = Math.max(0, ...leagueRows.filter((row) => row.eligible !== false).map((row) => Number(row.fairScore ?? row.fair_score ?? 0)));
   const universityLamps = Object.fromEntries(leagueRows.map((row) => [row.universityId ?? row.university_id, { score: Number(row.fairScore ?? row.fair_score ?? 0), maxScore: maxFairScore }]));
   return <section className={styles.page}>
     <header className={styles.heading}><div><p><Sparkles size={14}/>Həftəlik mövsüm · {seasonResult.data?.theme || "Çıraq kəşfi"}</p><h1>Bakı xəritəsi</h1><span>Muzeyə gedib tapşırıq tamamla, universitetin üçün xal və ərazi qazan.</span></div>{seasonResult.data && <WeeklyResetCountdown secondsRemaining={seasonResult.data.seconds_remaining} className={styles.timer}/>}</header>
     {placesResult.loading && <div className={styles.state} role="status">Xəritə yüklənir…</div>}
     {placesResult.error && <Retry message={placesResult.error} onRetry={placesResult.retry}/>}
-    {!!placesResult.data && <>
+    {Array.isArray(placesResult.data) && <>
       <div className={styles.stats}><span><MapPin size={16}/>{places.filter((p) => p.status === "open").length} açıq məkan</span><span><Trophy size={16}/>{places.filter((p) => p.territory_owner).length} fəth uğrunda</span><span><Zap size={16}/>Xal tapşırıqlar tamamlandıqca hesablanır</span></div>
       <div className={styles.mapWrap}>
         {tilesFailed && <div className={styles.tileNotice} role="status">Xəritə plitələri yüklənmədi. Məkanların siyahısından davam edə bilərsən.</div>}

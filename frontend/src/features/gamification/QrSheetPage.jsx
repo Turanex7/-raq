@@ -13,6 +13,7 @@ export default function QrSheetPage() {
     event.preventDefault(); setLoading(true); setError("");
     try {
       const data = await apiRequest("/dev/qr-sheet", { headers: { "X-Admin-Token": adminToken } });
+      if (!Array.isArray(data)) throw new Error("QR siyahısı əlçatan deyil.");
       const encoded = await Promise.all(data.map(async (row) => ({ ...row, image: await QRCode.toDataURL(row.qr_payload, { width: 240, margin: 1, color: { dark: "#11102c", light: "#ffffff" } }) })));
       setRows(encoded);
     } catch (requestError) { setRows([]); setError(requestError.message || "QR vərəqi yüklənmədi."); }

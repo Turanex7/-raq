@@ -22,7 +22,12 @@ export default function LoginPage() {
   useEffect(() => {
     let active = true;
     Promise.all([apiRequest("/universities"), apiRequest("/avatars")]).then(([schools, portraits]) => {
-      if (active) { setUniversities(schools); setAvatars(portraits); if (schools[0]) setUniversityId(schools[0].id); }
+      if (active) {
+        const schoolList = Array.isArray(schools) ? schools : [];
+        setUniversities(schoolList);
+        setAvatars(Array.isArray(portraits) ? portraits : []);
+        if (schoolList[0]) setUniversityId(schoolList[0].id);
+      }
     }).catch((requestError) => { if (active) setError(requestError.message); });
     return () => { active = false; };
   }, []);
@@ -57,6 +62,6 @@ export default function LoginPage() {
       {error && <p className={styles.error} role="alert">{error}</p>}
       <button type="submit" disabled={busy}>{mode === "register" ? <UserRoundPlus size={16}/> : <LockKeyhole size={16}/>} {busy ? "Yoxlanılır…" : mode === "register" ? "Hesab yarat" : "Davam et"}</button>
     </form>
-    <small className={styles.note}>Hesab məlumatları SQLite demo bazasında saxlanılır. E-poçt təsdiqi mükafatın əl ilə yoxlanması zamanı aparılır.</small>
+    <small className={styles.note}>{import.meta.env.VITE_DEMO_MODE === "true" ? "Demo hesabın və irəliləyişin yalnız bu brauzerdə saxlanılır." : "Hesab məlumatları SQLite demo bazasında saxlanılır. E-poçt təsdiqi mükafatın əl ilə yoxlanması zamanı aparılır."}</small>
   </div></section>;
 }

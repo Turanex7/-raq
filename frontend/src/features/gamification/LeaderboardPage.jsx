@@ -24,13 +24,14 @@ function ApiLeaderboard() {
 
   useEffect(() => {
     if (type !== "open") return;
-    apiRequest("/groups/me").then(setGroups).catch((requestError) => setGroupError(requestError.message));
+    apiRequest("/groups/me").then((result) => setGroups(Array.isArray(result) ? result : [])).catch((requestError) => setGroupError(requestError.message));
   }, [type]);
 
   async function refreshGroups() {
     const result = await apiRequest("/groups/me");
-    setGroups(result);
-    return result;
+    const groupList = Array.isArray(result) ? result : [];
+    setGroups(groupList);
+    return groupList;
   }
 
   async function createGroup(event) {
@@ -48,7 +49,7 @@ function ApiLeaderboard() {
     catch { setNotice(`Dəvət kodu: ${code}`); }
   }
 
-  const rows = data?.rows || [];
+  const rows = Array.isArray(data?.rows) ? data.rows : [];
   const maxFairScore = Math.max(0, ...rows.filter((row) => row.eligible !== false).map((row) => row.fairScore ?? row.fair_score ?? 0));
   const visibleRows = rows.slice(0, 20);
   const currentRow = type === "overall" ? rows.find((row) => row.current) : null;

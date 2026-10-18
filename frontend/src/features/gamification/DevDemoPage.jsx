@@ -28,7 +28,7 @@ function DemoPanel() {
     try {
       const [seasonData, placeData] = await Promise.all([apiRequest("/seasons/current"), apiRequest("/places")]);
       setSeason(seasonData);
-      setPlaces(placeData);
+      setPlaces(Array.isArray(placeData) ? placeData : []);
     } catch (requestError) {
       setError(requestError.message || "Demo məlumatları yüklənmədi.");
     }
@@ -84,8 +84,8 @@ function DemoPanel() {
   }
 
   const owner = carpet?.territory_owner;
-  const positivePlaces = metrics?.visits_per_place?.filter((row) => row.visits > 0) || [];
-  const positiveUniversities = metrics?.visits_per_university?.filter((row) => row.visits > 0) || [];
+  const positivePlaces = Array.isArray(metrics?.visits_per_place) ? metrics.visits_per_place.filter((row) => row.visits > 0) : [];
+  const positiveUniversities = Array.isArray(metrics?.visits_per_university) ? metrics.visits_per_university.filter((row) => row.visits > 0) : [];
   const hasRealActivity = Boolean(metrics && (metrics.new_users > 0 || metrics.users_with_museum_completion > 0 || metrics.first_time_museum_visitors > 0 || positivePlaces.length > 0 || positiveUniversities.length > 0));
   return <section className={styles.page}>
     <header className={styles.header}>

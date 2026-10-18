@@ -17,11 +17,11 @@ function ApiPrizes() {
   const [notice, setNotice] = useState("");
   const [claimError, setClaimError] = useState("");
   const [busy, setBusy] = useState(false);
-  const rows = data?.rows || [];
+  const rows = Array.isArray(data?.rows) ? data.rows : [];
   const overall = data?.status === "final" ? rows.find((row) => row.rank === 1) : rows.find((row) => row.type === "overall");
   const university = data?.status === "final" ? rows.find((row) => row.winner && row.rank !== 1) : rows.find((row) => row.type === "university");
   const myRank = leaderboard?.my_rank ?? null;
-  const finalRows = data?.status === "final" ? rows : data?.previous_final || [];
+  const finalRows = data?.status === "final" ? rows : Array.isArray(data?.previous_final) ? data.previous_final : [];
   const canClaim = finalRows.some((row) => row.id === me?.id && row.winner && row.prizeEligible);
 
   async function claim(event) {

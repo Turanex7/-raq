@@ -12,6 +12,7 @@ export default function ShareCardButton({ placeId }) {
     try {
       const query = placeId ? `?placeId=${encodeURIComponent(placeId)}` : "";
       const data = await apiRequest(`/me/share-card${query}`);
+      if (!data || typeof data !== "object") throw new Error("Paylaşım məlumatı tapılmadı.");
       const canvas = document.createElement("canvas");
       canvas.width = 1080; canvas.height = 1920;
       const context = canvas.getContext("2d");
