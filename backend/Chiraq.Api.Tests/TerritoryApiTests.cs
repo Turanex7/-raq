@@ -146,6 +146,74 @@ public sealed class TerritoryApiTests
         Assert.Equal(JsonValueKind.Null, anotherTaskJson.RootElement.GetProperty("territory_change").ValueKind);
     }
 
+    [Fact]
+    public async Task ThreeFlameAwardsXpOnlyAfterThreeRolesAnswerAndIncludesServerGroupBonus()
+    {
+        await using var api = await TestApi.StartAsync();
+        var client = api.Client;
+        var names = new[] { "Nigar Əliyeva", "Aysel Məmmədova", "Rəşad Məmmədov" };
+        var tokens = new string[3];
+
+        tokens[0] = await RegisterAsync(client, names[0], "three-flame-1@example.test", "ada", true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens[0]);
+        using var createGroup = await client.PostAsJsonAsync("/api/groups", new { name = "Üçlü alov testi" });
+        createGroup.EnsureSuccessStatusCode();
+        using var groupJson = JsonDocument.Parse(await createGroup.Content.ReadAsStringAsync());
+        var inviteCode = groupJson.RootElement.GetProperty("inviteCode").GetString();
+
+        for (var index = 1; index < 3; index++)
+        {
+            tokens[index] = await RegisterAsync(client, names[index], $"three-flame-{index + 1}@example.test", "ada", true);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens[index]);
+            using var joinGroup = await client.PostAsJsonAsync("/api/groups/join", new { inviteCode });
+            joinGroup.EnsureSuccessStatusCode();
+        }
+
+        var expectedRoles = new[] { "Kəşfiyyatçı", "Tarixçi", "Müşahidəçi" };
+        string? sessionId = null;
+        for (var index = 0; index < 3; index++)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens[index]);
+            using var qrResponse = await client.GetAsync("/api/demo/qr/carpet-museum-coop");
+            qrResponse.EnsureSuccessStatusCode();
+            using var qrJson = JsonDocument.Parse(await qrResponse.Content.ReadAsStringAsync());
+            using var joinResponse = await client.PostAsJsonAsync("/api/coop/carpet-museum-coop/join", new { qrToken = qrJson.RootElement.GetProperty("qr_payload").GetString() });
+            joinResponse.EnsureSuccessStatusCode();
+            using var joinJson = JsonDocument.Parse(await joinResponse.Content.ReadAsStringAsync());
+            Assert.Equal(expectedRoles[index], joinJson.RootElement.GetProperty("my_role").GetString());
+            Assert.True(joinJson.RootElement.GetProperty("role_question").GetProperty("needsReview").GetBoolean());
+            sessionId ??= joinJson.RootElement.GetProperty("session_id").GetString();
+        }
+
+        var answers = new[] { "Naxışlı detal", "Ümumi fikir", "Mavi rəng" };
+        for (var index = 0; index < 2; index++)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens[index]);
+            using var response = await client.PostAsJsonAsync($"/api/coop/{sessionId}/answer", new { answer = answers[index] });
+            response.EnsureSuccessStatusCode();
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.False(json.RootElement.GetProperty("completed").GetBoolean());
+            Assert.Equal(0, json.RootElement.GetProperty("xp_awarded").GetInt32());
+        }
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens[2]);
+        using var finalResponse = await client.PostAsJsonAsync($"/api/coop/{sessionId}/answer", new { answer = answers[2] });
+        finalResponse.EnsureSuccessStatusCode();
+        using var finalJson = JsonDocument.Parse(await finalResponse.Content.ReadAsStringAsync());
+        Assert.True(finalJson.RootElement.GetProperty("completed").GetBoolean());
+        Assert.Equal(24, finalJson.RootElement.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(4, finalJson.RootElement.GetProperty("breakdown").GetProperty("group_bonus").GetInt32());
+
+        foreach (var token in tokens)
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            using var meResponse = await client.GetAsync("/api/me");
+            meResponse.EnsureSuccessStatusCode();
+            using var meJson = JsonDocument.Parse(await meResponse.Content.ReadAsStringAsync());
+            Assert.Equal(24, meJson.RootElement.GetProperty("lifetimeXp").GetInt32());
+        }
+    }
+
     private static async Task<string> RegisterAsync(HttpClient client, string name, string email, string universityId, bool visitedMuseumLast12Months)
     {
         using var response = await client.PostAsJsonAsync("/api/auth/register", new

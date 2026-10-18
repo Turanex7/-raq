@@ -28,7 +28,7 @@ Aşağıdakı şablonlar `DbSeeder.CreateTasksForPlace` tərəfindən hər məka
 - **`quiz` — “<məkanın adı> hansı şəhərdə yerləşir?”** Gözlənilən cavab `Bakı`, payload faktı isə “Bakı Azərbaycanın paytaxtıdır.” Bütün 11 məkanın Bakı ilə əlaqəsi və cavab/fakt uyğunluğu ayrıca yoxlanmalıdır.
 - **`vote` — “Bu məkanda ən çox nə diqqətini çəkdi?”** Seçimlər “Memarlıq”, “Tarix”, “İncəsənət”dir. Subyektiv tapşırıqdır; düzgün cavab və ya tarixi fakt iddiası yoxdur.
 - **`challenge` — “Məkanla bağlı bir memarlıq və ya tarix detalını təsvir et.”** Prompt hər məkan üçün uyğunluğu, cavabların fakt kimi təqdim edilməməsi və qiymətləndirmə qaydası yoxlanmalıdır.
-- **`coop` — “Eyni məkanda QR kodunu iki dəqiqə ərzində skan edin.”** QR-ın düzgün məkana aidliyi və qrup mexanikası yoxlanmalıdır. İki dəqiqə oyun qaydasıdır, tarixi fakt deyil.
+- **`coop` — Üç iştirakçı QR kodunu skan edib fərqli rolların cavabını 60 dəqiqə ərzində göndərir.** QR-ın düzgün məkana aidliyi, rol bölgüsü və qrup mexanikası yoxlanmalıdır. Müddət oyun qaydasıdır, tarixi fakt deyil.
 
 ## Yoxlama qeydi
 
@@ -49,3 +49,14 @@ Bu hekayə mətnləri tarixi fakt iddiası daşımır. API konfiqurasiyasında `
 - Tapmaca paneli: “İpucu tapmacası”; “Nöqtələrin sırası: 1, 3, 2”; “Nöqtələrin sırasını yenidən yoxla.”
 - Tapmaca qeydi: “Bu tapmaca XP vermir; XP muzey tapşırıqlarından qazanılır.”
 - Tapşırıqdan sonrakı istiqamət: “İndi eksponata bax”; “Yaxınlıqda tamamlanmamış asan və orta tapşırıqlar.”
+
+## Üçlü alov üçün yoxlanmalı ümumi suallar
+
+Bu rol sualları eksponata baxışı təşviq edir və tarixi fakt iddia etmir. Hər sual API cavabında `needs_review=true` daşıyır.
+
+- Kəşfiyyatçı: “Eksponatda diqqətini çəkən bir detalı tap və təsvir et.”
+- Tarixçi: “Tapşırıq kartında oxuduğun ümumi fikri öz sözlərinlə yaz.”
+- Müşahidəçi: “Eksponatda gördüyün rəng və ya formanı təsvir et.”
+- Üçlü alov ekranı: “Üç iştirakçı QR kodunu skan edib ayrı rollarını seçir. Hər kəs cavabını 60 dəqiqə ərzində göndərməlidir; tapşırıq tamamlananda XP-ni server verir.”
+- Nəticə: “Üçlü alov tamamlandı. XP serverdə hesablandı.”
+- Cavab forması: “Məkanda gördüyün detalı yaz”; “Cavabın qeydə alındı. Digər rolların cavablarını gözlə.”

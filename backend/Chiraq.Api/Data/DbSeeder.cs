@@ -269,7 +269,7 @@ public static class DbSeeder
             new GameTask
             {
                 Id = $"{place.Slug}-coop", PlaceId = place.Id, Code = "coop", Title = "Dostlarınla birlikdə kəşf et",
-                Description = "Eyni məkanda QR kodunu iki dəqiqə ərzində skan edin.", Type = "coop", Difficulty = "medium", Xp = GameRules.DifficultyXp[1], CoopSize = 3, NeedsReview = true,
+                Description = "Üç iştirakçı QR kodunu skan edib fərqli rolların cavabını 60 dəqiqə ərzində göndərir.", Type = "coop", Difficulty = "medium", Xp = GameRules.DifficultyXp[1], CoopSize = 3, NeedsReview = true,
                 Payload = JsonSerializer.Serialize(new { question = "Komanda ilə məkanda bir detal tap." }),
             },
         ];
@@ -277,6 +277,13 @@ public static class DbSeeder
 
     private static async Task EnsureMissingCatalogDataAsync(AppDbContext db)
     {
+        var cooperativeTasks = await db.Tasks.Where(x => x.Code == "coop").ToListAsync();
+        foreach (var task in cooperativeTasks)
+        {
+            task.Description = "Üç iştirakçı QR kodunu skan edib fərqli rolların cavabını 60 dəqiqə ərzində göndərir.";
+            task.NeedsReview = true;
+        }
+        if (cooperativeTasks.Count > 0) await db.SaveChangesAsync();
         var existingSlugs = await db.Places.Select(x => x.Slug).ToListAsync();
         var missing = Places.Where(x => !existingSlugs.Contains(x.Slug)).Select((x, index) => new Place
         {

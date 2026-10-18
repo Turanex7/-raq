@@ -53,7 +53,7 @@ function ApiTaskPlayer() {
   }, [returnedSessionId]);
 
   useEffect(() => {
-    if (!returnedSessionId || !session || session.completed) return undefined;
+    if (!returnedSessionId || !session || session.completed || session.expired) return undefined;
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       try { const next = await apiRequest(`/coop/${returnedSessionId}`); if (!cancelled) setSession(next); }
@@ -61,6 +61,12 @@ function ApiTaskPlayer() {
     }, 2000);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [returnedSessionId, session]);
+
+  useEffect(() => {
+    if (!session?.completed) return;
+    window.dispatchEvent(new Event("chiraq:xp-updated"));
+    celebrateLantern();
+  }, [session?.completed]);
 
   async function complete(value = answer) {
     if (!task || submitting) return;
@@ -78,6 +84,22 @@ function ApiTaskPlayer() {
 
   async function joinCoop() {
     navigate(`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}&coop=1`);
+  }
+
+  async function submitCoopAnswer(event) {
+    event.preventDefault();
+    if (!returnedSessionId || submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await apiPost(`/coop/${encodeURIComponent(returnedSessionId)}/answer`, { answer });
+      setSession(response);
+      setAnswer("");
+    } catch (answerError) {
+      setError(answerError.message || "Cavab göndərilmədi.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function toggleSound() {
@@ -99,7 +121,7 @@ function ApiTaskPlayer() {
     {!result && task.type === "quiz" && <div className={styles.contentCard}><h2>{task.payload?.question || "Suala cavab ver"}</h2><p>Səhv cavab cərimə yaratmır; mümkün XP-nin 40%-i verilir.</p><form onSubmit={(event) => { event.preventDefault(); complete(); }}><label className={styles.answerLabel}>Cavabın<input value={answer} onChange={(event) => setAnswer(event.target.value)} required maxLength={100} placeholder="Cavabını yaz"/></label><button className={styles.action} disabled={submitting} type="submit">{submitting ? "Yoxlanılır…" : "Cavabı təsdiqlə"}</button></form></div>}
     {!result && task.type === "vote" && <div className={styles.contentCard}><h2>{task.payload?.question || "Seçimini et"}</h2><div className={styles.voteOptions}>{(task.payload?.choices || ["Memarlıq", "Tarix", "İncəsənət"]).map((choice) => <button key={choice} disabled={submitting} type="button" onClick={() => { setAnswer(choice); complete(choice); }}>{choice}</button>)}</div><p>Bu subyektiv seçimdir; hər cavaba tam XP verilir.</p></div>}
     {!result && task.type === "qr_scan" && <div className={styles.contentCard}><h2>Eksponatdakı QR kodu oxut</h2><p>Kameranı muzeydə yerləşən kodun üzərinə yönəlt.</p><Link className={styles.action} to={`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}${lanternChapter ? "&chapter=lantern" : ""}`}><QrCode size={16}/>Skaneri aç</Link></div>}
-    {!result && task.type === "coop" && <div className={styles.contentCard}><h2>3 dostla eyni məkanda</h2><p>QR kodunu iki dəqiqə ərzində skan edin. Eyni universitetin və ya qrupun iştirakçıları qoşula bilər.</p><button className={styles.action} type="button" onClick={joinCoop}><Users size={16}/>Ko-op-a qoşul</button>{session && <div className={styles.lobby} role="status"><b>{session.joined}/{session.needed} dost qoşuldu</b><span><Clock3 size={14}/>Sessiya vaxtı: 2 dəqiqə</span><ul>{session.participants.map((member) => <li key={member.id}>{member.name}</li>)}</ul></div>}</div>}
+    {!result && task.type === "coop" && <div className={styles.contentCard}><h2>Üçlü alov</h2><p>Üç iştirakçı QR kodunu skan edib ayrı rollarını seçir. Hər kəs cavabını 60 dəqiqə ərzində göndərməlidir; tapşırıq tamamlananda XP-ni server verir.</p><button className={styles.action} type="button" onClick={joinCoop}><Users size={16}/>QR skan et və rolunu al</button>{session && <div className={styles.lobby} role="status"><b>{session.joined}/{session.needed} iştirakçı qoşulub</b><span><Clock3 size={14}/>{session.expired ? "Sessiyanın vaxtı bitib" : "Cavab üçün 60 dəqiqə"}</span><ul>{session.participants.map((member) => <li key={member.id}>{member.role} · {member.answered ? "Cavab verdi" : "Gözləyir"}</li>)}</ul>{session.my_role && !session.completed && !session.expired && <div className={styles.roleQuestion}><b>Sənin rolun: {session.my_role}</b><p>{session.role_question?.text}</p>{session.role_question?.needs_review && <small>Mətn yoxlama növbəsindədir.</small>}{!session.answered && <form onSubmit={submitCoopAnswer}><label className={styles.answerLabel}>Müşahidən<input value={answer} onChange={(event) => setAnswer(event.target.value)} maxLength={240} minLength={2} required placeholder="Məkanda gördüyün detalı yaz"/></label><button className={styles.action} type="submit" disabled={submitting}>{submitting ? "Göndərilir…" : "Cavabı göndər"}</button></form>}{session.answered && !session.completed && <p>Cavabın qeydə alındı. Digər rolların cavablarını gözlə.</p>}</div>}{session.completed && <div className={styles.roleComplete}><b>Üçlü alov tamamlandı.</b><p>XP serverdə hesablandı: <strong>+{session.xp_awarded} XP</strong></p><span>Əsas XP: {session.breakdown?.base_xp ?? 0} · Dəstə bonusu: {session.breakdown?.group_bonus ?? 0}</span><ShareCardButton placeId={place.slug}/></div>}</div>}</div>}
     {!result && task.type === "find" && place.type === "museum" && <div className={styles.contentCard}><h2>Tapdığın detalı bölüş</h2><p>Subyektiv tapşırıqdır; istənilən səmimi cavab tam XP qazandırır.</p><form onSubmit={(event) => { event.preventDefault(); complete(); }}><label className={styles.answerLabel}>Məkanda hansı detalı tapdın?<input value={answer} onChange={(event) => setAnswer(event.target.value)} required maxLength={240} placeholder="Məsələn, fasaddakı naxış"/></label><button className={styles.action} type="submit" disabled={submitting}>Tapşırığı tamamla</button></form></div>}
     {!result && task.type === "find" && place.type === "outdoor" && <div className={styles.contentCard}><h2>Məkanın radiusunda ol</h2><p>GPS icazəsi olmadan açıq hava yoxlaması mümkün deyil. Lokasiya məlumatı yalnız yoxlama zamanı istifadə olunur.</p><Link className={styles.action} to={`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}&checkin=1`}>Yoxlamaya başla</Link></div>}
     {result && <div className={styles.contentCard}>

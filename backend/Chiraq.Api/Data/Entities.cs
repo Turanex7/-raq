@@ -129,6 +129,9 @@ public sealed class CoopParticipant
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string SessionId { get; set; } = "";
     public string UserId { get; set; } = "";
+    public string Role { get; set; } = "";
+    public string? Answer { get; set; }
+    public DateTimeOffset? AnsweredAtUtc { get; set; }
     public DateTimeOffset JoinedAtUtc { get; set; } = DateTimeOffset.UtcNow;
 }
 

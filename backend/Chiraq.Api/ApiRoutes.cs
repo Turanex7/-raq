@@ -88,6 +88,7 @@ public static class ApiRoutes
         api.MapGet("/groups/me", GetGroups);
         api.MapPost("/coop/{taskId}/join", JoinCoop).RequireRateLimiting("complete");
         api.MapGet("/coop/{sessionId}", GetCoop);
+        api.MapPost("/coop/{sessionId}/answer", SubmitCoopAnswer).RequireRateLimiting("complete");
         api.MapGet("/me/collection", GetCollection);
         api.MapGet("/rewards/current", GetRewards);
         api.MapPost("/rewards/claim", ClaimReward);
@@ -692,19 +693,24 @@ public static class ApiRoutes
         var place = task is null ? null : await db.Places.FindAsync(task.PlaceId);
         var season = await ActiveSeason(db, DateTimeOffset.UtcNow);
         if (task is null || task.Type != "coop" || place is null || season is null) return Fail(404, "coop_task_not_found", "Ko-op tapşırığı tapılmadı.");
+        if (task.CoopSize != 3) return Fail(409, "three_roles_required", "Üçlü alov üçün üç iştirakçı tələb olunur.");
+        if (await db.TaskCompletions.AnyAsync(x => x.UserId == user.Id && x.TaskId == task.Id && x.SeasonId == season.Id))
+            return Fail(409, "already_completed", "Bu komanda tapşırığını artıq tamamlamısan.");
         if (!tokens.VerifyQr(request.QrToken ?? "", place.Slug, task.Code, place.QrSecretVersion)) return Fail(403, "invalid_qr", "QR kodunun imzası düzgün deyil.");
         var now = DateTimeOffset.UtcNow;
         var session = await db.CoopSessions.Where(x => x.TaskId == task.Id && x.SeasonId == season.Id && !x.Completed && x.ExpiresAtUtc > now).OrderByDescending(x => x.ExpiresAtUtc).FirstOrDefaultAsync();
         if (session is null)
         {
-            session = new CoopSession { TaskId = task.Id, SeasonId = season.Id, PlaceId = place.Id, ExpiresAtUtc = now.AddMinutes(GameRules.CoopTtlMinutes) };
+            session = new CoopSession { TaskId = task.Id, SeasonId = season.Id, PlaceId = place.Id, ExpiresAtUtc = now.AddMinutes(GameRules.GroupBonusWindowMinutes) };
             db.CoopSessions.Add(session);
             await db.SaveChangesAsync();
         }
         var existing = await db.CoopParticipants.AnyAsync(x => x.SessionId == session.Id && x.UserId == user.Id);
         if (!existing)
         {
-            var participantIds = await db.CoopParticipants.Where(x => x.SessionId == session.Id).Select(x => x.UserId).ToListAsync();
+            var currentParticipants = await db.CoopParticipants.Where(x => x.SessionId == session.Id).ToListAsync();
+            if (currentParticipants.Count >= task.CoopSize) return Fail(409, "coop_full", "Bu Üçlü alov sessiyasında artıq üç iştirakçı var.");
+            var participantIds = currentParticipants.Select(x => x.UserId).ToList();
             if (participantIds.Count > 0)
             {
                 var participantUniversities = await db.Users.Where(x => participantIds.Contains(x.Id)).Select(x => x.UniversityId).Distinct().ToListAsync();
@@ -713,24 +719,15 @@ public static class ApiRoutes
                 var sameTeam = userGroups.Count > 0 && await db.GroupMembers.Where(x => participantIds.Contains(x.UserId) && userGroups.Contains(x.GroupId)).GroupBy(x => x.GroupId).AnyAsync(group => group.Select(x => x.UserId).Distinct().Count() == participantIds.Count);
                 if (!sameTeam && !sameUniversity) return Fail(403, "coop_team_mismatch", "Ko-op üçün eyni qrupda və ya universitetdə olmalısınız.");
             }
-            db.CoopParticipants.Add(new CoopParticipant { SessionId = session.Id, UserId = user.Id, JoinedAtUtc = now });
+            var role = ThreeFlameRoles.FirstOrDefault(candidate => currentParticipants.All(x => x.Role != candidate));
+            if (role is null) return Fail(409, "coop_roles_full", "Üçlü alov üçün bütün rollar artıq seçilib.");
+            db.CoopParticipants.Add(new CoopParticipant { SessionId = session.Id, UserId = user.Id, Role = role, JoinedAtUtc = now });
         }
         await db.SaveChangesAsync();
         var participants = await db.CoopParticipants.Where(x => x.SessionId == session.Id).ToListAsync();
-        var awarded = false;
-        if (!session.Completed && GameRules.CoopReady(participants.Select(x => x.UserId).Distinct().Count(), task.CoopSize))
-        {
-            session.Completed = true;
-            foreach (var participant in participants.Take(task.CoopSize))
-            {
-                if (await db.TaskCompletions.AnyAsync(x => x.UserId == participant.UserId && x.TaskId == task.Id && x.SeasonId == season.Id)) continue;
-                db.TaskCompletions.Add(new TaskCompletion { UserId = participant.UserId, TaskId = task.Id, SeasonId = season.Id, Correct = true, CompletedAtUtc = now });
-                db.XpEvents.Add(new XpEvent { UserId = participant.UserId, SeasonId = season.Id, PlaceId = place.Id, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = now });
-            }
-            await db.SaveChangesAsync();
-            awarded = true;
-        }
-        return Results.Ok(new { session_id = session.Id, joined = participants.Count, needed = task.CoopSize, expires_at_utc = session.ExpiresAtUtc, completed = session.Completed, xp_awarded = awarded ? task.Xp : 0, message = session.Completed ? "Komanda tapşırığı tamamladı." : $"{participants.Count}/{task.CoopSize} nəfər qoşuldu." });
+        var members = await db.CoopParticipants.Where(x => x.SessionId == session.Id).Join(db.Users, participant => participant.UserId, member => member.Id, (participant, member) => new { id = member.Id, name = PublicName(member.Name), role = participant.Role, answered = participant.AnsweredAtUtc != null }).ToListAsync();
+        var myRole = participants.FirstOrDefault(x => x.UserId == user.Id)?.Role;
+        return Results.Ok(new { session_id = session.Id, joined = participants.Count, needed = task.CoopSize, expires_at_utc = session.ExpiresAtUtc, completed = session.Completed, my_role = myRole, role_question = RoleQuestion(myRole), answered = participants.FirstOrDefault(x => x.UserId == user.Id)?.AnsweredAtUtc != null, answered_count = participants.Count(x => x.AnsweredAtUtc != null), participants = members, xp_awarded = 0, message = $"{participants.Count}/{task.CoopSize} iştirakçı qoşulub." });
     }
 
     private static async Task<IResult> GetCoop(string sessionId, HttpContext http, AppDbContext db, Tokens tokens)
@@ -740,8 +737,60 @@ public static class ApiRoutes
         var session = await db.CoopSessions.FindAsync(sessionId);
         if (session is null || !await db.CoopParticipants.AnyAsync(x => x.SessionId == session.Id && x.UserId == user.Id)) return Fail(404, "session_not_found", "Ko-op sessiyası tapılmadı.");
         var task = await db.Tasks.FindAsync(session.TaskId);
-        var members = await db.CoopParticipants.Where(x => x.SessionId == session.Id).Join(db.Users, x => x.UserId, u => u.Id, (x, u) => new { id = u.Id, name = PublicName(u.Name) }).ToListAsync();
-        return Results.Ok(new { session.Id, session.Completed, participants = members, joined = members.Count, needed = task?.CoopSize ?? 3, expires_at_utc = session.ExpiresAtUtc, xp_awarded = session.Completed ? task?.Xp ?? 0 : 0 });
+        var participants = await db.CoopParticipants.Where(x => x.SessionId == session.Id).Join(db.Users, participant => participant.UserId, member => member.Id, (participant, member) => new { id = member.Id, name = PublicName(member.Name), role = participant.Role, answered = participant.AnsweredAtUtc != null }).ToListAsync();
+        var mine = await db.CoopParticipants.FirstAsync(x => x.SessionId == session.Id && x.UserId == user.Id);
+        var sessionStart = session.ExpiresAtUtc.AddMinutes(-GameRules.GroupBonusWindowMinutes);
+        var baseXp = session.Completed ? await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == session.SeasonId && x.TaskId == session.TaskId && x.Kind == "base" && x.CreatedAtUtc >= sessionStart).SumAsync(x => (int?)x.Amount) ?? 0 : 0;
+        var groupBonus = session.Completed ? await db.XpEvents.Where(x => x.UserId == user.Id && x.SeasonId == session.SeasonId && x.PlaceId == session.PlaceId && x.Kind == "group_bonus" && x.CreatedAtUtc >= sessionStart).SumAsync(x => (int?)x.Amount) ?? 0 : 0;
+        return Results.Ok(new { session.Id, session.Completed, expired = !session.Completed && session.ExpiresAtUtc <= DateTimeOffset.UtcNow, participants, joined = participants.Count, needed = task?.CoopSize ?? 3, expires_at_utc = session.ExpiresAtUtc, my_role = mine.Role, role_question = RoleQuestion(mine.Role), answered = mine.AnsweredAtUtc != null, answered_count = participants.Count(x => x.answered), xp_awarded = baseXp + groupBonus, breakdown = new { base_xp = baseXp, group_bonus = groupBonus } });
+    }
+
+    private static readonly string[] ThreeFlameRoles = ["Kəşfiyyatçı", "Tarixçi", "Müşahidəçi"];
+    private sealed record RolePrompt(string Text, bool NeedsReview);
+
+    private static RolePrompt? RoleQuestion(string? role) => role switch
+    {
+        "Kəşfiyyatçı" => new RolePrompt("Eksponatda diqqətini çəkən bir detalı tap və təsvir et.", true),
+        "Tarixçi" => new RolePrompt("Tapşırıq kartında oxuduğun ümumi fikri öz sözlərinlə yaz.", true),
+        "Müşahidəçi" => new RolePrompt("Eksponatda gördüyün rəng və ya formanı təsvir et.", true),
+        _ => null,
+    };
+
+    private static async Task<IResult> SubmitCoopAnswer(string sessionId, CoopAnswerRequest request, HttpContext http, AppDbContext db, Tokens tokens)
+    {
+        var user = await CurrentUser(http, db, tokens);
+        if (user is null) return Fail(401, "unauthorized", "Üçlü alova cavab vermək üçün daxil ol.");
+        var session = await db.CoopSessions.FindAsync(sessionId);
+        if (session is null) return Fail(404, "session_not_found", "Üçlü alov sessiyası tapılmadı.");
+        if (session.Completed) return await GetCoop(sessionId, http, db, tokens);
+        var now = DateTimeOffset.UtcNow;
+        if (session.ExpiresAtUtc <= now) return Fail(409, "coop_expired", "60 dəqiqəlik sessiyanın vaxtı bitib.");
+        var participant = await db.CoopParticipants.FirstOrDefaultAsync(x => x.SessionId == session.Id && x.UserId == user.Id);
+        if (participant is null) return Fail(403, "coop_participant_required", "Əvvəl QR kodunu skan edib rola qoşul.");
+        if (participant.AnsweredAtUtc is not null) return Fail(409, "coop_already_answered", "Öz rolunun cavabını artıq göndərmisən.");
+        if (string.IsNullOrWhiteSpace(request.Answer) || request.Answer.Trim().Length is < 2 or > 240) return Fail(400, "coop_answer_required", "Cavab 2–240 simvol olmalıdır.");
+        participant.Answer = request.Answer.Trim();
+        participant.AnsweredAtUtc = now;
+        await db.SaveChangesAsync();
+
+        var participants = await db.CoopParticipants.Where(x => x.SessionId == session.Id).ToListAsync();
+        var rolesComplete = ThreeFlameRoles.All(role => participants.Any(x => x.Role == role));
+        var answersInWindow = participants.Count == 3 && participants.All(x => x.AnsweredAtUtc.HasValue && x.AnsweredAtUtc.Value >= session.ExpiresAtUtc.AddMinutes(-GameRules.GroupBonusWindowMinutes) && x.AnsweredAtUtc.Value <= session.ExpiresAtUtc);
+        if (rolesComplete && answersInWindow)
+        {
+            var task = await db.Tasks.FindAsync(session.TaskId);
+            if (task is null) return Fail(404, "coop_task_not_found", "Komanda tapşırığı tapılmadı.");
+            session.Completed = true;
+            foreach (var member in participants)
+            {
+                if (await db.TaskCompletions.AnyAsync(x => x.UserId == member.UserId && x.TaskId == task.Id && x.SeasonId == session.SeasonId)) continue;
+                db.TaskCompletions.Add(new TaskCompletion { UserId = member.UserId, TaskId = task.Id, SeasonId = session.SeasonId, Correct = true, CompletedAtUtc = now });
+                db.XpEvents.Add(new XpEvent { UserId = member.UserId, SeasonId = session.SeasonId, PlaceId = session.PlaceId, TaskId = task.Id, Kind = "base", Amount = task.Xp, CreatedAtUtc = now });
+            }
+            await db.SaveChangesAsync();
+            foreach (var member in participants) await GrantGroupBonus(db, member.UserId, session.PlaceId, session.SeasonId, now);
+        }
+        return await GetCoop(sessionId, http, db, tokens);
     }
 
     private static async Task<IResult> GetCollection(HttpContext http, AppDbContext db, Tokens tokens)
@@ -1024,6 +1073,7 @@ public static class ApiRoutes
     private sealed record GroupRequest(string? Name);
     private sealed record GroupJoinRequest(string? InviteCode);
     private sealed record CoopJoinRequest(string? QrToken);
+    private sealed record CoopAnswerRequest(string? Answer);
     private sealed record RewardClaimRequest(string? VerificationReference);
     private sealed record SimulateActivityRequest(int Count = 1, string? PlaceSlug = null);
     private sealed record AdvanceWeekRequest(string? SeasonId);
