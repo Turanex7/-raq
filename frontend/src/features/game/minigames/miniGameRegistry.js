@@ -11,7 +11,7 @@ export const miniGameRegistry = {
   "place-national-history": {
     title: "Qazıntı",
     ...MINI_GAME_CONFIG.history,
-    instructions: "Barmağınla və ya siçanla adi torpaq sahələrini silib gizli artefaktı tap. Çəhrayı nida işarəli sahələrə toxunma: 3 belə toxunuş qazıntını bitirir.",
+    instructions: "Nida işarəli sahələrdən başqa bütün torpağı təmizlə. Nida işarəli sahəyə toxunsan dərhal uduzursan. 13 saniyəyədək 3, 13 saniyədən çox və 16 saniyəyədək 2, 16 saniyədən çox vaxtda 1 ulduz qazan.",
     Component: lazy(() => import("./games/HistoryGame")),
   },
   "place-heydar-aliyev": {
