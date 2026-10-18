@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Flame, LockKeyhole, Sparkles, Volume2, VolumeX } from "lucide-react";
 import { Link } from "react-router-dom";
 import useApiResource from "../../services/useApiResource";
@@ -17,25 +17,28 @@ export default function LanternJourney({ places }) {
   const [unlocked, setUnlocked] = useState(false);
   const [notice, setNotice] = useState("");
   const [soundEnabled, setSoundEnabled] = useState(getLanternSoundEnabled);
+  const deadlineTimer = useRef(null);
   const target = useMemo(() => places?.find((place) => place.type === "museum" && place.status === "open"), [places]);
 
   useEffect(() => {
     if (!started) return undefined;
-    if (remaining <= 0) {
-      setStarted(false);
-      setStep(0);
-      setNotice("Vaxt bitdi. Hazır olanda yenidən başla.");
-      return undefined;
-    }
-    const timer = window.setTimeout(() => setRemaining((value) => value - 1), 1000);
-    return () => window.clearTimeout(timer);
-  }, [started, remaining]);
+    const timer = window.setInterval(() => setRemaining((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [started]);
+
+  useEffect(() => () => window.clearTimeout(deadlineTimer.current), []);
 
   function startPuzzle() {
     setRemaining(60);
     setStep(0);
     setNotice("");
     setUnlocked(false);
+    window.clearTimeout(deadlineTimer.current);
+    deadlineTimer.current = window.setTimeout(() => {
+      setStarted(false);
+      setStep(0);
+      setNotice("Vaxt bitdi. Hazır olanda yenidən başla.");
+    }, 60_000);
     setStarted(true);
   }
 
@@ -55,6 +58,7 @@ export default function LanternJourney({ places }) {
     }
     const next = step + 1;
     if (next === answerPattern.length) {
+      window.clearTimeout(deadlineTimer.current);
       setStarted(false);
       setUnlocked(true);
       setNotice("");

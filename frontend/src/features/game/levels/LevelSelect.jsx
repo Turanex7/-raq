@@ -1,4 +1,4 @@
-import { Lock, Map, Sparkles, Trophy, X } from "lucide-react";
+import { Lock, Map, Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import WorldMap from "../components/WorldMap";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, Info, Trophy } from "lucide-react";
+import { Flame, Info } from "lucide-react";
 import styles from "./LeaderboardPage.module.scss";
 import { apiPost, apiRequest } from "../../services/api";
 import useApiResource from "../../services/useApiResource";
@@ -70,7 +70,6 @@ function ApiLeaderboard() {
       const activeMembers = row.activeCount ?? row.active_count ?? 0;
       const brightness = maxFairScore > 0 ? Math.max(0, Math.min(1, Number(score) / maxFairScore)) : 0;
       const subtitle = isUniversity ? row.eligible ? `${participants} iştirakçı · ${territories} ərazi · ${change}` : `${participants} iştirakçı · Reytinq üçün kifayət qədər iştirakçı yoxdur` : type === "open" ? `${row.memberCount ?? row.member_count} üzv · ${activeMembers} aktiv iştirakçı` : row.university;
-      return <li key={row.id || row.university || row.groupId || index} className={`${styles.row} ${row.current ? styles.me : ""} ${isUniversity && !row.eligible ? styles.inactive : ""}`}><span className={`${styles.rank} ${styles[`rank${row.rank || index + 1}`] || ""}`}>{row.rank ?? (row.eligible === false ? "—" : index + 1)}</span><div className={styles.info}><strong>{title}{row.current ? " (sən)" : ""}</strong><span>{subtitle}</span></div><div className={styles.xp}><b>{Number(score).toLocaleString("az-AZ")}</b><span>{isUniversity || type === "open" ? "orta XP" : "həftəlik XP"}</span></div></li>;
       return <li key={row.id || row.university || row.groupId || index} className={`${styles.row} ${row.current ? styles.me : ""} ${isUniversity && !row.eligible ? styles.inactive : ""}`}><span className={`${styles.rank} ${styles[`rank${row.rank || index + 1}`] || ""}`}>{row.rank ?? (row.eligible === false ? "—" : index + 1)}</span><div className={styles.info}><strong>{title}{row.current ? " (sən)" : ""}</strong><span>{subtitle}</span></div><div className={styles.xp}>{isUniversity && <span className={styles.lampIndicator} title="Universitet çırağının parlaqlığı həftəlik fair score ilə artır"><Flame size={18} fill="currentColor" style={{ opacity: brightness }}/></span>}<b>{Number(score).toLocaleString("az-AZ")}</b><span>{isUniversity || type === "open" ? "orta XP" : "həftəlik XP"}</span></div></li>;
     })}</ol>}
     {type === "open" && <section className={styles.groups}><div><h2>Açıq liqa qrupları</h2><p>Qrup yarat, dəvət kodunu dostlarınla paylaş və ümumi nəticəni izlə.</p></div><div id="group-forms" className={styles.groupForms}><form onSubmit={createGroup}><label>Yeni qrup<input value={groupName} onChange={(event) => setGroupName(event.target.value)} required maxLength={40} placeholder="Məsələn, Muzey dostları"/></label><button type="submit">Qrup yarat</button></form><form onSubmit={joinGroup}><label>Dəvət kodu<input value={inviteCode} onChange={(event) => setInviteCode(event.target.value.toUpperCase())} required maxLength={16} placeholder="8 simvollu kod"/></label><button type="submit">Qrupa qoşul</button></form></div>{groupError && <p role="alert">{groupError}</p>}{notice && <p role="status">{notice}</p>}{groups.length === 0 && <p className={styles.groupEmpty}>Hələ heç bir qrupa qoşulmamısan. Dəvət kodu ilə qoşul və ya yeni qrup yarat.</p>}{groups.map((group) => <article className={styles.groupCard} key={group.id}><div className={styles.groupTop}><b>{group.name}</b><span>{group.member_count ?? group.members?.length ?? 0}/5 üzv</span></div><div className={styles.invite}><span>Dəvət kodu: <code>{group.inviteCode}</code></span><button type="button" onClick={() => copyInviteCode(group.inviteCode)}>Kodu köçür</button></div><ul className={styles.memberList} aria-label={`${group.name} qrupunun üzvləri`}>{group.members?.map((member) => <li key={member.id}>{member.name}{member.current ? " · sən" : ""}</li>)}</ul></article>)}</section>}
@@ -84,11 +83,6 @@ function BoardEmpty({ type, message = "Bu həftə üçün nəticə yoxdur.", ope
     <p>{isOpenLeague ? "Dostlarınla qrup yaradıb dəvət kodunu paylaş." : "Xəritədə tapşırıq tamamla, həftəlik XP qazan və cədvələ qoşul."}</p>
     {isOpenLeague && openLeagueControls ? <a className={styles.emptyAction} href="#group-forms">Qrup yarat və ya qoşul</a> : <Link className={styles.emptyAction} to={isOpenLeague ? "/login" : "/map"}>{isOpenLeague ? "Daxil ol" : "Xəritədə tapşırıq seç"}</Link>}
   </div>;
-}
-
-function publicName(name = "") {
-  const parts = name.trim().split(/\s+/);
-  return parts.length > 1 ? `${parts[0]} ${parts.at(-1)[0]}.` : name;
 }
 
 function rankChange(value) {
