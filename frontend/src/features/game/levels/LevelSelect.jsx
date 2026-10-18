@@ -1,10 +1,11 @@
-import { Lock, Map, Sparkles, X } from "lucide-react";
+import { Map, Sparkles, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import WorldMap from "../components/WorldMap";
 import useApiResource from "../../../services/useApiResource";
 import { levelRegistry } from "./levelRegistry";
 import Avatar from "../../gamification/components/Avatar";
+import { miniGameRegistry } from "../minigames/miniGameRegistry";
 import styles from "./LevelSelect.module.scss";
 
 export default function LevelSelect() {
@@ -17,8 +18,8 @@ export default function LevelSelect() {
     return { ...level, place, title: place?.name || (placesLoading ? "Məkan yüklənir…" : "Məkan məlumatı yoxdur"), description: place?.description || level.description };
   });
   const selectedLevel = levels.find((level) => level.id === selectedId) ?? levels[0];
-  const selectedUnlocked = selectedLevel.place?.status === "open";
-  const selectedStatus = selectedLevel.place?.status === "open" ? "Açıqdır" : selectedLevel.place?.status === "locked" ? "Bağlıdır" : placesLoading ? "Məkan yüklənir…" : placesError ? "Status əlçatan deyil" : "Məkan tapılmadı";
+  const qrStatus = selectedLevel.place?.status === "open" ? "QR tapşırığı açıqdır" : selectedLevel.place?.status === "locked" ? "QR tapşırığı bağlıdır" : placesLoading ? "Məkan yüklənir…" : placesError ? "QR statusu əlçatan deyil" : "Məkan tapılmadı";
+  const hasMiniGame = Boolean(selectedLevel.place && miniGameRegistry[selectedLevel.place.id]);
   const levelNumber = String(levelRegistry.findIndex((level) => level.id === selectedLevel.id) + 1).padStart(2, "0");
 
   return (
@@ -43,8 +44,9 @@ export default function LevelSelect() {
           <h2>{selectedLevel.title}</h2>
           <p className={styles.panelSubtitle}>{selectedLevel.subtitle}</p>
           <p className={styles.panelDescription}>{selectedLevel.description}</p>
-          <div className={styles.panelMeta}><span>{selectedStatus}</span><span>{selectedLevel.difficulty}</span></div>
-          {selectedUnlocked ? <Link to={`/game/${selectedLevel.id}`} className={styles.enterButton}>Missiyaya başla<span>↗</span></Link> : <div className={styles.lockedButton}><Lock size={15} />{selectedLevel.place?.status === "locked" ? "Bu məkan bağlıdır" : selectedStatus}</div>}
+          <div className={styles.panelMeta}><span>{qrStatus}</span><span>{selectedLevel.difficulty}</span></div>
+          {hasMiniGame && <Link to={`/mini-game/${selectedLevel.place.id}`} className={styles.enterButton}>Mini oyuna başla<span>↗</span></Link>}
+          <p className={styles.panelDescription}>Mini oyun açıqdır; muzey tapşırıqları üçün məkanın QR statusu ayrıca tətbiq olunur.</p>
         </aside>}
         <footer className={styles.bottomHud}><span className={styles.controlHint}><b>SÜRÜŞDÜR</b> dünyanı fırlat <b>YAXINLAŞDIR</b> miqyası dəyiş</span><span className={styles.worldStatus}><i />{placesError ? "Məkanları yükləmək mümkün olmadı" : placesLoading ? "Məkanlar yüklənir…" : `${places?.length || 0} məkan`}</span></footer>
         {placesError && <p className={styles.loadError} role="alert">{placesError}</p>}

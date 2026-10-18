@@ -11,6 +11,7 @@ const MuseumDetailPage = lazy(() => import("../features/gamification/MuseumDetai
 const QuestDetailPage = lazy(() => import("../features/gamification/QuestDetailPage"));
 const ScannerPage = lazy(() => import("../features/gamification/ScannerPage"));
 const GamePage = lazy(() => import("../features/game/GamePage"));
+const MiniGamePage = lazy(() => import("../features/game/minigames/MiniGamePage"));
 const LeaderboardPage = lazy(() => import("../features/gamification/LeaderboardPage"));
 const ProfilePage = lazy(() => import("../features/gamification/ProfilePage"));
 const RewardsPage = lazy(() => import("../features/gamification/RewardsPage"));
@@ -50,6 +51,7 @@ export const router = createBrowserRouter([
       { path: "prizes", element: page(PrizesPage) },
       { path: "game", element: page(GamePage) },
       { path: "game/:levelId", element: page(GamePage) },
+      { path: "mini-game/:placeId", element: page(MiniGamePage) },
       { path: "login", element: page(LoginPage) },
       { path: "register", element: page(LoginPage) },
       { path: "profile", element: page(ProfilePage) },

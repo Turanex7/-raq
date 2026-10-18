@@ -1,3 +1,5 @@
+import { MINI_GAME_CONFIG } from "../features/game/minigames/miniGameConfig.js";
+
 const STORAGE_KEY = "chiraq_demo_api_v1";
 const LEVEL_XP = 250;
 const STREAK_DAYS = 7;
@@ -616,6 +618,7 @@ export async function demoApiRequest(path, init = {}) {
       group_bonus: { minimum_members: 3, window_minutes: 60, multipliers: GROUP_MULTIPLIERS },
       maximum_week_multiplier: 1.1, time_zone: "Asia/Baku",
       daily_lantern: { streak_days: STREAK_DAYS, milestone_xp: STREAK_REWARD_XP, time_zone: "Asia/Baku" },
+      mini_game: { completion_xp: MINI_GAME_CONFIG.completionXp, daily_award_limit: MINI_GAME_CONFIG.dailyAwardLimit, time_zone: MINI_GAME_CONFIG.bakuTimeZone },
       rare_flame: { chance_percent: 5 },
     };
   } else if (parts.length === 1 && parts[0] === "universities" && method === "GET") {
@@ -688,6 +691,27 @@ export async function demoApiRequest(path, init = {}) {
     }
   } else if (parts.length === 2 && parts[0] === "seasons" && parts[1] === "current" && method === "GET") {
     result = season;
+  } else if (parts.length === 4 && parts[0] === "places" && parts[2] === "minigame" && parts[3] === "complete" && method === "POST") {
+    if (!user) fail(401, "unauthorized", "Mini oyunun nəticəsini saxlamaq üçün daxil ol.");
+    const place = PLACES.find((row) => row.id === parts[1] || row.slug === parts[1]);
+    if (!place) fail(404, "place_not_found", "Məkan tapılmadı.");
+    const today = bakuDateKey();
+    const stars = Math.max(0, Math.min(3, Number(body.stars) || 0));
+    const awardsToday = state.xp_events.filter((row) => row.user_id === user.id && row.kind === "minigame" && bakuDateKey(new Date(row.created_at_utc)) === today);
+    const alreadyAwarded = awardsToday.some((row) => row.place_id === place.id);
+    let reason = null;
+    let xpAwarded = 0;
+    if (stars < 1) reason = "no_star";
+    else if (alreadyAwarded) reason = "already_awarded_today";
+    else if (awardsToday.length >= MINI_GAME_CONFIG.dailyAwardLimit) reason = "daily_limit";
+    else {
+      xpAwarded = MINI_GAME_CONFIG.completionXp;
+      state.xp_events.push({ user_id: user.id, season_id: season.id, place_id: place.id, kind: "minigame", amount: xpAwarded, created_at_utc: new Date().toISOString() });
+    }
+    result = {
+      awarded: xpAwarded > 0, reason, xp_awarded: xpAwarded,
+      new_total: userXp(state, user.id), weekly_total: userXp(state, user.id, season.id),
+    };
   } else if (parts.length === 1 && parts[0] === "places" && method === "GET") {
     result = PLACES.map((place) => {
       const completions = user ? state.completions.filter((row) => row.user_id === user.id && row.season_id === season.id && row.place_id === place.id).length : 0;

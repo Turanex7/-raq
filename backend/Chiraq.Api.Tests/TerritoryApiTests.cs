@@ -369,6 +369,56 @@ public sealed class TerritoryApiTests
         }
     }
 
+    [Fact]
+    public async Task MiniGameAwardsFixedServerXpOncePerPlaceAndAtMostThreeTimesPerBakuDay()
+    {
+        await using var api = await TestApi.StartAsync();
+        var client = api.Client;
+        var token = await RegisterAsync(client, "Aylin Əliyeva", "minigame-award-test@example.test", "ada", true);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var firstResponse = await client.PostAsJsonAsync("/api/places/place-carpet-museum/minigame/complete", new { score = 999_999, stars = 3 });
+        firstResponse.EnsureSuccessStatusCode();
+        using var firstJson = JsonDocument.Parse(await firstResponse.Content.ReadAsStringAsync());
+        Assert.True(firstJson.RootElement.GetProperty("awarded").GetBoolean());
+        Assert.Equal(3, firstJson.RootElement.GetProperty("xp_awarded").GetInt32());
+        Assert.Equal(3, firstJson.RootElement.GetProperty("new_total").GetInt32());
+
+        using var replayResponse = await client.PostAsJsonAsync("/api/places/place-carpet-museum/minigame/complete", new { score = 999_999, stars = 3 });
+        replayResponse.EnsureSuccessStatusCode();
+        using var replayJson = JsonDocument.Parse(await replayResponse.Content.ReadAsStringAsync());
+        Assert.False(replayJson.RootElement.GetProperty("awarded").GetBoolean());
+        Assert.Equal("already_awarded_today", replayJson.RootElement.GetProperty("reason").GetString());
+        Assert.Equal(0, replayJson.RootElement.GetProperty("xp_awarded").GetInt32());
+
+        foreach (var place in new[] { "place-national-history", "place-heydar-aliyev" })
+        {
+            using var response = await client.PostAsJsonAsync($"/api/places/{place}/minigame/complete", new { score = 1, stars = 1 });
+            response.EnsureSuccessStatusCode();
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.True(json.RootElement.GetProperty("awarded").GetBoolean());
+            Assert.Equal(3, json.RootElement.GetProperty("xp_awarded").GetInt32());
+        }
+
+        using var cappedResponse = await client.PostAsJsonAsync("/api/places/place-icherisheher/minigame/complete", new { score = 1, stars = 1 });
+        cappedResponse.EnsureSuccessStatusCode();
+        using var cappedJson = JsonDocument.Parse(await cappedResponse.Content.ReadAsStringAsync());
+        Assert.False(cappedJson.RootElement.GetProperty("awarded").GetBoolean());
+        Assert.Equal("daily_limit", cappedJson.RootElement.GetProperty("reason").GetString());
+        Assert.Equal(0, cappedJson.RootElement.GetProperty("xp_awarded").GetInt32());
+
+        using var noStarResponse = await client.PostAsJsonAsync("/api/places/place-icherisheher/minigame/complete", new { score = 999_999, stars = 0 });
+        noStarResponse.EnsureSuccessStatusCode();
+        using var noStarJson = JsonDocument.Parse(await noStarResponse.Content.ReadAsStringAsync());
+        Assert.Equal("no_star", noStarJson.RootElement.GetProperty("reason").GetString());
+        Assert.Equal(0, noStarJson.RootElement.GetProperty("xp_awarded").GetInt32());
+
+        using var meResponse = await client.GetAsync("/api/me");
+        meResponse.EnsureSuccessStatusCode();
+        using var meJson = JsonDocument.Parse(await meResponse.Content.ReadAsStringAsync());
+        Assert.Equal(9, meJson.RootElement.GetProperty("lifetimeXp").GetInt32());
+    }
+
     private static async Task<string> RegisterAsync(HttpClient client, string name, string email, string universityId, bool visitedMuseumLast12Months)
     {
         using var response = await client.PostAsJsonAsync("/api/auth/register", new

@@ -72,3 +72,35 @@ test("demo API persists a daily lantern streak, awards on day seven, and resets 
   assert.equal(restarted.xp_awarded, 0);
   assert.equal(restarted.new_total, 10);
 });
+
+test("demo mini-games award fixed XP once per place and enforce the Baku-day cap", async (t) => {
+  const values = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (key) => values.get(key) ?? null,
+      setItem: (key, value) => values.set(key, String(value)),
+      removeItem: (key) => values.delete(key),
+    },
+  };
+  t.after(() => { clearDemoApiState(); delete globalThis.window; });
+
+  const registration = await demoApiRequest("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ name: "Demo Oyunçu", email: "mini-game-rules@example.test", password: "test-password-2026", universityId: "ada", avatarId: "nizami" }),
+  });
+  window.localStorage.setItem("chiraq_token", registration.token);
+
+  const first = await demoApiRequest("/places/place-carpet-museum/minigame/complete", { method: "POST", body: JSON.stringify({ score: 999_999, stars: 3 }) });
+  assert.equal(first.awarded, true);
+  assert.equal(first.xp_awarded, 3);
+  const replay = await demoApiRequest("/places/place-carpet-museum/minigame/complete", { method: "POST", body: JSON.stringify({ score: 999_999, stars: 3 }) });
+  assert.equal(replay.reason, "already_awarded_today");
+  assert.equal(replay.xp_awarded, 0);
+
+  await demoApiRequest("/places/place-national-history/minigame/complete", { method: "POST", body: JSON.stringify({ score: 1, stars: 1 }) });
+  await demoApiRequest("/places/place-heydar-aliyev/minigame/complete", { method: "POST", body: JSON.stringify({ score: 1, stars: 1 }) });
+  const capped = await demoApiRequest("/places/place-icherisheher/minigame/complete", { method: "POST", body: JSON.stringify({ score: 1, stars: 1 }) });
+  assert.equal(capped.reason, "daily_limit");
+  assert.equal(capped.xp_awarded, 0);
+  assert.equal((await demoApiRequest("/me")).lifetimeXp, 9);
+});

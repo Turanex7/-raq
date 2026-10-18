@@ -1,0 +1,41 @@
+@use "../../../styles/variables" as *;
+
+.page { max-width: 900px; min-height: calc(100svh - 76px); margin: 0 auto; padding: 38px 18px 54px; color: $text; }
+.back { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px; color: $muted; font-size: 13px; }
+.card { display: grid; justify-items: center; gap: 16px; padding: clamp(22px, 5vw, 42px); border: 1px solid rgba($mint, .2); border-radius: 22px; background: linear-gradient(145deg, rgba($surface, .96), rgba($navy, .92)); box-shadow: $shadow-card; text-align: center; }
+.icon { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 17px; color: $gold; background: rgba($gold, .13); font-size: 29px; }
+.kicker { margin: 0; color: $mint; font-size: 11px; font-weight: 850; letter-spacing: .13em; text-transform: uppercase; }
+.card h1 { margin: 0; font-size: clamp(30px, 6vw, 48px); letter-spacing: -.06em; }
+.placeName { margin: -8px 0 0; color: $mint; font-weight: 750; }
+.instructions { max-width: 560px; margin: 0; color: $muted; line-height: 1.65; }
+.meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
+.meta span { padding: 8px 11px; border: 1px solid rgba($mint, .15); border-radius: 999px; color: $muted; background: rgba($navy, .45); font-size: 12px; }
+.primary, .secondary, .action { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 12px 20px; border: 0; border-radius: 12px; font: inherit; font-weight: 850; text-decoration: none; cursor: pointer; }
+.primary, .action { color: $navy; background: $mint; }
+.primary:hover, .action:hover { filter: brightness(1.06); }
+.secondary { color: $text; border: 1px solid rgba($mint, .2); background: rgba($text, .04); }
+.stageCard { display: grid; gap: 16px; }
+.stageTop { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: $muted; }
+.timer { color: $gold; font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 900; }
+.gameStage { position: relative; width: min(100%, 620px); min-height: 390px; overflow: hidden; border: 1px solid rgba($mint, .18); border-radius: 20px; background: radial-gradient(circle at 50% 45%, rgba(#433773, .38), rgba($navy, .96) 70%); touch-action: none; user-select: none; }
+.resultStars { display: flex; gap: 8px; color: rgba($gold, .28); font-size: 34px; }
+.resultStars .lit { color: $gold; filter: drop-shadow(0 0 9px rgba($gold, .42)); }
+.resultText { margin: 0; color: $muted; }
+.award { min-height: 25px; color: $mint; font-weight: 800; }
+.awardError { color: #ff9c9c; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.loading { padding: 70px 20px; color: $muted; text-align: center; }
+.loginPrompt { display: grid; justify-items: center; gap: 14px; padding: 32px; border: 1px solid rgba($mint, .2); border-radius: 20px; background: $surface; text-align: center; }
+.loginPrompt p { color: $muted; }
+
+@media (max-width: 600px) {
+  .page { min-height: calc(100svh - 64px); padding: 24px 12px 36px; }
+  .card { gap: 13px; border-radius: 17px; }
+  .gameStage { min-height: min(68svh, 540px); }
+  .actions { width: 100%; }
+  .actions > * { flex: 1 1 150px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primary, .action { transition: none; }
+}

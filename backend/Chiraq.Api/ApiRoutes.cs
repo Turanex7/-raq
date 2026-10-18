@@ -63,6 +63,7 @@ public static class ApiRoutes
             maximum_week_multiplier = GameRules.MaximumWeekMultiplier,
             time_zone = GameRules.TimeZoneId,
             daily_lantern = new { streak_days = GameRules.DailyLanternStreakDays, milestone_xp = GameRules.DailyLanternMilestoneXp, time_zone = GameRules.TimeZoneId },
+            mini_game = new { completion_xp = GameRules.MiniGameCompletionXp, daily_award_limit = GameRules.MiniGameDailyAwardLimit, time_zone = GameRules.TimeZoneId },
             rare_flame = new { chance_percent = RareFlameChancePercent(config) },
         }));
         api.MapGet("/universities", async (AppDbContext db) => Results.Ok(await db.Universities.OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, shortName = x.ShortName }).ToListAsync()));
@@ -72,6 +73,7 @@ public static class ApiRoutes
         api.MapGet("/me", GetMe);
         api.MapPatch("/me", PatchMe);
         api.MapPost("/lantern/ignite", IgniteLantern).RequireRateLimiting("complete");
+        api.MapPost("/places/{id}/minigame/complete", CompleteMiniGame).RequireRateLimiting("complete");
         api.MapGet("/places", GetPlaces);
         api.MapGet("/places/{slug}", GetPlace);
         api.MapGet("/seasons/current", GetSeason);
@@ -241,6 +243,76 @@ public static class ApiRoutes
             new_total = await XpFor(db, user.Id),
             weekly_total = await XpFor(db, user.Id, season.Id),
             lantern = await LanternProgress(db, user.Id, now),
+        });
+    }
+
+    private sealed record MiniGameCompletionRequest(int Score, int Stars);
+
+    private static async Task<IResult> CompleteMiniGame(string id, MiniGameCompletionRequest request, HttpContext http, AppDbContext db, Tokens tokens)
+    {
+        var user = await CurrentUser(http, db, tokens);
+        if (user is null) return Fail(401, "unauthorized", "Mini oyunun nəticəsini saxlamaq üçün daxil ol.");
+
+        var place = await db.Places.FirstOrDefaultAsync(x => x.Id == id || x.Slug == id);
+        if (place is null) return Fail(404, "place_not_found", "Məkan tapılmadı.");
+
+        var stars = Math.Clamp(request.Stars, 0, 3);
+        if (stars == 0)
+        {
+            var currentSeason = await ActiveSeason(db, DateTimeOffset.UtcNow);
+            return Results.Ok(new
+            {
+                awarded = false, reason = "no_star", xp_awarded = 0,
+                new_total = await XpFor(db, user.Id), weekly_total = await XpFor(db, user.Id, currentSeason?.Id),
+            });
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var season = await ActiveSeason(db, now);
+        if (season is null) return Fail(503, "season_unavailable", "Cari mövsüm tapılmadı.");
+
+        var bakuToday = BakuDate(now);
+        var localStart = bakuToday.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+        var startUtc = new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(localStart, GameRules.BakuZone));
+        var endUtc = startUtc.AddDays(1);
+
+        // Serialize the daily eligibility check and ledger write so parallel requests cannot
+        // award the same place twice or pass the daily cap at the same time.
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var alreadyAwarded = await db.XpEvents.AnyAsync(x => x.UserId == user.Id && x.PlaceId == place.Id && x.Kind == "minigame" && x.CreatedAtUtc >= startUtc && x.CreatedAtUtc < endUtc);
+        var dailyAwards = await db.XpEvents.CountAsync(x => x.UserId == user.Id && x.Kind == "minigame" && x.CreatedAtUtc >= startUtc && x.CreatedAtUtc < endUtc);
+        if (alreadyAwarded || dailyAwards >= GameRules.MiniGameDailyAwardLimit)
+        {
+            await transaction.RollbackAsync();
+            return Results.Ok(new
+            {
+                awarded = false,
+                reason = alreadyAwarded ? "already_awarded_today" : "daily_limit",
+                xp_awarded = 0,
+                new_total = await XpFor(db, user.Id),
+                weekly_total = await XpFor(db, user.Id, season.Id),
+            });
+        }
+
+        db.XpEvents.Add(new XpEvent
+        {
+            UserId = user.Id,
+            SeasonId = season.Id,
+            PlaceId = place.Id,
+            Kind = "minigame",
+            Amount = GameRules.MiniGameCompletionXp,
+            CreatedAtUtc = now,
+        });
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return Results.Ok(new
+        {
+            awarded = true,
+            reason = (string?)null,
+            xp_awarded = GameRules.MiniGameCompletionXp,
+            new_total = await XpFor(db, user.Id),
+            weekly_total = await XpFor(db, user.Id, season.Id),
         });
     }
 
