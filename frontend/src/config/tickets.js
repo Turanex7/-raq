@@ -1,37 +1,28 @@
 export const TICKET_CONFIG = {
   links: {
     "place-carpet-museum": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/events/museum/azerbaijan-national-carpet-museum" },
     ],
     "place-national-history": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "Muzeyin saytı", label: "Ziyarət məlumatı", url: "https://azhistorymuseum.gov.az/az/visit_plan" },
     ],
     "place-miniature-book-museum": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "Azerbaijan.Travel", label: "Muzey haqqında", url: "https://azerbaijan.travel/the-museum-of-miniature-books" },
     ],
     "place-icherisheher": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "Icherisheher.gov.az", label: "Köhnə şəhərin muzeyləri", url: "https://icherisheher.gov.az/en/activity/historical-reference" },
     ],
     "place-heydar-aliyev": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "iTicket", label: "Tədbirlərə bax", url: "https://iticket.az/en/venues/heydar-aliyev-center" },
     ],
     "place-modern-art": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "Azerbaijan.Travel", label: "Muzey haqqında", url: "https://azerbaijan.travel/modern-art-in-ancient-city" },
     ],
     "place-literature-museum": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
-    ],
-    "place-28-may": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
-    ],
-    "place-bulvar": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
-    ],
-    "place-fountains": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "Muzeyin saytı", label: "Muzey haqqında", url: "https://nizamimuseum.az/" },
     ],
     "place-ateshgah": [
-      { provider: "iTicket", label: "Bilet al", url: "https://iticket.az/" },
+      { provider: "Azerbaijan.Travel", label: "Ziyarət məlumatı", url: "https://azerbaijan.travel/sites-of-ancient-fire-leave-a-burning-legacy" },
     ],
   },
   sponsor: {

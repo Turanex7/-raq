@@ -7,7 +7,7 @@ export default function TicketLinkList({ place }) {
   if (links.length === 0) return null;
 
   return (
-    <section className={styles.list} aria-label={`${place.name} üçün bilet linkləri`}>
+    <section className={styles.list} aria-label={`${place.name} üçün bilet və məkan linkləri`}>
       {links.map((ticket) => <div className={styles.option} key={`${ticket.provider}-${ticket.url}`}>
         {ticket.sponsored && <div className={styles.sponsorInfo}>
           <small>Sponsor: {ticket.provider}</small>

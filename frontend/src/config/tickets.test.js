@@ -70,29 +70,32 @@ test("regular resolution keeps multiple providers and never marks them sponsored
   assert.ok(result.every((link) => link.sponsored === false));
 });
 
-test("every seeded map location links to iTicket", () => {
-  const mapPlaceIds = [
-    "place-carpet-museum",
-    "place-national-history",
-    "place-heydar-aliyev",
-    "place-modern-art",
-    "place-literature-museum",
-    "place-miniature-book-museum",
-    "place-28-may",
-    "place-bulvar",
-    "place-icherisheher",
-    "place-fountains",
-    "place-ateshgah",
-  ];
+test("museum links point to venue-specific ticket or official information pages", () => {
+  const expectedPages = {
+    "place-carpet-museum": ["iticket.az", "/events/museum/azerbaijan-national-carpet-museum"],
+    "place-national-history": ["azhistorymuseum.gov.az", "/az/visit_plan"],
+    "place-miniature-book-museum": ["azerbaijan.travel", "/the-museum-of-miniature-books"],
+    "place-icherisheher": ["icherisheher.gov.az", "/en/activity/historical-reference"],
+    "place-heydar-aliyev": ["iticket.az", "/en/venues/heydar-aliyev-center"],
+    "place-modern-art": ["azerbaijan.travel", "/modern-art-in-ancient-city"],
+    "place-literature-museum": ["nizamimuseum.az", "/"],
+    "place-ateshgah": ["azerbaijan.travel", "/sites-of-ancient-fire-leave-a-burning-legacy"],
+  };
+  const mapPlaceIds = [...Object.keys(expectedPages), "place-28-may", "place-bulvar", "place-fountains"];
 
   assert.ok(levelRegistry.every((place) => mapPlaceIds.includes(`place-${place.placeSlug}`)));
-  for (const placeId of mapPlaceIds) {
+  for (const [placeId, [hostname, pathname]] of Object.entries(expectedPages)) {
     const result = resolveTicketLinks(placeId, TICKET_CONFIG, now);
 
     assert.equal(result.length, 1, `${placeId} should have one ticket link`);
-    assert.equal(result[0].provider, "iTicket");
     assert.equal(result[0].sponsored, false);
-    assert.equal(new URL(result[0].url).hostname, "iticket.az");
+    const url = new URL(result[0].url);
+    assert.equal(url.hostname, hostname);
+    assert.equal(url.pathname, pathname);
+  }
+
+  for (const placeId of ["place-28-may", "place-bulvar", "place-fountains"]) {
+    assert.deepEqual(resolveTicketLinks(placeId, TICKET_CONFIG, now), [], `${placeId} has no ticket page`);
   }
 });
 
