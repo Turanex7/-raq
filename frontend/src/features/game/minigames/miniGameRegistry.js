@@ -11,7 +11,7 @@ export const miniGameRegistry = {
   "place-national-history": {
     title: "Qazıntı",
     ...MINI_GAME_CONFIG.history,
-    instructions: "Barmağınla və ya siçanla torpağı sil. Kövrək sahələrdə uzun dayanma.",
+    instructions: "Barmağınla və ya siçanla adi torpaq sahələrini silib gizli artefaktı tap. Çəhrayı nida işarəli sahələrə toxunma: 3 belə toxunuş qazıntını bitirir.",
     Component: lazy(() => import("./games/HistoryGame")),
   },
   "place-heydar-aliyev": {

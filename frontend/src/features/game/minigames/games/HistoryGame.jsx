@@ -61,10 +61,11 @@ export default function HistoryGame({ durationSeconds, onFinish }) {
   }
 
   return <div className={`${shell.gameStage} ${styles.historyStage}`}>
+    <p className={styles.digHint}>Adi torpağı silib artefaktı tap. Çəhrayı “!” sahəyə toxunma — 3 səhv qazıntını bitirir.</p>
     <div className={styles.artifact} aria-hidden="true"><Archive size="42%" /></div>
     <div className={styles.soilGrid} onPointerDown={(event) => { setPressed(true); event.currentTarget.setPointerCapture(event.pointerId); brush(event); }} onPointerMove={brush} onPointerUp={() => setPressed(false)} onPointerCancel={() => setPressed(false)} aria-label="Torpağı silmək üçün toxun və sürüşdür">
       {Array.from({ length: SOIL_COUNT }, (_, index) => <i key={index} className={`${styles.soil} ${FRAGILE_CELLS.has(index) ? styles.fragile : ""} ${cleared.has(index) ? styles.cleared : ""} ${FRAGILE_CELLS.has(index) && cleared.has(index) ? styles.cracked : ""}`} />)}
     </div>
-    <span className={styles.brushHint}>{remaining} san. · Açılan sahə: {cleared.size}/{SOIL_COUNT} · Çat: {cracks}/3</span>
+    <span className={styles.brushHint}>{remaining} san. · Açılan sahə: {cleared.size}/{SOIL_COUNT} · Artefakt zədəsi: {cracks}/3</span>
   </div>;
 }
