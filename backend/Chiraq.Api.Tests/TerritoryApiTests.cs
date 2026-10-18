@@ -90,6 +90,17 @@ public sealed class TerritoryApiTests
             using var afterJson = JsonDocument.Parse(await afterResponse.Content.ReadAsStringAsync());
             Assert.Equal("ada", afterJson.RootElement.GetProperty("territory").GetProperty("university_id").GetString());
             Assert.Equal(20, afterJson.RootElement.GetProperty("territory").GetProperty("score").GetInt32());
+
+            client.DefaultRequestHeaders.Add("X-Admin-Token", adminToken);
+            using var metricsResponse = await client.GetAsync("/api/admin/metrics");
+            metricsResponse.EnsureSuccessStatusCode();
+            using var metricsJson = JsonDocument.Parse(await metricsResponse.Content.ReadAsStringAsync());
+            var metrics = metricsJson.RootElement;
+            Assert.Equal(1, metrics.GetProperty("new_users").GetInt32());
+            Assert.Equal(1, metrics.GetProperty("users_with_museum_completion").GetInt32());
+            Assert.Equal(1, metrics.GetProperty("first_time_museum_visitors").GetInt32());
+            Assert.Equal(1, metrics.GetProperty("visits_per_place").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
+            Assert.Equal(1, metrics.GetProperty("visits_per_university").EnumerateArray().Count(row => row.GetProperty("visits").GetInt32() > 0));
         }
         finally
         {

@@ -15,6 +15,9 @@ function DemoPanel() {
   const [token, setToken] = useState("");
   const [season, setSeason] = useState(null);
   const [places, setPlaces] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [metricsError, setMetricsError] = useState("");
+  const [metricsLoading, setMetricsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
@@ -57,6 +60,20 @@ function DemoPanel() {
     }
   }
 
+  async function loadMetrics() {
+    if (!token.trim()) return;
+    setMetricsLoading(true);
+    setMetricsError("");
+    setMetrics(null);
+    try {
+      setMetrics(await apiRequest("/admin/metrics", { headers: { "X-Admin-Token": token.trim() } }));
+    } catch (requestError) {
+      setMetricsError(requestError.message || "Göstəricilər yüklənmədi.");
+    } finally {
+      setMetricsLoading(false);
+    }
+  }
+
   function simulateCapture() {
     runAction("/admin/demo/simulate-activity", { count: 1, placeSlug: "carpet-museum" }, "Xalça Muzeyi fəaliyyəti");
   }
@@ -67,6 +84,9 @@ function DemoPanel() {
   }
 
   const owner = carpet?.territory_owner;
+  const positivePlaces = metrics?.visits_per_place?.filter((row) => row.visits > 0) || [];
+  const positiveUniversities = metrics?.visits_per_university?.filter((row) => row.visits > 0) || [];
+  const hasRealActivity = Boolean(metrics && (metrics.new_users > 0 || metrics.users_with_museum_completion > 0 || metrics.first_time_museum_visitors > 0 || positivePlaces.length > 0 || positiveUniversities.length > 0));
   return <section className={styles.page}>
     <header className={styles.header}>
       <div><p className={styles.kicker}>Yalnız lokal development rejimində</p><h1>Demo paneli</h1><p>Ərazi dəyişikliyini və həftəlik nəticələrin yekunlaşmasını canlı göstər.</p></div>
@@ -77,6 +97,17 @@ function DemoPanel() {
       <label>Demo admin açarı<input type="password" autoComplete="off" minLength={24} value={token} onChange={(event) => setToken(event.target.value)} placeholder="Admin açarını daxil et"/></label>
       <small>Açar yalnız bu səhifə açıq olduğu müddətdə yaddaşda qalır və qorunan sorğu ilə göndərilir.</small>
     </form>
+
+    <article className={styles.metrics}>
+      <div className={styles.metricsHead}><div><h2>Real istifadəçi göstəriciləri</h2><p>Nümunə demo profilləri bu saylara daxil edilmir.</p></div><button className={styles.metricsButton} type="button" onClick={loadMetrics} disabled={metricsLoading || token.trim().length < 24}>{metricsLoading ? "Yüklənir…" : "Göstəriciləri yenilə"}</button></div>
+      {metricsError && <p className={styles.error} role="alert">{metricsError}</p>}
+      {!metrics && !metricsError && <p className={styles.metricEmpty}>Göstəricilərə baxmaq üçün demo admin açarını daxil et.</p>}
+      {metrics && !hasRealActivity && <p className={styles.metricEmpty}>Hələ real istifadəçi fəaliyyəti yoxdur. Fəaliyyət qeydə alındıqca göstəricilər burada görünəcək.</p>}
+      {metrics && hasRealActivity && <>
+        <div className={styles.metricCounts}><div><b>{metrics.new_users}</b><span>Yeni istifadəçi</span></div><div><b>{metrics.users_with_museum_completion}</b><span>Muzey tapşırığı tamamlayan</span></div><div><b>{metrics.first_time_museum_visitors}</b><span>İlk muzey ziyarəti</span></div></div>
+        <div className={styles.metricBreakdowns}><section><h3>Məkanlar üzrə ziyarət</h3>{positivePlaces.length ? <ul className={styles.metricList}>{positivePlaces.map((row) => <li key={row.place}><span>{row.place}</span><b>{row.visits}</b></li>)}</ul> : <p className={styles.metricEmpty}>Hələ ziyarət qeydə alınmayıb.</p>}</section><section><h3>Universitetlər üzrə ziyarət</h3>{positiveUniversities.length ? <ul className={styles.metricList}>{positiveUniversities.map((row) => <li key={row.university}><span>{row.university}</span><b>{row.visits}</b></li>)}</ul> : <p className={styles.metricEmpty}>Hələ ziyarət qeydə alınmayıb.</p>}</section></div>
+      </>}
+    </article>
 
     {error && <p className={styles.error} role="alert">{error}</p>}
     <article className={styles.status}>

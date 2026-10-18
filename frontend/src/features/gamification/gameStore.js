@@ -82,7 +82,7 @@ export function jumpWeekEnd() {
   emit();
 }
 export function triggerCoop(pin) {
-  const card = { id: `coop-${Date.now()}`, week: state.weekLabel, name: `${pin.name} · Co-Op`, art: "🤝", rarity: "Co-Op", coOp: true };
+  const card = { id: `coop-${Date.now()}`, week: state.weekLabel, name: `${pin.name} · Komanda tapşırığı`, art: "🤝", rarity: "Adi", coOp: true };
   state = { ...state, cards: [card, ...state.cards] }; emit();
 }
 export function chooseUser(id) { setDemo({ currentUserId: id }); }

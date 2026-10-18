@@ -199,6 +199,7 @@ public sealed class GameRulesTests
         }
 
         var museums = await db.Places.Where(x => x.Type == "museum").ToListAsync();
+        Assert.All(await db.Tasks.ToListAsync(), task => Assert.True(task.NeedsReview, $"{task.Id} must be reviewed before publication."));
         Assert.True(museums.Count >= 6);
         var owners = new HashSet<string>(StringComparer.Ordinal);
         foreach (var museum in museums)

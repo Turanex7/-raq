@@ -28,7 +28,7 @@ export default function XpExplainer({ children, className = "" }) {
           <li>Ümumi XP səviyyəni artırır və tarixi avatarları açır.</li>
           <li>Həftəlik XP lider cədvəlini və Muzey Fəthini müəyyən edir; hər bazar ertəsi Bakı vaxtı ilə 00:00-da sıfırlanır.</li>
           <li>Dəstə bonusu tapşırığın əsas XP-sini artıra bilər.</li>
-          <li>XP oyun iştirakını ölçür və satın alına bilməz.</li>
+          <li>XP oyun iştirakını ölçür; onu almaq və nağdlaşdırmaq olmaz.</li>
         </ul>
       </section>
     </div>}

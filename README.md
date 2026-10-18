@@ -54,7 +54,7 @@ Telefonun həmin sertifikat səlahiyyət mərkəzini etibarlı sayması lazımd�
 
 ## API və yoxlamalar
 
-Sorğular, JSON sahələri və endpoint siyahısı [API müqaviləsi](docs/api-contract.md)-dədir. Bütün xətalar `{ "error": { "code", "message" } }` formatındadır. Health cavabı `/api/health` ünvanındadır.
+Sorğular, JSON sahələri və endpoint siyahısı [API müqaviləsi](docs/api-contract.md)-dədir. Bütün xətalar `{ "error": { "code", "message" } }` formatındadır. Health cavabı `/api/health` ünvanındadır. Seed məkan və tapşırıqlarının insan tərəfindən yoxlama siyahısı [məzmun yoxlaması sənədində](docs/CONTENT_REVIEW.md) verilib; təsdiqədək tapşırıqlar nəzərdən keçirilmə vəziyyətində qalır.
 
 ```sh
 scripts/smoke.sh

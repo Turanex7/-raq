@@ -837,11 +837,11 @@ public static class ApiRoutes
 
     private static async Task<IResult> GetMetrics(HttpContext http, AppDbContext db, IConfiguration config)
     {
-        if (!AdminAuthorized(http, config)) return Fail(401, "admin_required", "Admin token tələb olunur.");
-        var users = await db.Users.ToListAsync();
+        if (!AdminAuthorized(http, config)) return Fail(401, "admin_required", "Admin açarı tələb olunur.");
+        var users = await db.Users.Where(x => !x.IsDemo).ToListAsync();
         var firstStart = await db.Seasons.OrderBy(x => x.StartsAtUtc).Select(x => (DateTimeOffset?)x.StartsAtUtc).FirstOrDefaultAsync();
         var userIds = users.Select(x => x.Id).ToList();
-        var museumCompletions = await db.TaskCompletions.Join(db.Tasks, x => x.TaskId, x => x.Id, (completion, task) => new { completion, task }).Join(db.Places, x => x.task.PlaceId, x => x.Id, (x, place) => new { x.completion, place }).Where(x => x.place.Type == "museum").ToListAsync();
+        var museumCompletions = await db.TaskCompletions.Join(db.Tasks, x => x.TaskId, x => x.Id, (completion, task) => new { completion, task }).Join(db.Places, x => x.task.PlaceId, x => x.Id, (x, place) => new { x.completion, place }).Where(x => x.place.Type == "museum" && userIds.Contains(x.completion.UserId)).ToListAsync();
         var places = await db.Places.ToListAsync();
         var visitsByPlace = places.Select(place => new { place = place.Name, visits = museumCompletions.Count(x => x.place.Id == place.Id) }).ToList();
         var universities = await db.Universities.ToListAsync();
@@ -849,7 +849,7 @@ public static class ApiRoutes
         var firstTimers = users.Count(x => x.VisitedMuseumLast12Months == false && x.FirstMuseumVisitCompleted);
         var week1 = await db.Seasons.OrderBy(x => x.StartsAtUtc).Skip(0).FirstOrDefaultAsync();
         var week2 = await db.Seasons.OrderBy(x => x.StartsAtUtc).Skip(1).FirstOrDefaultAsync();
-        var cohort = week1 is null ? [] : await db.TaskCompletions.Where(x => x.SeasonId == week1.Id).Select(x => x.UserId).Distinct().ToListAsync();
+        var cohort = week1 is null ? [] : await db.TaskCompletions.Where(x => x.SeasonId == week1.Id && userIds.Contains(x.UserId)).Select(x => x.UserId).Distinct().ToListAsync();
         var retained = week2 is null || cohort.Count == 0 ? 0 : await db.TaskCompletions.Where(x => x.SeasonId == week2.Id && cohort.Contains(x.UserId)).Select(x => x.UserId).Distinct().CountAsync();
         return Results.Ok(new { new_users = firstStart is null ? 0 : users.Count(x => x.CreatedAtUtc >= firstStart), users_with_museum_completion = museumCompletions.Select(x => x.completion.UserId).Distinct().Count(), first_time_museum_visitors = firstTimers, visits_per_place = visitsByPlace, visits_per_university = visitsByUniversity, week1_to_week2_retention = new { cohort_users = cohort.Count, returned_users = retained, percent = cohort.Count == 0 ? (double?)null : Math.Round(100d * retained / cohort.Count, 1) } });
     }
@@ -864,7 +864,7 @@ public static class ApiRoutes
 
     private static async Task<IResult> SimulateActivity(SimulateActivityRequest request, HttpContext http, AppDbContext db, IConfiguration config)
     {
-        if (!AdminAuthorized(http, config)) return Fail(401, "admin_required", "Demo rejimi və admin token tələb olunur.");
+        if (!AdminAuthorized(http, config)) return Fail(401, "admin_required", "Demo rejimi və admin açarı tələb olunur.");
         if (request.Count is < 1 or > 20) return Fail(400, "invalid_count", "Fəaliyyət sayı 1–20 arası olmalıdır.");
         var season = await ActiveSeason(db, DateTimeOffset.UtcNow);
         if (season is null) return Fail(503, "season_unavailable", "Cari mövsüm tapılmadı.");
@@ -947,7 +947,7 @@ public static class ApiRoutes
 
     private static async Task<IResult> AdvanceWeek(AdvanceWeekRequest request, HttpContext http, AppDbContext db, IConfiguration config)
     {
-        if (!AdminAuthorized(http, config)) return Fail(401, "admin_required", "Demo rejimi və admin token tələb olunur.");
+        if (!AdminAuthorized(http, config)) return Fail(401, "admin_required", "Demo rejimi və admin açarı tələb olunur.");
         if (string.IsNullOrWhiteSpace(request.SeasonId)) return Fail(400, "season_id_required", "Yekunlaşdırılacaq mövsümün ID-sini göndər.");
         var active = await db.Seasons.FindAsync(request.SeasonId);
         if (active is null) return Fail(404, "season_not_found", "Mövsüm tapılmadı.");
