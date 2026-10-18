@@ -174,9 +174,10 @@ function universityForSeed(index) {
   return "atu";
 }
 
-function seedTaskCount(index) {
+function seedTaskCount(index, round = 0) {
   const overrides = { 6: 1, 27: 2, 29: 4, 32: 1, 35: 2, 36: 4 };
-  return overrides[index] || 1 + index % 4;
+  const baseCount = overrides[index] || 1 + index % 4;
+  return 1 + ((baseCount - 1 + round % 4) % 4);
 }
 
 function seedSpecialXp(index) {
@@ -192,18 +193,17 @@ function xpForSeedAward(award) {
   return 10;
 }
 
-function seedBoardRow(index, season) {
+function seedBoardRow(index, round) {
   const taskXp = [10, index % 2 === 0 ? 20 : 8, 10, 40];
-  const count = season.id === season.seed_season_id ? seedTaskCount(index) : 0;
-  const weeklyXp = taskXp.slice(0, count).reduce((sum, xp) => sum + xp, 0) +
-    (season.id === season.seed_season_id ? seedSpecialXp(index) : 0);
+  const count = seedTaskCount(index, round);
+  const weeklyXp = taskXp.slice(0, count).reduce((sum, xp) => sum + xp, 0) + seedSpecialXp(index);
   const firstName = SEEDED_NAMES[index].split(" ")[0];
   const lastName = SEEDED_NAMES[index].split(" ").at(-1);
   return {
     id: "seed-" + String(index + 1).padStart(2, "0"),
     full_name: SEEDED_NAMES[index], name: firstName + " " + lastName.slice(0, 1) + ".",
     university_id: universityForSeed(index), weekly_xp: weeklyXp,
-    lifetime_xp: seedTaskCount(index) ? taskXp.slice(0, seedTaskCount(index)).reduce((sum, xp) => sum + xp, 0) + seedSpecialXp(index) : seedTaskCount(index) + seedSpecialXp(index),
+    lifetime_xp: Math.max(weeklyXp, taskXp.slice(0, seedTaskCount(index)).reduce((sum, xp) => sum + xp, 0) + seedSpecialXp(index)),
     correct_answers: count > 0 && index % 2 === 0 ? count : 0,
     reached_at: new Date(Date.now() - (index + 1) * 60000).toISOString(),
   };
@@ -388,7 +388,7 @@ function detailPlace(state, place, user) {
 }
 
 function seedBoard(state, season) {
-  const rows = SEEDED_NAMES.map((_, index) => seedBoardRow(index, season));
+  const rows = SEEDED_NAMES.map((_, index) => seedBoardRow(index, state.week_advance || 0));
   const user = currentUser(state);
   if (user) {
     const weekly = userXp(state, user.id, season.id);

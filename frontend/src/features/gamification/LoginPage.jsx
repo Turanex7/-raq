@@ -15,28 +15,34 @@ export default function LoginPage() {
   const [universities, setUniversities] = useState([]);
   const [avatars, setAvatars] = useState([]);
   const [error, setError] = useState("");
+  const [optionsError, setOptionsError] = useState("");
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsAttempt, setOptionsAttempt] = useState(0);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const universityName = universities.find((item) => item.id === universityId)?.name || "";
 
   useEffect(() => {
     let active = true;
     Promise.all([apiRequest("/universities"), apiRequest("/avatars")]).then(([schools, portraits]) => {
+      const schoolList = Array.isArray(schools) ? schools : [];
+      const avatarList = Array.isArray(portraits) ? portraits : [];
+      if (!schoolList.length || !avatarList.length) throw new Error("Universitet və avatar siyahısı yüklənmədi.");
       if (active) {
-        const schoolList = Array.isArray(schools) ? schools : [];
         setUniversities(schoolList);
-        setAvatars(Array.isArray(portraits) ? portraits : []);
-        if (schoolList[0]) setUniversityId(schoolList[0].id);
+        setAvatars(avatarList);
+        setOptionsError("");
       }
-    }).catch((requestError) => { if (active) setError(requestError.message); });
+    }).catch((requestError) => { if (active) setOptionsError(requestError.message || "Universitet siyahısı yüklənmədi."); })
+      .finally(() => { if (active) setOptionsLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [optionsAttempt]);
 
   async function submit(event) {
     event.preventDefault(); setError(""); setBusy(true);
     try {
       if (mode === "register") {
-        if (!universityId) throw new Error("Universitet seç.");
+        if (!universities.some((item) => item.id === universityId)) throw new Error("Siyahıdan universitet seç.");
+        if (!avatars.some((item) => item.id === avatarId && item.unlock_level <= 1)) throw new Error("Açıq avatarlardan birini seç.");
         const account = await apiPost("/auth/register", { name, email, password, universityId, avatarId, visitedMuseumLast12Months: visited === "" ? null : visited === "yes" });
         window.localStorage.setItem("chiraq_token", account.token);
       } else {
@@ -53,15 +59,19 @@ export default function LoginPage() {
     <form onSubmit={submit}>
       {mode === "register" && <>
         <label>Ad və soyad<input value={name} onChange={(event) => setName(event.target.value)} required minLength={2} maxLength={50} autoComplete="name" placeholder="Ad Soyad"/></label>
-        <label>Universitet<input list="ciraq-universities" value={universityName} onChange={(event) => setUniversityId(universities.find((item) => item.name.toLowerCase() === event.target.value.trim().toLowerCase())?.id || "")} required placeholder="Universiteti axtar"/><datalist id="ciraq-universities">{universities.map((uni) => <option key={uni.id} value={uni.name}/>)}</datalist></label>
-        <label>Avatar<select value={avatarId} onChange={(event) => setAvatarId(event.target.value)}>{avatars.map((avatar) => <option key={avatar.id} value={avatar.id} disabled={avatar.unlock_level > 1}>{avatar.name}{avatar.unlock_level > 1 ? ` · ${avatar.unlock_level}-ci səviyyədə açılır` : ""}</option>)}</select></label>
+        <label>Universitet<select value={universityId} onChange={(event) => setUniversityId(event.target.value)} required disabled={optionsLoading || !universities.length}>
+          <option value="">{optionsLoading ? "Universitetlər yüklənir…" : "Universitet seç"}</option>
+          {universities.map((uni) => <option key={uni.id} value={uni.id}>{uni.name}</option>)}
+        </select></label>
+        <label>Avatar<select value={avatarId} onChange={(event) => setAvatarId(event.target.value)} disabled={optionsLoading || !avatars.length}>{avatars.map((avatar) => <option key={avatar.id} value={avatar.id} disabled={avatar.unlock_level > 1}>{avatar.name}{avatar.unlock_level > 1 ? ` · ${avatar.unlock_level}-ci səviyyədə açılır` : ""}</option>)}</select></label>
         <label>Son 12 ayda muzeyə getmisən?<select value={visited} onChange={(event) => setVisited(event.target.value)}><option value="">Cavab vermək istəmirəm</option><option value="yes">Bəli</option><option value="no">Xeyr</option></select></label>
       </>}
       <label>Universitet e-poçtu<input type="email" placeholder="ad@universitet.edu.az" value={email} onChange={(event) => setEmail(event.target.value)} required autoComplete="email"/></label>
       <label>Şifrə<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={10} maxLength={128} required autoComplete={mode === "register" ? "new-password" : "current-password"}/></label>
       {error && <p className={styles.error} role="alert">{error}</p>}
-      <button type="submit" disabled={busy}>{mode === "register" ? <UserRoundPlus size={16}/> : <LockKeyhole size={16}/>} {busy ? "Yoxlanılır…" : mode === "register" ? "Hesab yarat" : "Davam et"}</button>
+      <button type="submit" disabled={busy || (mode === "register" && (optionsLoading || !universities.length || !avatars.length))}>{mode === "register" ? <UserRoundPlus size={16}/> : <LockKeyhole size={16}/>} {busy ? "Yoxlanılır…" : mode === "register" ? "Hesab yarat" : "Davam et"}</button>
     </form>
+    {optionsError && <div className={styles.error} role="alert">{optionsError}<button type="button" onClick={() => { setOptionsError(""); setOptionsLoading(true); setOptionsAttempt((value) => value + 1); }}>Siyahını yenidən yüklə</button></div>}
     <small className={styles.note}>{import.meta.env.VITE_DEMO_MODE === "true" ? "Demo hesabın və irəliləyişin yalnız bu brauzerdə saxlanılır." : "Hesab məlumatları SQLite demo bazasında saxlanılır. E-poçt təsdiqi mükafatın əl ilə yoxlanması zamanı aparılır."}</small>
   </div></section>;
 }
