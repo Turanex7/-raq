@@ -21,9 +21,9 @@ function Lantern({ position }) {
   );
 }
 
-function Tree({ position }) {
+function Tree({ position, scale = 1 }) {
   return (
-    <group position={position}>
+    <group position={position} scale={scale}>
       <mesh castShadow position={[0, 0.6, 0]}>
         <cylinderGeometry args={[0.12, 0.18, 1.2, 8]} />
         <meshStandardMaterial color="#3d2941" roughness={1} />
@@ -73,8 +73,8 @@ function WorldContents({ selected, onSelect, places }) {
       {markerPlaces.map((place, index) => <QuestMarker key={place.id} position={index === 0 ? [-2.35, 1.75, -1.25] : [2.9, 1.2, 0.65]} label={place.name} onClick={() => onSelect(place.slug)} />)}
       <Lantern position={[-2.3, 0, 0.6]} />
       <Lantern position={[2.2, 0, -1.5]} />
-      <Tree position={[-3.3, 0, -0.4]} />
-      <Tree position={[3.15, 0, 2.35]} />
+      <Tree position={[-3.6, 0, -0.4]} scale={0.58} />
+      <Tree position={[3.35, 0, 2.35]} scale={0.62} />
       <ContactShadows position={[0, -0.14, 0]} opacity={0.48} scale={11} blur={2.2} far={5} />
     </>
   );

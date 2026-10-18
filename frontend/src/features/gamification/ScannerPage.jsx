@@ -12,6 +12,8 @@ export default function ScannerPage() {
   const navigate = useNavigate();
   const taskId = search.get("taskId");
   const placeSlug = search.get("place");
+  const journeyId = search.get("journey");
+  const journeyQuery = journeyId ? `&journey=${encodeURIComponent(journeyId)}` : "";
   const coop = search.get("coop") === "1";
   const checkin = search.get("checkin") === "1";
   const demoEnabled = import.meta.env.VITE_DEMO_MODE === "true";
@@ -73,8 +75,8 @@ export default function ScannerPage() {
       }
       if (!coop) window.dispatchEvent(new Event("chiraq:xp-updated"));
       if (coop && response.completed) celebrateLantern();
-      if (coop) navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}&sessionId=${encodeURIComponent(response.session_id)}`);
-      else navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}`, { state: { completion: response } });
+      if (coop) navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}&sessionId=${encodeURIComponent(response.session_id)}${journeyQuery}`);
+      else navigate(`/quests/${encodeURIComponent(targetTaskId)}?place=${encodeURIComponent(targetSlug || "")}${journeyQuery}`, { state: { completion: response } });
     } catch (cause) {
       setError(cause.message || "QR kod təsdiqlənmədi.");
       setBusy(false);
@@ -105,7 +107,7 @@ export default function ScannerPage() {
     try {
       const response = await validateLocation(placeSlug, taskId);
       window.dispatchEvent(new Event("chiraq:xp-updated"));
-      navigate(`/quests/${encodeURIComponent(taskId)}?place=${encodeURIComponent(placeSlug)}`, { state: { completion: response } });
+      navigate(`/quests/${encodeURIComponent(taskId)}?place=${encodeURIComponent(placeSlug)}${journeyQuery}`, { state: { completion: response } });
     } catch (cause) {
       const message = cause.code === 1 ? "Məkan icazəsi verilmədi. GPS yoxlaması üçün brauzer icazəsini aç." : cause.message;
       setError(message || "GPS yoxlaması baş tutmadı.");
@@ -113,7 +115,7 @@ export default function ScannerPage() {
   }
 
   return <section className={styles.page}>
-    <Link to={placeSlug ? `/museums/${encodeURIComponent(placeSlug)}` : "/map"} className={styles.back}><ArrowLeft size={16}/>{t("Geri qayıt")}</Link>
+    <Link to={placeSlug ? `/museums/${encodeURIComponent(placeSlug)}${journeyId ? `?journey=${encodeURIComponent(journeyId)}` : ""}` : "/map"} className={styles.back}><ArrowLeft size={16}/>{t("Geri qayıt")}</Link>
     <article className={styles.hero}><p className={styles.kicker}><QrCode size={14}/>{t("QR skaner")}</p><h1>{t("Muzey kodunu oxut")}</h1><p>{t("Kameranı eksponatın yanındakı QR koduna yönəlt. Kamera işləməsə, kodu əl ilə əlavə et.")}</p>
       {permissionMessage && <p role="status">{t(permissionMessage)}</p>}
       {!checkin && <div id="standalone-qr-reader" style={{ minHeight: 240, overflow: "hidden", borderRadius: 12, background: "#080d29" }}/>} 

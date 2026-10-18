@@ -32,6 +32,15 @@
 .enterButton:hover { background: $text; transform: translateY(-2px); }
 .enterButton span { font-size: 17px; }
 .lockedButton { justify-content: flex-start; gap: 7px; color: $muted; border: 1px solid rgba($text, .12); background: rgba($text, .05); }
+.journeyClue { margin: 10px 0 8px; color: $text; font-size: 13px; font-weight: 750; line-height: 1.45; }
+.journeyRule { margin: 0 0 12px; color: $muted; font-size: 10px; line-height: 1.45; }
+.journeyChoices { display: grid; gap: 7px; }
+.journeyChoices button { width: 100%; padding: 10px; color: $text; text-align: left; border: 1px solid rgba($mint, .2); border-radius: 9px; background: rgba($text, .045); font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.journeyChoices button:hover, .journeyChoices button:focus-visible { border-color: $mint; background: rgba($mint, .1); outline: none; }
+.journeyWrong { margin: 9px 0 0; color: #ff9a92; font-size: 11px; }
+.journeySuccess { margin-top: 11px; padding: 11px; color: $text; border: 1px solid rgba($mint, .28); border-radius: 10px; background: rgba($mint, .07); font-size: 11px; }
+.journeySuccess > b { color: $mint; }
+.journeySuccess p { margin: 6px 0 10px; color: $muted; line-height: 1.45; }
 .bottomHud { position: absolute; right: 34px; bottom: 24px; left: 34px; display: flex; align-items: center; justify-content: space-between; color: rgba($text, .58); font-size: 10px; }
 .controlHint { display: flex; align-items: center; gap: 7px; }
 .controlHint b { padding: 4px 6px; color: $navy; border-radius: 5px; background: rgba($text, .74); font-size: 8px; letter-spacing: .08em; }

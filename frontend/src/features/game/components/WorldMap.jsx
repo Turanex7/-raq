@@ -31,7 +31,7 @@ function DestinationMarker({ level, position, selected, locked, onSelect }) {
   });
 
   return (
-    <group ref={group} position={position} onClick={(event) => { event.stopPropagation(); onSelect(level.id); }} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+    <group ref={group} position={position} onClick={(event) => { event.stopPropagation(); if (!locked) onSelect(level.id); }} onPointerOver={() => { if (!locked) setHovered(true); }} onPointerOut={() => setHovered(false)}>
       <mesh position={[0, 0.48, 0]}><sphereGeometry args={[0.72, 16, 12]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
       <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.58, selected || hovered ? 0.72 : 0.63, 40]} /><meshBasicMaterial color={accent} transparent opacity={selected || hovered ? 0.78 : 0.32} /></mesh>
       <mesh position={[0, 0.27, 0]}><cylinderGeometry args={[0.11, 0.16, 0.42, 8]} /><meshStandardMaterial color={accent} emissive={accent} emissiveIntensity={selected || hovered ? 1.7 : 0.45} roughness={0.34} metalness={0.28} /></mesh>
@@ -112,12 +112,12 @@ function WorldScene({ levels, selectedId, onSelect }) {
     <Line points={route} color="#f5b942" transparent opacity={0.48} lineWidth={1.3} />
     <Line points={route.map(([x, y, z]) => [x, y + 0.02, z + 0.06])} color="#a0e4c9" transparent opacity={0.16} lineWidth={4} />
     {levels.map((level) => {
-      const unlocked = level.place?.status === "open";
-      const locked = level.place?.status === "locked";
+      const unlocked = !level.storyLocked;
+      const locked = Boolean(level.storyLocked);
       return <group key={level.id} position={LANDMARK_POSITIONS[level.id]}>
         <mesh receiveShadow position={[0, -0.06, 0]}><cylinderGeometry args={[1.35, 1.5, 0.22, 8]} /><meshStandardMaterial color={unlocked ? "#354b57" : locked ? "#252842" : "#303047"} roughness={0.9} /></mesh>
         <Landmark level={level} />
-        <DestinationMarker level={level} position={[0, 0.15, 0]} selected={selectedId === level.id} locked={false} onSelect={onSelect} />
+        <DestinationMarker level={level} position={[0, 0.15, 0]} selected={selectedId === level.id} locked={locked} onSelect={onSelect} />
       </group>;
     })}
     {[-5.8, -3.1, 0.8, 4.2].map((x) => <group key={x} position={[x, 0, 4.6]}><mesh castShadow position={[0, 0.7, 0]}><cylinderGeometry args={[0.16, 0.24, 1.25, 8]} /><meshStandardMaterial color="#664659" roughness={0.9} /></mesh><mesh castShadow position={[0, 1.5, 0]}><sphereGeometry args={[0.5, 10, 8]} /><meshStandardMaterial color="#1d675f" roughness={0.98} /></mesh></group>)}

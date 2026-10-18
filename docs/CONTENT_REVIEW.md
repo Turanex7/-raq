@@ -59,3 +59,15 @@ Bu rol sualları eksponata baxışı təşviq edir və tarixi fakt iddia etmir. 
 - Üçlü alov ekranı: “Üç iştirakçı QR kodunu skan edib ayrı rollarını seçir. Hər kəs cavabını 60 dəqiqə ərzində göndərməlidir; tapşırıq tamamlananda XP-ni server verir.”
 - Nəticə: “Üçlü alov tamamlandı. XP serverdə hesablandı.”
 - Cavab forması: “Məkanda gördüyün detalı yaz”; “Cavabın qeydə alındı. Digər rolların cavablarını gözlə.”
+
+## Muzeyə aparan səviyyə ipucları
+
+Bu oyun ipucları marşrut seçimi üçündür; tarixi fakt və ya tarix iddiası daşımır. Hər ipucunda `needs_review=true` saxlanılır və muzey üzrə məsul şəxs yoxlamadan yayımlanmış məzmun sayılmamalıdır.
+
+| Mərhələ | Hədəf məkan | Başlıq və ipucu | Review |
+| --- | --- | --- | --- |
+| 1 | `carpet-museum` | “İlk muzey izi” — “İp və rənglə qurulan naxışların izini hansı muzeydə axtaracaqsan?” | `needs_review=true` |
+| 2 | `national-history` | “Keçmişin izi” — “Müxtəlif dövrləri kolleksiyası ilə tanıdan muzeyi seç.” | `needs_review=true` |
+| 3 | `heydar-aliyev` | “Axıcı formaların izi” — “Memarlıq və mədəniyyət sərgilərini bir arada kəşf edə biləcəyin məkanı tap.” | `needs_review=true` |
+
+Mərhələ yalnız hədəf məkanın `visit` QR tapşırığı və `quiz` sualı tamamlandıqda irəliləyir. İpucu cavabı XP vermir; XP yalnız mövcud server tapşırıq axınından hesablanır.

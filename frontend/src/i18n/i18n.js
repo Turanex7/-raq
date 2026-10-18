@@ -340,6 +340,59 @@ Object.assign(translations.ru, {
 Object.assign(translations.en, { "Suraxanı Atəşgahı": "Ateshgah of Surakhani" });
 Object.assign(translations.ru, { "Suraxanı Atəşgahı": "Атешгях в Сураханах" });
 
+Object.assign(translations.en, {
+  "Səviyyə tapmacası": "Level clue", "İlk muzey izi": "The first museum trail", "Keçmişin izi": "A trail through the past", "Axıcı formaların izi": "A trail of flowing forms",
+  "İp və rənglə qurulan naxışların izini hansı muzeydə axtaracaqsan?": "Which museum will you visit to follow patterns made with thread and color?",
+  "Müxtəlif dövrləri kolleksiyası ilə tanıdan muzeyi seç.": "Choose the museum whose collection presents different periods.",
+  "Memarlıq və mədəniyyət sərgilərini bir arada kəşf edə biləcəyin məkanı tap.": "Find the place where you can explore architecture and cultural exhibitions together.",
+  "Yol açıqdır": "Path open", "Düzgün cavab XP vermir. Muzeydə QR ziyarətini və bir əlavə tapşırığı tamamla; XP-ni server hesablayır.": "The clue answer gives no XP. Scan the museum QR and complete one more task there; the server awards XP.",
+  "Muzeyi seç": "Choose a museum", "Bu cavab ipucuna uyğun gəlmir. Yenidən seç.": "That answer does not match the clue. Try again.", "Düz tapdın: {place}": "Correct: {place}",
+  "Muzey": "Museum", "İndi muzeyə get, QR ziyarətini və əlavə bir tapşırığı tamamla.": "Now visit the museum, scan its QR, and complete one additional task.",
+  "QR ziyarəti qeydə alınıb. Mərhələni tamamlamaq üçün bir əlavə tapşırıq seç.": "Your QR visit is recorded. Choose one more task to complete this stage.",
+  "Muzey tapşırığına keç": "Go to museum tasks", "Muzey izi tamamlandı!": "Museum trail complete!", "Növbəti mərhələni xəritədə aç.": "The next stage is now open on the map.", "Macəraya davam et": "Continue the adventure",
+  "Səviyyə tapşırığı": "Level quest", "Muzey izi tamamlandı! Növbəti mərhələ xəritədə açıldı.": "Museum trail complete! The next stage is open on the map.",
+  "Mərhələ üçün əvvəl muzeyin QR ziyarətini, sonra isə ən azı bir əlavə tapşırığı tamamla.": "To finish this stage, scan the museum QR and complete at least one additional task.",
+  "QR ziyarəti": "QR visit", "Bir əlavə tapşırıq": "One more task", "Mərhələ üçün muzeyin QR ziyarəti və ən azı bir əlavə tapşırıq tamamlanmalıdır.": "To finish this stage, scan the museum QR and complete at least one additional task.",
+  "Səviyyə tapşırığının gedişi": "Level quest progress", "Mərhələ məlumatı yüklənmədi.": "Could not load stage progress."
+});
+
+Object.assign(translations.ru, {
+  "Səviyyə tapmacası": "Загадка уровня", "İlk muzey izi": "Первый музейный след", "Keçmişin izi": "След прошлого", "Axıcı formaların izi": "След плавных форм",
+  "İp və rənglə qurulan naxışların izini hansı muzeydə axtaracaqsan?": "В каком музее ты найдёшь узоры, созданные нитями и цветом?",
+  "Müxtəlif dövrləri kolleksiyası ilə tanıdan muzeyi seç.": "Выбери музей, чья коллекция знакомит с разными эпохами.",
+  "Memarlıq və mədəniyyət sərgilərini bir arada kəşf edə biləcəyin məkanı tap.": "Найди место, где можно познакомиться с архитектурой и культурными выставками.",
+  "Yol açıqdır": "Путь открыт", "Düzgün cavab XP vermir. Muzeydə QR ziyarətini və bir əlavə tapşırığı tamamla; XP-ni server hesablayır.": "Ответ на загадку не даёт XP. Сканируй QR-код в музее и выполни ещё одно задание; XP начисляет сервер.",
+  "Muzeyi seç": "Выбери музей", "Bu cavab ipucuna uyğun gəlmir. Yenidən seç.": "Этот ответ не подходит к подсказке. Попробуй ещё раз.", "Düz tapdın: {place}": "Верно: {place}",
+  "Muzey": "Музей", "İndi muzeyə get, QR ziyarətini və əlavə bir tapşırığı tamamla.": "Теперь посети музей, отсканируй QR-код и выполни ещё одно задание.",
+  "QR ziyarəti qeydə alınıb. Mərhələni tamamlamaq üçün bir əlavə tapşırıq seç.": "QR-посещение записано. Выбери ещё одно задание, чтобы завершить этап.",
+  "Muzey tapşırığına keç": "Перейти к заданиям музея", "Muzey izi tamamlandı!": "Музейный след пройден!", "Növbəti mərhələni xəritədə aç.": "Следующий этап открыт на карте.", "Macəraya davam et": "Продолжить приключение",
+  "Səviyyə tapşırığı": "Задание уровня", "Muzey izi tamamlandı! Növbəti mərhələ xəritədə açıldı.": "Музейный след пройден! Следующий этап открыт на карте.",
+  "Mərhələ üçün əvvəl muzeyin QR ziyarətini, sonra isə ən azı bir əlavə tapşırığı tamamla.": "Чтобы пройти этап, отсканируй QR-код музея и выполни ещё хотя бы одно задание.",
+  "QR ziyarəti": "QR-посещение", "Bir əlavə tapşırıq": "Ещё одно задание", "Mərhələ üçün muzeyin QR ziyarəti və ən azı bir əlavə tapşırıq tamamlanmalıdır.": "Чтобы пройти этап, отсканируй QR-код музея и выполни ещё хотя бы одно задание.",
+  "Səviyyə tapşırığının gedişi": "Прогресс задания уровня", "Mərhələ məlumatı yüklənmədi.": "Не удалось загрузить прогресс этапа."
+});
+
+Object.assign(translations.en, {
+  "İpucunu tap, muzeyə get, QR ziyarətini və sualı tamamla.": "Solve the clue, visit the museum, scan its QR, and answer the question.",
+  "Düzgün cavab XP vermir. Muzeydə QR ziyarətini və bilik sualını tamamla; XP-ni server hesablayır.": "The clue answer gives no XP. Scan the museum QR and answer its knowledge question; the server awards XP.",
+  "İndi muzeyə get, QR ziyarətini təsdiqlə və oradakı bilik sualına cavab ver.": "Now visit the museum, scan its QR, and answer the knowledge question there.",
+  "QR ziyarəti qeydə alınıb. Mərhələni tamamlamaq üçün muzey sualına cavab ver.": "Your QR visit is recorded. Answer the museum question to complete this stage.",
+  "Mərhələ üçün əvvəl muzeyin QR ziyarətini, sonra isə muzey sualını tamamla.": "To finish the stage, scan the museum QR and then answer its question.",
+  "Mərhələ üçün QR ziyarətini və muzey sualını tamamla.": "Complete the QR visit and answer the museum question to finish the stage.",
+  "Muzey sualı": "Museum question", "Ziyarət QR-ını oxut": "Scan the visit QR", "Muzey sualına cavab ver": "Answer the museum question",
+  "Macəra tamamlandı": "Adventure complete", "Bakı kəşfi başa çatdı": "Baku discovery complete", "Növbəti muzeyləri xəritədə seç, ziyarət et və yeni izlər aç.": "Choose more museums on the map, visit them, and discover new trails.", "Muzey xəritəsini aç": "Open the museum map"
+});
+Object.assign(translations.ru, {
+  "İpucunu tap, muzeyə get, QR ziyarətini və sualı tamamla.": "Разгадай подсказку, посети музей, отсканируй QR-код и ответь на вопрос.",
+  "Düzgün cavab XP vermir. Muzeydə QR ziyarətini və bilik sualını tamamla; XP-ni server hesablayır.": "Ответ на загадку не даёт XP. Отсканируй QR-код в музее и ответь на вопрос; XP начисляет сервер.",
+  "İndi muzeyə get, QR ziyarətini təsdiqlə və oradakı bilik sualına cavab ver.": "Теперь посети музей, отсканируй QR-код и ответь на вопрос.",
+  "QR ziyarəti qeydə alınıb. Mərhələni tamamlamaq üçün muzey sualına cavab ver.": "QR-посещение записано. Ответь на вопрос музея, чтобы завершить этап.",
+  "Mərhələ üçün əvvəl muzeyin QR ziyarətini, sonra isə muzey sualını tamamla.": "Чтобы пройти этап, отсканируй QR-код музея, а затем ответь на вопрос.",
+  "Mərhələ üçün QR ziyarətini və muzey sualını tamamla.": "Отсканируй QR-код и ответь на вопрос музея, чтобы завершить этап.",
+  "Muzey sualı": "Вопрос музея", "Ziyarət QR-ını oxut": "Сканировать QR-посещение", "Muzey sualına cavab ver": "Ответить на вопрос музея",
+  "Macəra tamamlandı": "Приключение завершено", "Bakı kəşfi başa çatdı": "Исследование Баку завершено", "Növbəti muzeyləri xəritədə seç, ziyarət et və yeni izlər aç.": "Выбирай музеи на карте, посещай их и открывай новые маршруты.", "Muzey xəritəsini aç": "Открыть карту музеев"
+});
+
 const LANGUAGE_STORAGE_KEY = "chiraq_language";
 const validLanguageIds = new Set(LANGUAGE_OPTIONS.map(({ id }) => id));
 
