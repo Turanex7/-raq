@@ -51,7 +51,7 @@
   .worldTitle p { max-width: 250px; font-size: 10px; }
   .progressHud { position: absolute; top: 0; right: 0; min-width: 0; padding: 7px; }
   .progressHud > div { display: block; }
-  .missionPanel { top: auto; right: 12px; bottom: 55px; left: 12px; width: auto; padding: 14px 15px; transform: none; }
+  .missionPanel { top: auto; right: 12px; bottom: 55px; left: 12px; width: auto; max-height: calc(100% - 155px); overflow-y: auto; padding: 14px 15px; transform: none; }
   .missionNumber { position: absolute; top: 15px; right: 40px; margin: 0; }
   .panelKicker { margin-bottom: 7px; font-size: 9px; }
   .missionPanel h2 { font-size: 21px; }

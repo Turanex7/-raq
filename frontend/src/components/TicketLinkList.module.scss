@@ -1,0 +1,9 @@
+@use "../styles/variables" as *;
+
+.list { display: grid; gap: 8px; margin: 0 0 12px; }
+.option { display: grid; gap: 5px; }
+.link { display: flex; align-items: center; min-height: 42px; color: $text; padding: 9px 11px; border: 1px solid rgba($gold, .34); border-radius: 9px; background: rgba($gold, .08); font-size: 11px; font-weight: 800; text-decoration: none; }
+.link:hover { color: $gold; border-color: rgba($gold, .72); background: rgba($gold, .13); }
+.link:focus-visible { outline: 2px solid $mint; outline-offset: 2px; }
+.sponsorInfo small { color: $gold; font-size: 10px; font-weight: 800; }
+.sponsorInfo p { color: $muted; margin: 0; font-size: 10px; line-height: 1.5; }

@@ -6,6 +6,7 @@ import useApiResource from "../../../services/useApiResource";
 import { levelRegistry } from "./levelRegistry";
 import Avatar from "../../gamification/components/Avatar";
 import { miniGameRegistry } from "../minigames/miniGameRegistry";
+import TicketLinkList from "../../../components/TicketLinkList.jsx";
 import styles from "./LevelSelect.module.scss";
 
 export default function LevelSelect() {
@@ -45,6 +46,7 @@ export default function LevelSelect() {
           <p className={styles.panelSubtitle}>{selectedLevel.subtitle}</p>
           <p className={styles.panelDescription}>{selectedLevel.description}</p>
           <div className={styles.panelMeta}><span>{qrStatus}</span><span>{selectedLevel.difficulty}</span></div>
+          <TicketLinkList place={selectedLevel.place} />
           {hasMiniGame && <Link to={`/mini-game/${selectedLevel.place.id}`} className={styles.enterButton}>Mini oyuna başla<span>↗</span></Link>}
           <p className={styles.panelDescription}>Mini oyun açıqdır; muzey tapşırıqları üçün məkanın QR statusu ayrıca tətbiq olunur.</p>
         </aside>}
