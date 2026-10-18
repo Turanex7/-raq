@@ -1,10 +1,10 @@
 @use "../../../styles/variables" as *;
 
-.trigger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 7px 10px; border: 1px solid rgba($mint, .22); border-radius: 10px; color: $mint; background: rgba($surface, .7); font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.trigger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 45px; padding: 7px 10px; border: 1px solid rgba($mint, .22); border-radius: 10px; color: $mint; background: rgba($surface, .7); font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
 .trigger:hover { border-color: rgba($mint, .55); background: rgba($mint, .08); }
 .backdrop { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: end; justify-content: center; padding: 20px; background: rgba($navy, .78); backdrop-filter: blur(7px); }
 .sheet { position: relative; width: min(100%, 560px); max-height: min(82vh, 620px); overflow-y: auto; padding: 26px; border: 1px solid rgba($mint, .22); border-radius: 22px 22px 16px 16px; color: $text; background: linear-gradient(145deg, $surface, $ink); box-shadow: 0 24px 80px rgba(#000, .4); animation: sheet-in 180ms ease-out; }
-.close { position: absolute; top: 16px; right: 16px; display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgba($mint, .16); border-radius: 10px; color: $text-secondary; background: rgba($navy, .55); cursor: pointer; }
+.close { position: absolute; top: 16px; right: 16px; display: grid; width: 45px; height: 45px; place-items: center; border: 1px solid rgba($mint, .16); border-radius: 10px; color: $text-secondary; background: rgba($navy, .55); cursor: pointer; }
 .kicker { display: flex; align-items: center; gap: 6px; margin: 0 40px 8px 0; color: $mint; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .sheet h2 { margin: 0 42px 14px 0; font-size: clamp(22px, 5vw, 29px); }
 .sheet ul { display: grid; gap: 10px; margin: 0; padding-left: 20px; color: $text-secondary; font-size: 14px; line-height: 1.55; }

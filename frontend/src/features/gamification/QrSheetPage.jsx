@@ -20,7 +20,7 @@ export default function QrSheetPage() {
   }
   useEffect(() => { document.title = "QR vərəqi · Çıraq"; }, []);
   return <section className={styles.page}><header className={styles.header}><div><p>Yalnız demo rejimi</p><h1>Tapşırıq QR vərəqi</h1><span>Vərəqdəki kodlar imzalıdır və birbaşa demo tapşırıqlarına uyğundur.</span></div><button type="button" onClick={() => window.print()} disabled={!rows.length}><Printer size={16}/>Çap et</button></header>
-    {!rows.length && <form className={styles.access} onSubmit={load}><label>Admin token<input type="password" autoComplete="off" value={adminToken} onChange={(event) => setAdminToken(event.target.value)} required/></label><button type="submit" disabled={loading}>{loading ? "Yüklənir…" : "QR kodları göstər"}</button>{error && <p role="alert">{error}</p>}</form>}
+    {!rows.length && <form className={styles.access} onSubmit={load}><label>Admin açarı<input type="password" autoComplete="off" value={adminToken} onChange={(event) => setAdminToken(event.target.value)} required/></label><button type="submit" disabled={loading}>{loading ? "Yüklənir…" : "QR kodları göstər"}</button>{error && <p role="alert">{error}</p>}</form>}
     {!!rows.length && <div className={styles.grid}>{rows.map((row) => <article className={styles.card} key={row.id}><img src={row.image} alt={`${row.place} · ${row.title} QR kodu`}/><div><b>{row.place}</b><span>{row.title} · {row.type}</span><small>{row.slug}/{row.id}</small></div></article>)}</div>}
   </section>;
 }

@@ -74,8 +74,8 @@ function DemoPanel() {
     </header>
 
     <form className={styles.tokenForm} onSubmit={(event) => event.preventDefault()}>
-      <label>Demo admin tokenu<input type="password" autoComplete="off" minLength={24} value={token} onChange={(event) => setToken(event.target.value)} placeholder="Admin tokenu daxil et"/></label>
-      <small>Token yalnız bu səhifə açıq olduğu müddətdə yaddaşda qalır və API-yə qorunan başlıqla göndərilir.</small>
+      <label>Demo admin açarı<input type="password" autoComplete="off" minLength={24} value={token} onChange={(event) => setToken(event.target.value)} placeholder="Admin açarını daxil et"/></label>
+      <small>Açar yalnız bu səhifə açıq olduğu müddətdə yaddaşda qalır və qorunan sorğu ilə göndərilir.</small>
     </form>
 
     {error && <p className={styles.error} role="alert">{error}</p>}
