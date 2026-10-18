@@ -1,11 +1,15 @@
 
 # Local backend database and .NET build output
 backend/Chiraq.Api/chiraq.db*
+backend/Chiraq.Api.Reset/bin/
+backend/Chiraq.Api.Reset/obj/
 backend/Chiraq.Api/bin/
 backend/Chiraq.Api/obj/
 backend/Chiraq.Api/.vs/
 backend/Chiraq.Api/.env
 backend/Chiraq.Api.Tests/bin/
 backend/Chiraq.Api.Tests/obj/
-backend/Chiraq.Api.Reset/bin/
-backend/Chiraq.Api.Reset/obj/
+# Local environment files; keep the checked-in examples.
+.env
+.env.*
+!.env.example
