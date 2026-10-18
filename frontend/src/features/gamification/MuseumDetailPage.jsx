@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, ArrowRight, MapPin, Sparkles } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import TicketLinkList from "../../components/TicketLinkList.jsx";
 import useApiResource from "../../services/useApiResource";
 import TerritorySummary from "./components/TerritorySummary";
 import GroupBonusInfo from "./components/GroupBonusInfo";
@@ -25,7 +26,7 @@ function ApiMuseumDetail({ slug }) {
   const routeTasks = route ? tasks.slice(0, 4) : tasks;
   return <section className={styles.page}>
     <Link to="/map" className={styles.back}><ArrowLeft size={16}/>Xəritəyə qayıt</Link>
-    <article className={styles.hero}><span aria-hidden="true">{place.type === "museum" ? "⌂" : "⌖"}</span><p className={styles.kicker}><Sparkles size={14}/>{place.status === "open" ? "Bu həftə açıqdır" : "Bu həftə bağlıdır"} · {place.district}</p><h1>{place.name}</h1><p className={styles.location}><MapPin size={15}/>{place.district} · {place.radiusMeters} m radius</p><p>{place.description}</p>{place.is_ticketed && <p className={styles.reward}>Biletli məkan · hər tapşırığa əlavə +{place.ticketed_place_bonus_xp} XP</p>}
+    <article className={styles.hero}><span aria-hidden="true">{place.type === "museum" ? "⌂" : "⌖"}</span><p className={styles.kicker}><Sparkles size={14}/>{place.status === "open" ? "Bu həftə açıqdır" : "Bu həftə bağlıdır"} · {place.district}</p><h1>{place.name}</h1><p className={styles.location}><MapPin size={15}/>{place.district} · {place.radiusMeters} m radius</p><p>{place.description}</p>{place.is_ticketed && <p className={styles.reward}>Biletli məkan · hər tapşırığa əlavə +{place.ticketed_place_bonus_xp} XP</p>}<TicketLinkList place={place}/>
       {owner ? <TerritorySummary owner={owner} universityId={me?.universityId}/> : <div className={styles.reward}>Bu həftə ərazi xalı hələ qazanılmayıb.</div>}
     </article>
     <GroupBonusInfo status={place.group_bonus}/>
