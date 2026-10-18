@@ -108,6 +108,7 @@
 }
 .saveButton { width: 100%; margin-top: 12px; border: 0; font: inherit; cursor: pointer; }.saveButton:disabled { opacity: .55; cursor: not-allowed; }
 .progressHead{display:flex;justify-content:space-between;gap:8px;color:$text-secondary;font-size:12px}.card progress{width:100%;height:9px;margin-top:10px;accent-color:$mint}.card label{display:grid;gap:7px;color:$text-secondary;font-size:12px}.card input{min-height:45px;padding:9px 11px;border:1px solid rgba($mint,.22);border-radius:9px;color:$text;background:$navy}.avatarChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.avatarChoices button{display:grid;gap:5px;min-height:54px;padding:9px 10px;border:1px solid rgba($mint,.2);border-radius:9px;color:$mint;background:rgba($mint,.07);text-align:left}.avatarChoices button small{color:$text-secondary;font-size:10px}.avatarChoices button:disabled{color:$muted;opacity:.8}.avatarChoices button[aria-pressed="true"]{border-color:$gold;color:$gold}
+.lanternCard{display:grid;gap:13px;padding:17px 19px;border:1px solid rgba($gold,.2);border-radius:$radius-card;background:linear-gradient(120deg,rgba($surface,.92),rgba($ink,.82))}.lanternHeading{display:flex;align-items:center;gap:10px}.lanternHeading>span{display:grid;place-items:center;width:37px;height:37px;border-radius:11px;color:$gold;background:rgba($gold,.13);font-size:22px}.lanternHeading>div{display:grid;gap:4px;flex:1}.lanternHeading b{color:$text}.lanternHeading small{color:$text-secondary;font-size:10px}.lanternHeading>strong{color:$gold}.lanternFlames{display:flex;gap:9px;padding-left:3px}.lanternFlames i{color:rgba($muted,.35);font-style:normal;font-size:21px;transition:color .25s ease,filter .25s ease}.lanternFlames .litFlame{color:$gold;filter:drop-shadow(0 0 9px rgba($gold,.65))}
 
 @media (max-width: $mobile) {
   .name {
@@ -118,5 +119,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .stat { min-width: 0; }.stat strong { overflow-wrap: anywhere; font-size: 18px; }
+  .lanternCard{padding:14px}.lanternHeading small{line-height:1.4}
   .avatarChoices { grid-template-columns: 1fr; }
 }

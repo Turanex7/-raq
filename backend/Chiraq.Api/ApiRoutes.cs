@@ -50,7 +50,7 @@ public static class ApiRoutes
     public static void MapChiraqApi(this WebApplication app)
     {
         var api = app.MapGroup("/api");
-        api.MapGet("/config", () => Results.Ok(new
+        api.MapGet("/config", (IConfiguration config) => Results.Ok(new
         {
             level_xp = GameRules.LevelXp,
             outdoor_pin_xp = GameRules.OutdoorPinXp,
@@ -59,6 +59,16 @@ public static class ApiRoutes
             group_bonus = new { minimum_members = GameRules.GroupBonusMinimumMembers, window_minutes = GameRules.GroupBonusWindowMinutes, multipliers = GameRules.GroupMultipliers },
             maximum_week_multiplier = GameRules.MaximumWeekMultiplier,
             time_zone = GameRules.TimeZoneId,
+            story_chapter = new
+            {
+                id = config["GAME_STORY:ChapterId"] ?? "lantern",
+                title = config["GAME_STORY:ChapterTitle"] ?? "Çırağın ilk işığı",
+                puzzle_hint = config["GAME_STORY:PuzzleHint"] ?? "Qaranlıqda parlayan nöqtəni tap və toxun.",
+                clue = config["GAME_STORY:Clue"] ?? "Eksponata diqqətlə bax, sonra yaxınlıqdakı QR işarəsini skan et.",
+                flame_lit = config["GAME_STORY:FlameLit"] ?? "Bir alov parçası işıqlandı.",
+                cliffhanger = config["GAME_STORY:Cliffhanger"] ?? "Növbəti alov başqa yerdədir...",
+                needs_review = true,
+            },
         }));
         api.MapGet("/universities", async (AppDbContext db) => Results.Ok(await db.Universities.OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, shortName = x.ShortName }).ToListAsync()));
         api.MapGet("/avatars", async (AppDbContext db) => Results.Ok(await db.Avatars.OrderBy(x => x.UnlockLevel).Select(x => new { x.Id, x.Name, unlock_level = x.UnlockLevel, illustration = x.Illustration }).ToListAsync()));
@@ -153,7 +163,17 @@ public static class ApiRoutes
         var uni = await db.Universities.FindAsync(user.UniversityId);
         return new { user.Id, user.Name, user.Email, university = uni?.Name, universityId = user.UniversityId, user.AvatarId,
             user.VisitedMuseumLast12Months, user.FirstMuseumVisitCompleted, lifetimeXp = await XpFor(db, user.Id), weeklyXp = await XpFor(db, user.Id, seasonId),
-            level = (await XpFor(db, user.Id)) / GameRules.LevelXp + 1 };
+            level = (await XpFor(db, user.Id)) / GameRules.LevelXp + 1,
+            lantern = await LanternProgress(db, user.Id, seasonId) };
+    }
+
+    private static async Task<object> LanternProgress(AppDbContext db, string userId, string? seasonId)
+    {
+        var completedPlaces = seasonId is null ? 0 : await db.TaskCompletions
+            .Where(x => x.UserId == userId && x.SeasonId == seasonId)
+            .Join(db.Tasks, completion => completion.TaskId, task => task.Id, (completion, task) => task.PlaceId)
+            .Distinct().CountAsync();
+        return new { lit = Math.Min(5, 1 + completedPlaces), total = 5, completed_places = completedPlaces };
     }
 
     private static async Task<IResult> GetMe(HttpContext http, AppDbContext db, Tokens tokens)
@@ -448,6 +468,7 @@ public static class ApiRoutes
             territory_change = territoryChanged ? new { message = TerritoryTakeoverMessage(place, beforeOwner), owner = afterOwner } : null,
             correct, correct_answer = correct ? null : correctAnswer, fact = correct ? null : fact,
             prize_eligible = user.PrizeEligible,
+            lantern = await LanternProgress(db, user.Id, season.Id),
         };
         return Results.Ok(result);
     }

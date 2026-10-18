@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, Clock3, QrCode, Sparkles, Users, Zap } from "lucide-react";
+import { ArrowLeft, Check, Clock3, Flame, QrCode, Sparkles, Users, Zap } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest, apiPost } from "../../services/api";
 import ShareCardButton from "./ShareCardButton";
 import styles from "./ContentPages.module.scss";
+import useApiResource from "../../services/useApiResource";
 
 export default function QuestDetailPage() {
   return <ApiTaskPlayer />;
@@ -14,8 +15,10 @@ function ApiTaskPlayer() {
   const navigate = useNavigate();
   const location = useLocation();
   const [search] = useSearchParams();
+  const { data: gameConfig } = useApiResource("/config");
   const slug = search.get("place");
   const returnedSessionId = search.get("sessionId");
+  const lanternChapter = search.get("chapter") === "lantern" || location.state?.lanternChapter === true;
   const [place, setPlace] = useState(null);
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -85,7 +88,7 @@ function ApiTaskPlayer() {
     {error && <p role="alert" className={styles.error}>{error}</p>}
     {!result && task.type === "quiz" && <div className={styles.contentCard}><h2>{task.payload?.question || "Suala cavab ver"}</h2><p>Səhv cavab cərimə yaratmır; mümkün XP-nin 40%-i verilir.</p><form onSubmit={(event) => { event.preventDefault(); complete(); }}><label className={styles.answerLabel}>Cavabın<input value={answer} onChange={(event) => setAnswer(event.target.value)} required maxLength={100} placeholder="Cavabını yaz"/></label><button className={styles.action} disabled={submitting} type="submit">{submitting ? "Yoxlanılır…" : "Cavabı təsdiqlə"}</button></form></div>}
     {!result && task.type === "vote" && <div className={styles.contentCard}><h2>{task.payload?.question || "Seçimini et"}</h2><div className={styles.voteOptions}>{(task.payload?.choices || ["Memarlıq", "Tarix", "İncəsənət"]).map((choice) => <button key={choice} disabled={submitting} type="button" onClick={() => { setAnswer(choice); complete(choice); }}>{choice}</button>)}</div><p>Bu subyektiv seçimdir; hər cavaba tam XP verilir.</p></div>}
-    {!result && task.type === "qr_scan" && <div className={styles.contentCard}><h2>Eksponatdakı QR kodu oxut</h2><p>Kameranı muzeydə yerləşən kodun üzərinə yönəlt.</p><Link className={styles.action} to={`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}`}><QrCode size={16}/>Skaneri aç</Link></div>}
+    {!result && task.type === "qr_scan" && <div className={styles.contentCard}><h2>Eksponatdakı QR kodu oxut</h2><p>Kameranı muzeydə yerləşən kodun üzərinə yönəlt.</p><Link className={styles.action} to={`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}${lanternChapter ? "&chapter=lantern" : ""}`}><QrCode size={16}/>Skaneri aç</Link></div>}
     {!result && task.type === "coop" && <div className={styles.contentCard}><h2>3 dostla eyni məkanda</h2><p>QR kodunu iki dəqiqə ərzində skan edin. Eyni universitetin və ya qrupun iştirakçıları qoşula bilər.</p><button className={styles.action} type="button" onClick={joinCoop}><Users size={16}/>Ko-op-a qoşul</button>{session && <div className={styles.lobby} role="status"><b>{session.joined}/{session.needed} dost qoşuldu</b><span><Clock3 size={14}/>Sessiya vaxtı: 2 dəqiqə</span><ul>{session.participants.map((member) => <li key={member.id}>{member.name}</li>)}</ul></div>}</div>}
     {!result && task.type === "find" && place.type === "museum" && <div className={styles.contentCard}><h2>Tapdığın detalı bölüş</h2><p>Subyektiv tapşırıqdır; istənilən səmimi cavab tam XP qazandırır.</p><form onSubmit={(event) => { event.preventDefault(); complete(); }}><label className={styles.answerLabel}>Məkanda hansı detalı tapdın?<input value={answer} onChange={(event) => setAnswer(event.target.value)} required maxLength={240} placeholder="Məsələn, fasaddakı naxış"/></label><button className={styles.action} type="submit" disabled={submitting}>Tapşırığı tamamla</button></form></div>}
     {!result && task.type === "find" && place.type === "outdoor" && <div className={styles.contentCard}><h2>Məkanın radiusunda ol</h2><p>GPS icazəsi olmadan açıq hava yoxlaması mümkün deyil. Lokasiya məlumatı yalnız yoxlama zamanı istifadə olunur.</p><Link className={styles.action} to={`/scanner?taskId=${encodeURIComponent(task.id)}&place=${encodeURIComponent(place.slug)}&checkin=1`}>Yoxlamaya başla</Link></div>}
@@ -104,6 +107,8 @@ function ApiTaskPlayer() {
       {result.avatar_unlocked?.length > 0 && <p className={styles.levelMoment}>Açılan avatar: <b>{result.avatar_unlocked.map((avatar) => avatar.name).join(", ")}</b></p>}
       {result.souvenir_drop && <p>Suvenir kolleksiyaya əlavə olundu: <b>{result.souvenir_drop.name}</b> · {rarityName(result.souvenir_drop.rarity)}</p>}
       {result.territory_change && <p>{result.territory_change.message}</p>}
+      {lanternChapter && <div className={styles.flameMoment} role="status"><span className={styles.flameIcon}><Flame size={24} fill="currentColor"/></span><div><b>{result.lantern?.lit ?? "—"}/{result.lantern?.total ?? "—"} alov işıqlanıb</b><p>{gameConfig?.story_chapter?.flame_lit || "Bir alov parçası işıqlandı."}</p><p className={styles.cliffhanger}>{gameConfig?.story_chapter?.cliffhanger || "Növbəti alov başqa yerdədir..."}</p></div></div>}
+      {lanternChapter && place.type === "museum" && <div className={styles.nextChapter}><b>İndi eksponata bax</b><p>Yaxınlıqda tamamlanmamış asan və orta tapşırıqlar:</p>{(place.tasks || []).filter((candidate) => !candidate.completed && ["easy", "medium"].includes(candidate.difficulty) && candidate.type !== "qr_scan" && candidate.type !== "coop").slice(0, 2).map((candidate) => <Link key={candidate.id} to={`/quests/${candidate.id}?place=${encodeURIComponent(place.slug)}&chapter=lantern`}>{candidate.title} →</Link>)}</div>}
       <ShareCardButton placeId={place.slug}/><Link className={styles.secondary} to={`/museums/${place.slug}`}>Başqa tapşırıq seç</Link>
     </div>}
   </section>;

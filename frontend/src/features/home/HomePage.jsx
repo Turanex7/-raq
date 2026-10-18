@@ -5,6 +5,7 @@ import useApiResource from "../../services/useApiResource";
 import heroBackdrop from "../../assets/icherisheher-hero.png";
 import GameHUD from "./components/GameHUD";
 import LandmarkPanel from "./components/LandmarkPanel";
+import LanternJourney from "./LanternJourney";
 import styles from "./HomePage.module.scss";
 
 const AdventureWorld = lazy(() => import("./components/AdventureWorld"));
@@ -91,6 +92,7 @@ export default function HomePage() {
           <MascotTip />
         </div>
       </section>
+      <LanternJourney places={apiPlaces || []}/>
       <MissionCards apiPlaces={apiPlaces} loading={placesLoading} error={placesError} />
       <p className={styles.illustrationNote}>3D səhnə tarixi məkanlardan ilhamlanan stilizə edilmiş oyun dünyasıdır; tarixi rekonstruksiya deyil.</p>
     </div>
