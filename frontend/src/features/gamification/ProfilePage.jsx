@@ -72,7 +72,7 @@ function MockProfile() {
 }
 
 function ApiProfile() {
-  const { data: user, loading, error, retry } = useApiResource("/me");
+  const { data: user, loading, error, retry, setData } = useApiResource("/me");
   const { data: avatars } = useApiResource("/avatars");
   const { data: config } = useApiResource("/config");
   const { data: season } = useApiResource("/seasons/current");
@@ -88,12 +88,14 @@ function ApiProfile() {
   const avatarXpRemaining = levelXp && next ? Math.max(0, (next.unlock_level - 1) * levelXp - user.lifetimeXp) : null;
   async function saveProfile(event) {
     event.preventDefault(); setMessage(""); setSaveError("");
-    try { await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ name }) }); setMessage("Profil yeniləndi."); window.location.reload(); }
+    const trimmedName = name.trim();
+    if (trimmedName.length < 2) return;
+    try { const updatedUser = await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ name: trimmedName }) }); setData(updatedUser); setName(""); setMessage("Profil yeniləndi."); window.dispatchEvent(new Event("chiraq:profile-updated")); }
     catch (requestError) { setSaveError(requestError.message); }
   }
   async function selectAvatar(avatarId) {
     setMessage(""); setSaveError("");
-    try { await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ avatarId }) }); setMessage("Avatar dəyişdirildi."); window.location.reload(); }
+    try { const updatedUser = await apiRequest("/me", { method: "PATCH", body: JSON.stringify({ avatarId }) }); setData(updatedUser); setMessage("Avatar dəyişdirildi."); window.dispatchEvent(new Event("chiraq:profile-updated")); }
     catch (requestError) { setSaveError(requestError.message); }
   }
   return <section className={styles.page}>
@@ -103,7 +105,7 @@ function ApiProfile() {
     {season && <div className={styles.card}><WeeklyResetCountdown secondsRemaining={season.seconds_remaining}/></div>}
     <div className={styles.card}><div className={styles.progressHead}><b>Növbəti səviyyəyə irəliləyiş</b><span>{levelXp ? `${progress}/${levelXp} XP` : "Qayda yüklənir…"}</span></div>{levelXp ? <progress value={progress} max={levelXp} aria-label={`Səviyyə ${user.level} irəliləyişi`} /> : <p role="status">Səviyyə qaydası yüklənir…</p>}{next && <p>Növbəti avatar: {next.name}, {avatarXpRemaining ?? "—"} XP qalıb</p>}</div>
     <div className={styles.card}><h2>Avatar kolleksiyası</h2><div className={styles.avatarChoices}>{avatars?.map((avatar) => { const unlocked = avatar.unlock_level <= user.level; return <button key={avatar.id} type="button" disabled={!unlocked} aria-pressed={avatar.id === user.avatarId} onClick={() => selectAvatar(avatar.id)}>{avatar.name}<small>{unlocked ? avatar.id === user.avatarId ? "Açıqdır · Seçilib" : "Açıqdır" : `Bağlıdır · ${avatar.unlock_level}-ci səviyyədə açılır`}</small></button>; })}</div></div>
-    <form className={styles.card} onSubmit={saveProfile}><label>Adını yenilə<input value={name} onChange={(event) => setName(event.target.value)} maxLength={50} minLength={2} placeholder={user.name}/></label><button className={styles.rewardsLink} type="submit" disabled={!name.trim()}>Yadda saxla</button>{message && <p role="status">{message}</p>}{saveError && <p role="alert">{saveError}</p>}</form>
+    <form className={styles.card} onSubmit={saveProfile}><label>Adını yenilə<input value={name} onChange={(event) => { setName(event.target.value); setMessage(""); setSaveError(""); }} maxLength={50} minLength={2} placeholder={user.name}/></label><button className={`${styles.rewardsLink} ${styles.saveButton}`} type="submit" disabled={name.trim().length < 2 || name.trim() === user.name}>Yadda saxla</button>{message && <p role="status">{message}</p>}{saveError && <p role="alert">{saveError}</p>}</form>
     <Link to="/museum" className={styles.rewardsLink}>Şəxsi Virtual Muzeyə bax</Link>
   </section>;
 }

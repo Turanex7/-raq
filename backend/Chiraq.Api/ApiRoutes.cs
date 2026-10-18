@@ -87,6 +87,7 @@ public static class ApiRoutes
         api.MapPost("/admin/demo/advance-week", AdvanceWeek);
         api.MapGet("/dev/qr-sheet", GetQrSheet);
         api.MapGet("/demo/qr/{taskId}", GetDemoQr);
+        api.MapPost("/demo/checkin/{taskId}", DemoCheckin).RequireRateLimiting("checkin");
     }
 
     private static IResult Fail(int status, string code, string message) => Results.Json(new { error = new { code, message } }, statusCode: status);
@@ -970,6 +971,28 @@ public static class ApiRoutes
         var place = task is null ? null : await db.Places.FindAsync(task.PlaceId);
         if (task is null || place is null) return Fail(404, "task_not_found", "Tapşırıq tapılmadı.");
         return Results.Ok(new { task_id = task.Id, qr_payload = tokens.QrToken(place.Slug, task.Code, place.QrSecretVersion) });
+    }
+
+    private static async Task<IResult> DemoCheckin(string taskId, HttpContext http, AppDbContext db, Tokens tokens, IConfiguration config)
+    {
+        if (!bool.TryParse(config["DEMO_MODE"], out var demo) || !demo) return Fail(404, "not_found", "Demo rejimi bağlıdır.");
+        var user = await CurrentUser(http, db, tokens);
+        if (user is null) return Fail(401, "unauthorized", "Giriş etdikdən sonra yenidən cəhd et.");
+        var task = await db.Tasks.FindAsync(taskId);
+        var place = task is null ? null : await db.Places.FindAsync(task.PlaceId);
+        if (task is null || place is null) return Fail(404, "task_not_found", "Tapşırıq tapılmadı.");
+        if (place.Type != "outdoor") return Fail(400, "outdoor_place_required", "Demo GPS yoxlaması yalnız açıq hava məkanları üçündür.");
+        if (!place.IsOpen) return Fail(409, "place_locked", "Bu məkan hələ açılmayıb.");
+        var season = await ActiveSeason(db, DateTimeOffset.UtcNow);
+        if (season is null) return Fail(503, "season_unavailable", "Cari mövsüm tapılmadı.");
+        var existing = await db.Checkins.FirstOrDefaultAsync(x => x.UserId == user.Id && x.PlaceId == place.Id && x.SeasonId == season.Id && x.Valid);
+        if (existing is not null) return Results.Ok(new { valid = true, demo = true, place_id = place.Id, already_checked_in = true });
+        var now = DateTimeOffset.UtcNow;
+        if (await db.Checkins.CountAsync(x => x.UserId == user.Id && x.CreatedAtUtc >= now.AddHours(-1)) >= GameRules.MaximumCheckinsPerHour)
+            return Fail(429, "checkin_limit", "Bir saat ərzində pin yoxlamalarının say həddinə çatmısan.");
+        db.Checkins.Add(new Checkin { UserId = user.Id, PlaceId = place.Id, SeasonId = season.Id, Valid = true, AccuracyMeters = 1, CreatedAtUtc = now });
+        await db.SaveChangesAsync();
+        return Results.Ok(new { valid = true, demo = true, place_id = place.Id, checked_at_utc = now });
     }
 
     private sealed record RegisterRequest(string? Name, string? Email, string? Password, string? UniversityId, string? AvatarId, bool? VisitedMuseumLast12Months);

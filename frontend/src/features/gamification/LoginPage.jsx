@@ -45,7 +45,7 @@ export default function LoginPage() {
         const account = await apiPost("/auth/login", { email, password });
         window.localStorage.setItem("chiraq_token", account.token);
       }
-      navigate("/map");
+      navigate("/");
     } catch (submitError) { setError(submitError.message || "Daxil olmaq mümkün olmadı."); }
     finally { setBusy(false); }
   }

@@ -40,13 +40,18 @@ export default function AppLayout() {
   const hasToken = typeof window !== "undefined" && Boolean(window.localStorage.getItem("chiraq_token"));
   const { data: apiUser, retry: refreshApiUser } = useApiResource("/me", !useMocks && hasToken);
   const currentUser = game.users.find((user) => user.id === game.currentUserId);
+  const isAuthenticated = useMocks ? Boolean(currentUser) : Boolean(apiUser);
   const level = useMocks ? Math.floor(currentUser.xp / GAME_CONFIG.levelXp) + 1 : apiUser?.level || 1;
   const lifetimeXp = useMocks ? currentUser.xp : apiUser?.lifetimeXp ?? 0;
   const title = pageTitle(location.pathname);
   useEffect(() => { document.title = `${title} · Çıraq`; }, [title]);
   useEffect(() => {
     window.addEventListener("chiraq:xp-updated", refreshApiUser);
-    return () => window.removeEventListener("chiraq:xp-updated", refreshApiUser);
+    window.addEventListener("chiraq:profile-updated", refreshApiUser);
+    return () => {
+      window.removeEventListener("chiraq:xp-updated", refreshApiUser);
+      window.removeEventListener("chiraq:profile-updated", refreshApiUser);
+    };
   }, [refreshApiUser]);
   const showDemo = () => { window.location.assign("/map?demo=1"); };
   const logOut = () => {
@@ -63,14 +68,14 @@ export default function AppLayout() {
         <nav className={styles.nav} aria-label="Əsas naviqasiya">
           {navigation.map((item) => <NavigationLink key={item.to} item={item} pathname={location.pathname} />)}
         </nav>
-        <Link to={useMocks || hasToken ? "/profile" : "/login"} className={styles.profilePill} aria-label={useMocks || hasToken ? "Profilə keç" : "Daxil ol"}>
+        <Link to={isAuthenticated ? "/profile" : "/login"} className={styles.profilePill} aria-label={isAuthenticated ? "Profilə keç" : "Daxil ol"}>
           <span className={styles.profileAvatar}>{(apiUser?.name || (useMocks ? currentUser.name : "Ç")).slice(0, 1)}</span>
-          <span><b>{useMocks || hasToken ? `Səviyyə ${level}` : "Daxil ol"}</b></span>
+          <span><b>{isAuthenticated ? `Səviyyə ${level}` : "Daxil ol"}</b></span>
         </Link>
         <XpExplainer className={styles.xpHelp}>
           <Zap size={14} aria-hidden="true"/><span>Ümumi XP · {lifetimeXp}</span>
         </XpExplainer>
-        {hasToken && <button type="button" className={styles.logout} onClick={logOut}><LogOut size={16} aria-hidden="true"/><span>Çıxış</span></button>}
+        {isAuthenticated && <button type="button" className={styles.logout} onClick={logOut}><LogOut size={16} aria-hidden="true"/><span>Çıxış</span></button>}
       </header>
       <main className={styles.main}><Outlet /></main>
       <nav className={styles.mobileNav} aria-label="Mobil naviqasiya">
